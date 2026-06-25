@@ -30,8 +30,6 @@ export default function ClassRecordScreen() {
   const [editingDate, setEditingDate] = useState('');
   const [editingContent, setEditingContent] = useState('');
   const [editingBookIssue, setEditingBookIssue] = useState('');
-  const [editingCmsDeposit, setEditingCmsDeposit] = useState('');
-  
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // 기록 추가 모달 열기
@@ -41,7 +39,6 @@ export default function ClassRecordScreen() {
     setEditingDate(today);
     setEditingContent('');
     setEditingBookIssue('');
-    setEditingCmsDeposit('');
     setModalVisible(true);
   }, []);
 
@@ -51,7 +48,6 @@ export default function ClassRecordScreen() {
     setEditingDate(record.class_date);
     setEditingContent(record.content || '');
     setEditingBookIssue(record.book_issue_date || '');
-    setEditingCmsDeposit(record.cms_deposit_info || '');
     setModalVisible(true);
   }, []);
 
@@ -102,7 +98,6 @@ export default function ClassRecordScreen() {
       student_id: studentId,
       class_date: editingDate,
       book_issue_date: editingBookIssue.trim() || null,
-      cms_deposit_info: editingCmsDeposit.trim() || null,
       content: editingContent.trim() || null,
     };
 
@@ -146,13 +141,9 @@ export default function ClassRecordScreen() {
   const renderRecordCard = ({ item }) => {
     return (
       <View style={styles.sheetContainer}>
-        {/* 그림 2 상단 설정 부분 유사 구성 */}
         <View style={styles.sheetTopRow}>
           <Text style={styles.sheetTopText}>
             출고/과정: <Text style={styles.sheetValueText}>{item.book_issue_date || '(미입력)'}</Text>
-          </Text>
-          <Text style={styles.sheetTopText}>
-            수납: <Text style={styles.sheetValueText}>{item.cms_deposit_info || '(미입력)'}</Text>
           </Text>
         </View>
         
@@ -292,16 +283,6 @@ export default function ClassRecordScreen() {
                 />
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>납부 및 입금 형태 (CMS/지사입금)</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={editingCmsDeposit}
-                  onChangeText={setEditingCmsDeposit}
-                  placeholder="예: 6/25 CMS 완료, 지사입금 등"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
 
               {/* 수업 내용 */}
               <View style={styles.inputGroup}>
@@ -424,8 +405,6 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRightWidth: 1,
-    borderRightColor: '#E5E7EB',
   },
   sheetValueText: {
     color: '#111827',

@@ -35,10 +35,6 @@ export default function StudentDetailScreen() {
   const [parentName, setParentName] = useState('');
   const [parentMobilePhone, setParentMobilePhone] = useState('');
 
-  // CMS 데이터 상태
-  const [cmsBankOwner, setCmsBankOwner] = useState('');
-  const [cmsAccountNumber, setCmsAccountNumber] = useState('');
-  const [cmsResidentNumber, setCmsResidentNumber] = useState('');
 
   // 기타 데이터 상태
   const [notes, setNotes] = useState('');
@@ -62,9 +58,6 @@ export default function StudentDetailScreen() {
             setParentName(student.parent_name || '');
             setParentMobilePhone(student.parent_mobile_phone || '');
             
-            setCmsBankOwner(student.cms_bank_owner || '');
-            setCmsAccountNumber(student.cms_account_number || '');
-            setCmsResidentNumber(student.cms_resident_number || '');
             
             setNotes(student.notes || '');
           }
@@ -95,9 +88,7 @@ export default function StudentDetailScreen() {
       study_method: studyMethod.trim() || null,
       parent_name: parentName.trim() || null,
       parent_mobile_phone: parentMobilePhone.trim() || null,
-      cms_bank_owner: cmsBankOwner.trim() || null,
-      cms_account_number: cmsAccountNumber.trim() || null,
-      cms_resident_number: cmsResidentNumber.trim() || null,
+
       notes: notes.trim() || null,
     };
 
@@ -322,63 +313,6 @@ export default function StudentDetailScreen() {
                     placeholder="010-0000-0000"
                     placeholderTextColor="#9CA3AF"
                     keyboardType="phone-pad"
-                  />
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* CMS 영역 (그림 1 재구성) */}
-          <View style={styles.sectionContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>CMS 정보</Text>
-            </View>
-
-            <View style={styles.gridTable}>
-              {/* Row 1 */}
-              <View style={styles.tableRow}>
-                <View style={[styles.cell, styles.labelCell]}>
-                  <Text style={styles.labelText}>은행, 예금주</Text>
-                </View>
-                <View style={[styles.cell, styles.inputCell]}>
-                  <TextInput
-                    style={styles.input}
-                    value={cmsBankOwner}
-                    onChangeText={setCmsBankOwner}
-                    placeholder="OO은행 홍길동"
-                    placeholderTextColor="#9CA3AF"
-                  />
-                </View>
-              </View>
-              {/* Row 2 */}
-              <View style={styles.tableRow}>
-                <View style={[styles.cell, styles.labelCell]}>
-                  <Text style={styles.labelText}>계좌번호</Text>
-                </View>
-                <View style={[styles.cell, styles.inputCell]}>
-                  <TextInput
-                    style={styles.input}
-                    value={cmsAccountNumber}
-                    onChangeText={setCmsAccountNumber}
-                    placeholder="하이픈(-) 없이 입력"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
-              {/* Row 3 */}
-              <View style={styles.tableRow}>
-                <View style={[styles.cell, styles.labelCell]}>
-                  <Text style={styles.labelText}>주민번호</Text>
-                </View>
-                <View style={[styles.cell, styles.inputCell]}>
-                  <TextInput
-                    style={styles.input}
-                    value={cmsResidentNumber}
-                    onChangeText={setCmsResidentNumber}
-                    placeholder="예금주 주민번호/생년월일"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="numeric"
                   />
                 </View>
               </View>

@@ -98,13 +98,7 @@ export default function CalendarScreen() {
         <Text style={styles.studentNameText}>{item.studentName}</Text>
         <Text style={styles.processText}>{item.book_issue_date || '과정 미입력'}</Text>
       </View>
-      {item.cms_deposit_info ? (
-        <View style={styles.badgeRow}>
-          <View style={styles.depositBadge}>
-            <Text style={styles.depositBadgeText}>{item.cms_deposit_info}</Text>
-          </View>
-        </View>
-      ) : null}
+
       <Text style={styles.recordContentText} numberOfLines={2}>
         {item.content || '기록된 수업 내용이 없습니다.'}
       </Text>
@@ -359,21 +353,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
-  badgeRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  depositBadge: {
-    backgroundColor: '#E0F2FE',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  depositBadgeText: {
-    fontSize: 11,
-    color: '#0369A1',
-    fontWeight: '600',
-  },
+
   recordContentText: {
     fontSize: 14,
     color: '#4B5563',
