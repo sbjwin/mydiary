@@ -141,3 +141,44 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# --- React Native / Metro Cache ---
+.expo/
+metro-cache/
+.metro/
+
+# --- Android specific ---
+android/app/build/
+android/.gradle/
+android/local.properties
+*.keystore
+*.apk
+*.aar
+*.jar
+
+# --- iOS specific ---
+ios/build/
+ios/Pods/
+ios/DerivedData/
+.xcode.env.local
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+
+# --- OS / Editor specific ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Walkthrough ---
+walkthrough.md
+
+
