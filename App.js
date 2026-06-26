@@ -32,24 +32,24 @@ export default function App() {
           cardStyle: { backgroundColor: '#f9f9f9' },
         }}
       >
-        <Stack.Screen 
-          name="Calendar" 
-          component={CalendarScreen} 
+        <Stack.Screen
+          name="Calendar"
+          component={CalendarScreen}
           options={{ title: '수업 캘린더' }}
         />
-        <Stack.Screen 
-          name="StudentList" 
-          component={StudentListScreen} 
+        <Stack.Screen
+          name="StudentList"
+          component={StudentListScreen}
           options={{ title: '학생 주소록' }}
         />
-        <Stack.Screen 
-          name="StudentDetail" 
-          component={StudentDetailScreen} 
+        <Stack.Screen
+          name="StudentDetail"
+          component={StudentDetailScreen}
           options={{ title: '학생 정보' }}
         />
-        <Stack.Screen 
-          name="ClassRecord" 
-          component={ClassRecordScreen} 
+        <Stack.Screen
+          name="ClassRecord"
+          component={ClassRecordScreen}
           options={{ title: '수업 일지 기록' }}
         />
       </Stack.Navigator>
