@@ -1,4 +1,12 @@
 {
-  "name": "mydiary_temp",
-  "displayName": "mydiary_temp"
+  "expo": {
+    "name": "mydiary_temp",
+    "slug": "mydiary_temp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    }
+  }
 }
