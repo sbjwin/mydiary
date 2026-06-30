@@ -182,3 +182,8 @@ Thumbs.db
 walkthrough.md
 
 
+
+# Expo
+.expo
+dist/
+web-build/
