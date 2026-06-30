@@ -187,3 +187,20 @@ walkthrough.md
 .expo
 dist/
 web-build/
+# --- Exclude Large C++ Build Artifacts ---
+android/.cxx/
+android/app/.cxx/
+.cxx/
+
+# --- Sensitive Data & Databases ---
+*.sqlite
+*.db
+*.db-journal
+
+# --- Keys and Secrets ---
+google-services.json
+GoogleService-Info.plist
+*.p12
+*.cert
+*.mobileprovision
+
