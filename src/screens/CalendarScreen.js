@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  FlatList, 
-  SafeAreaView, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  SafeAreaView,
   ActivityIndicator,
   Modal
 } from 'react-native';
@@ -18,7 +18,7 @@ const Separator = () => <View style={styles.separator} />;
 export default function CalendarScreen() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
-  
+
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split('T')[0]
   );
@@ -38,7 +38,7 @@ export default function CalendarScreen() {
 
       // 캘린더 마킹 데이터 생성
       const newMarkedDates = {};
-      
+
       // 수업 기록이 있는 날짜에 점 표시
       allRecs.forEach((rec) => {
         newMarkedDates[rec.class_date] = {
@@ -80,18 +80,18 @@ export default function CalendarScreen() {
   // 새로운 수업 기록 추가를 위해 학생 선택 시 호출
   const handleSelectStudentForRecord = (studentId) => {
     setStudentSelectVisible(false);
-    navigation.navigate('ClassRecord', { 
-      studentId, 
-      selectedDate 
+    navigation.navigate('ClassRecord', {
+      studentId,
+      selectedDate
     });
   };
 
   const renderRecordItem = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.recordCard}
-      onPress={() => navigation.navigate('ClassRecord', { 
-        studentId: item.student_id, 
-        recordId: item.id 
+      onPress={() => navigation.navigate('ClassRecord', {
+        studentId: item.student_id,
+        recordId: item.id
       })}
     >
       <View style={styles.recordHeader}>
@@ -110,7 +110,7 @@ export default function CalendarScreen() {
       {/* 상단 네비게이션 헤더 역할의 바 */}
       <View style={styles.topMenuBar}>
         <Text style={styles.titleText}>수업 관리</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.addressBookButton}
           onPress={() => navigation.navigate('StudentList')}
         >
@@ -154,7 +154,7 @@ export default function CalendarScreen() {
         ) : records.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>이 날짜에 기록된 수업이 없습니다.</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addRecordButtonInline}
               onPress={() => setStudentSelectVisible(true)}
             >
@@ -173,7 +173,7 @@ export default function CalendarScreen() {
 
       {/* 플로팅 추가 버튼 */}
       {records.length > 0 && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.fabButton}
           onPress={() => setStudentSelectVisible(true)}
         >
@@ -196,11 +196,11 @@ export default function CalendarScreen() {
                 <Text style={styles.closeButtonText}>닫기</Text>
               </TouchableOpacity>
             </View>
-            
+
             {students.length === 0 ? (
               <View style={styles.modalEmpty}>
                 <Text style={styles.modalEmptyText}>등록된 학생이 없습니다.</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalAddStudentBtn}
                   onPress={() => {
                     setStudentSelectVisible(false);
@@ -215,7 +215,7 @@ export default function CalendarScreen() {
                 data={students}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.studentSelectItem}
                     onPress={() => handleSelectStudentForRecord(item.id)}
                   >
