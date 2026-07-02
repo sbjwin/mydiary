@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mydiary_temp",
-    "slug": "mydiary_temp",
+    "name": "mydiary",
+    "slug": "mydiary",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",

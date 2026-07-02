@@ -148,6 +148,7 @@ metro-cache/
 .metro/
 
 # --- Android specific ---
+android/build/
 android/app/build/
 android/.gradle/
 android/local.properties
@@ -166,6 +167,9 @@ ios/DerivedData/
 *.mode2v3
 *.perspectivev3
 xcuserdata/
+*.ipa
+*.dSYM.zip
+*.dSYM
 
 # --- OS / Editor specific ---
 .DS_Store
@@ -203,4 +207,3 @@ GoogleService-Info.plist
 *.p12
 *.cert
 *.mobileprovision
-

@@ -2,4 +2,4 @@ import 'react-native-gesture-handler';
 import { AppRegistry } from 'react-native';
 import App from './App';
 
-AppRegistry.registerComponent('mydiary_temp', () => App);
+AppRegistry.registerComponent('mydiary', () => App);

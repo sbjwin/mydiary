@@ -111,3 +111,21 @@ cd android
 ### ⚠️ 문제점 4: New Architecture와 라이브러리 간 호환성 검토
 *   **현황**: 최신 React Native 버전인 `0.86.0`을 사용 중이며 New Architecture가 적용되어 있습니다.
 *   **주의점**: 향후 추가할 외부 Native 라이브러리 중 일부 구버전 패키지는 New Architecture 하에서 빌드 에러를 유발할 수 있습니다. 추가적인 Native 라이브러리를 설치할 때 꼭 해당 라이브러리가 React Native New Architecture를 지원하는지 문서를 먼저 확인해야 합니다. 만약 빌드가 계속 깨진다면 `gradle.properties`에서 `newArchEnabled=false`로 잠시 끄는 것도 방안이 될 수 있습니다.
+
+---
+
+## 5. Git 관련 주의사항 (.gitignore 및 캐시 정리)
+
+`.gitignore`에 뒤늦게 무거운 빌드 파일이나 캐시 폴더를 추가한 경우, 이전에 이미 커밋되어 원격 저장소에 올라가버린 파일들은 Git이 계속 추적하게 됩니다.
+이러한 파일들의 추적 기록(캐시)을 일괄적으로 지우고 `.gitignore`를 제대로 적용하려면 터미널에서 아래 명령어를 순서대로 실행하세요.
+
+```bash
+# 1. 원격 및 로컬의 모든 Git 추적 캐시를 삭제 (실제 파일은 삭제되지 않음)
+git rm -r --cached .
+
+# 2. .gitignore 규칙을 적용하여 다시 파일들을 스테이징
+git add .
+
+# 3. 캐시 삭제 내용을 커밋
+git commit -m "chore: .gitignore 설정 업데이트 및 캐시 정리"
+```

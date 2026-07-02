@@ -1,4 +1,0 @@
-E:/development/mydiary/android/app/.cxx/Debug/5z622i38/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir
-E:/development/mydiary/android/app/.cxx/Debug/5z622i38/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir
-E:/development/mydiary/android/app/.cxx/Debug/5z622i38/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/edit_cache.dir
-E:/development/mydiary/android/app/.cxx/Debug/5z622i38/x86_64/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/rebuild_cache.dir
