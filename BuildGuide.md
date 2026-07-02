@@ -128,4 +128,8 @@ git add .
 
 # 3. 캐시 삭제 내용을 커밋
 git commit -m "chore: .gitignore 설정 업데이트 및 캐시 정리"
+
+# 4. 원격 저장소에 적용
+git push origin main
+# (또는 현재 브랜치 이름에 맞게: git push)
 ```
