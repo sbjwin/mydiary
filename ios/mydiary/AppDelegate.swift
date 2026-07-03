@@ -25,7 +25,7 @@ class AppDelegate: ExpoAppDelegate {
     window = UIWindow(frame: UIScreen.main.bounds)
 
     factory.startReactNative(
-      withModuleName: "mydiary_temp",
+      withModuleName: "mydiary",
       in: window,
       launchOptions: launchOptions
     )
