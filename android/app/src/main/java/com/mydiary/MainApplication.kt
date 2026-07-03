@@ -1,4 +1,4 @@
-package com.mydiary_temp
+package com.mydiary
 import android.content.res.Configuration
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ExpoReactHostFactory
