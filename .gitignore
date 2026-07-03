@@ -207,3 +207,10 @@ GoogleService-Info.plist
 *.p12
 *.cert
 *.mobileprovision
+*.pem
+*.rsa
+*.pub
+android/key.properties
+auth.json
+credentials.json
+expo-credentials.json
