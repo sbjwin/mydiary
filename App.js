@@ -7,6 +7,7 @@ import CalendarScreen from './src/screens/CalendarScreen';
 import StudentListScreen from './src/screens/StudentListScreen';
 import StudentDetailScreen from './src/screens/StudentDetailScreen';
 import ClassRecordScreen from './src/screens/ClassRecordScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 const Stack = createStackNavigator();
 
@@ -52,6 +53,11 @@ export default function App() {
           name="ClassRecord"
           component={ClassRecordScreen}
           options={{ title: '수업 일지 기록' }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ title: '설정' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

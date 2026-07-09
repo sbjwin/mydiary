@@ -110,12 +110,20 @@ export default function CalendarScreen() {
       {/* 상단 네비게이션 헤더 역할의 바 */}
       <View style={styles.topMenuBar}>
         <Text style={styles.titleText}>수업 관리</Text>
-        <TouchableOpacity
-          style={styles.addressBookButton}
-          onPress={() => navigation.navigate('StudentList')}
-        >
-          <Text style={styles.addressBookButtonText}>👤 주소록</Text>
-        </TouchableOpacity>
+        <View style={{flexDirection: 'row', gap: 8}}>
+          <TouchableOpacity
+            style={styles.addressBookButton}
+            onPress={() => navigation.navigate('Settings')}
+          >
+            <Text style={styles.addressBookButtonText}>⚙️ 설정</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addressBookButton}
+            onPress={() => navigation.navigate('StudentList')}
+          >
+            <Text style={styles.addressBookButtonText}>👤 주소록</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 달력 컴포넌트 */}

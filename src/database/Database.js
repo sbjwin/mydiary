@@ -14,7 +14,7 @@ const generateUUID = () => {
 
 export const Database = {
   // --- 학생 (주소록) CRUD ---
-  
+
   // 학생 전체 목록 조회
   getAllStudents: async () => {
     try {
@@ -45,7 +45,7 @@ export const Database = {
       id: generateUUID(),
       created_at: new Date().toISOString(),
     };
-    
+
     try {
       const students = await Database.getAllStudents();
       students.push(newStudent);
@@ -65,12 +65,12 @@ export const Database = {
       if (index === -1) {
         throw new Error(`Student with id ${id} not found`);
       }
-      
+
       const updatedStudent = {
         ...students[index],
         ...updatedData,
       };
-      
+
       students[index] = updatedStudent;
       await AsyncStorage.setItem(STUDENTS_KEY, JSON.stringify(students));
       return updatedStudent;
@@ -87,7 +87,7 @@ export const Database = {
       const students = await Database.getAllStudents();
       const filteredStudents = students.filter((s) => s.id !== id);
       await AsyncStorage.setItem(STUDENTS_KEY, JSON.stringify(filteredStudents));
-      
+
       // 2. 해당 학생의 수업 기록 삭제
       const records = await Database.getAllRecords();
       const filteredRecords = records.filter((r) => r.student_id !== id);
@@ -127,9 +127,9 @@ export const Database = {
     try {
       const records = await Database.getAllRecords();
       const students = await Database.getAllStudents();
-      
+
       const filteredRecords = records.filter((r) => r.class_date === dateString);
-      
+
       return filteredRecords.map((record) => {
         const student = students.find((s) => s.id === record.student_id);
         return {
@@ -150,7 +150,7 @@ export const Database = {
       id: generateUUID(),
       created_at: new Date().toISOString(),
     };
-    
+
     try {
       const records = await Database.getAllRecords();
       records.push(newRecord);
@@ -170,12 +170,12 @@ export const Database = {
       if (index === -1) {
         throw new Error(`Class record with id ${id} not found`);
       }
-      
+
       const updatedRecord = {
         ...records[index],
         ...updatedData,
       };
-      
+
       records[index] = updatedRecord;
       await AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(records));
       return updatedRecord;
@@ -193,6 +193,49 @@ export const Database = {
       await AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(filteredRecords));
     } catch (e) {
       console.error(`Failed to delete class record ${id}:`, e);
+      throw e;
+    }
+  },
+
+  // --- 백업 / 복원 (Export / Import) ---
+
+  // 모든 데이터를 하나의 JSON 문자열로 내보내기
+  exportAllData: async () => {
+    try {
+      const students = await Database.getAllStudents();
+      const records = await Database.getAllRecords();
+
+      const backupData = {
+        students,
+        records,
+        timestamp: new Date().toISOString(),
+      };
+
+      return JSON.stringify(backupData);
+    } catch (e) {
+      console.error('Failed to export all data:', e);
+      throw e;
+    }
+  },
+
+  // JSON 파싱된 데이터를 기존 AsyncStorage에 덮어쓰기
+  importAllData: async (parsedData) => {
+    try {
+      if (!parsedData) {
+        throw new Error('No data provided for import');
+      }
+
+      // students와 records 필드가 배열인지 확인
+      const students = Array.isArray(parsedData.students) ? parsedData.students : [];
+      const records = Array.isArray(parsedData.records) ? parsedData.records : [];
+
+      // 로컬 스토리지에 덮어쓰기
+      await AsyncStorage.setItem(STUDENTS_KEY, JSON.stringify(students));
+      await AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+
+      console.log('Successfully imported data');
+    } catch (e) {
+      console.error('Failed to import all data:', e);
       throw e;
     }
   },
