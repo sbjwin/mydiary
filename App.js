@@ -8,6 +8,8 @@ import StudentListScreen from './src/screens/StudentListScreen';
 import StudentDetailScreen from './src/screens/StudentDetailScreen';
 import ClassRecordScreen from './src/screens/ClassRecordScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import { theme } from './src/theme';
 
 const Stack = createStackNavigator();
 
@@ -16,15 +18,14 @@ export default function App() {
     <NavigationContainer>
       <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
       <Stack.Navigator
-        initialRouteName="Calendar"
+        initialRouteName="Home"
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#ffffff',
-            elevation: 2,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.1,
-            shadowRadius: 1.5,
+            backgroundColor: theme.colors.surface,
+            elevation: 0,
+            shadowOpacity: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.colors.outline,
           },
           headerTintColor: '#333333',
           headerTitleStyle: {
@@ -34,6 +35,11 @@ export default function App() {
           cardStyle: { backgroundColor: '#f9f9f9' },
         }}
       >
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ title: '대시보드' }}
+        />
         <Stack.Screen
           name="Calendar"
           component={CalendarScreen}

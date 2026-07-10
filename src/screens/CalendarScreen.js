@@ -10,8 +10,10 @@ import {
   Modal
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
+import { Feather } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Database } from '../database/Database';
+import { theme } from '../theme';
 
 const Separator = () => <View style={styles.separator} />;
 
@@ -28,7 +30,6 @@ export default function CalendarScreen() {
   const [studentSelectVisible, setStudentSelectVisible] = useState(false);
   const [markedDates, setMarkedDates] = useState({});
 
-  // 데이터 로드
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -36,27 +37,23 @@ export default function CalendarScreen() {
       const allStuds = await Database.getAllStudents();
       setStudents(allStuds);
 
-      // 캘린더 마킹 데이터 생성
       const newMarkedDates = {};
 
-      // 수업 기록이 있는 날짜에 점 표시
       allRecs.forEach((rec) => {
         newMarkedDates[rec.class_date] = {
           marked: true,
-          dotColor: '#4F46E5', // 인디고 블루 색상
+          dotColor: theme.colors.primary,
         };
       });
 
-      // 선택된 날짜 하이라이트
       newMarkedDates[selectedDate] = {
         ...newMarkedDates[selectedDate],
         selected: true,
-        selectedColor: '#6366F1', // 테마 퍼플/인디고
+        selectedColor: theme.colors.primary,
       };
 
       setMarkedDates(newMarkedDates);
 
-      // 선택된 날짜의 수업 기록 가져오기
       const dateRecords = await Database.getRecordsByDate(selectedDate);
       setRecords(dateRecords);
     } catch (e) {
@@ -66,7 +63,6 @@ export default function CalendarScreen() {
     }
   }, [selectedDate]);
 
-  // 화면이 활성화되거나 선택 날짜 변경 시 로드
   useEffect(() => {
     if (isFocused) {
       loadData();
@@ -77,7 +73,6 @@ export default function CalendarScreen() {
     setSelectedDate(day.dateString);
   };
 
-  // 새로운 수업 기록 추가를 위해 학생 선택 시 호출
   const handleSelectStudentForRecord = (studentId) => {
     setStudentSelectVisible(false);
     navigation.navigate('ClassRecord', {
@@ -88,85 +83,67 @@ export default function CalendarScreen() {
 
   const renderRecordItem = ({ item }) => (
     <TouchableOpacity
-      style={styles.recordCard}
+      style={styles.agendaCard}
       onPress={() => navigation.navigate('ClassRecord', {
         studentId: item.student_id,
         recordId: item.id
       })}
     >
-      <View style={styles.recordHeader}>
-        <Text style={styles.studentNameText}>{item.studentName}</Text>
-        <Text style={styles.processText}>{item.book_issue_date || '과정 미입력'}</Text>
+      <View style={styles.timeColumn}>
+        <Feather name="clock" size={20} color={theme.colors.primary} style={{marginBottom: 4}}/>
+        <Text style={styles.timeText}>--:--</Text>
       </View>
-
-      <Text style={styles.recordContentText} numberOfLines={2}>
-        {item.content || '기록된 수업 내용이 없습니다.'}
-      </Text>
+      <View style={styles.infoColumn}>
+        <Text style={styles.studentNameText}>{item.studentName}</Text>
+        <Text style={styles.subjectText}>{item.book_issue_date || '과정 미입력'}</Text>
+        <Text style={styles.recordContentText} numberOfLines={2}>
+          {item.content || '기록된 수업 내용이 없습니다.'}
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 상단 네비게이션 헤더 역할의 바 */}
-      <View style={styles.topMenuBar}>
-        <Text style={styles.titleText}>수업 관리</Text>
-        <View style={{flexDirection: 'row', gap: 8}}>
-          <TouchableOpacity
-            style={styles.addressBookButton}
-            onPress={() => navigation.navigate('Settings')}
-          >
-            <Text style={styles.addressBookButtonText}>⚙️ 설정</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addressBookButton}
-            onPress={() => navigation.navigate('StudentList')}
-          >
-            <Text style={styles.addressBookButtonText}>👤 주소록</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* 달력 컴포넌트 */}
+      {/* 캘린더 컴포넌트 */}
       <View style={styles.calendarContainer}>
         <Calendar
           current={selectedDate}
           onDayPress={handleDayPress}
           markedDates={markedDates}
           theme={{
-            selectedDayBackgroundColor: '#6366F1',
-            selectedDayTextColor: '#ffffff',
-            todayTextColor: '#4F46E5',
-            arrowColor: '#4F46E5',
-            dotColor: '#4F46E5',
-            selectedDotColor: '#ffffff',
-            monthTextColor: '#1F2937',
+            backgroundColor: theme.colors.surface,
+            calendarBackground: theme.colors.surface,
+            selectedDayBackgroundColor: theme.colors.primary,
+            selectedDayTextColor: theme.colors.white,
+            todayTextColor: theme.colors.primary,
+            arrowColor: theme.colors.primary,
+            dotColor: theme.colors.primary,
+            selectedDotColor: theme.colors.white,
+            monthTextColor: theme.colors.textPrimary,
             textMonthFontWeight: 'bold',
             textDayHeaderFontWeight: '600',
           }}
         />
       </View>
 
-      {/* 선택한 날짜의 일정 목록 */}
-      <View style={styles.recordsListContainer}>
-        <View style={styles.recordsListHeader}>
-          <Text style={styles.selectedDateTitle}>
-            {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 수업
-          </Text>
-          <Text style={styles.recordsCountText}>
-            총 {records.length}건
-          </Text>
-        </View>
+      {/* 일정 목록 */}
+      <View style={styles.agendaListContainer}>
+        <Text style={styles.agendaTitle}>
+          {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 수업
+        </Text>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#6366F1" style={styles.loader} />
+          <ActivityIndicator size="large" color={theme.colors.primary} style={styles.loader} />
         ) : records.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>이 날짜에 기록된 수업이 없습니다.</Text>
+            <Feather name="calendar" size={32} color={theme.colors.outline} />
+            <Text style={styles.emptyText}>예정된 수업이 없습니다.</Text>
             <TouchableOpacity
               style={styles.addRecordButtonInline}
               onPress={() => setStudentSelectVisible(true)}
             >
-              <Text style={styles.addRecordButtonInlineText}>+ 수업 일지 작성하기</Text>
+              <Text style={styles.addRecordButtonInlineText}>+ 새 수업 추가</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -179,17 +156,17 @@ export default function CalendarScreen() {
         )}
       </View>
 
-      {/* 플로팅 추가 버튼 */}
+      {/* 플로팅 버튼 */}
       {records.length > 0 && (
         <TouchableOpacity
           style={styles.fabButton}
           onPress={() => setStudentSelectVisible(true)}
         >
-          <Text style={styles.fabButtonText}>+ 수업 추가</Text>
+          <Feather name="plus" size={24} color={theme.colors.white} />
         </TouchableOpacity>
       )}
 
-      {/* 학생 선택 모달 */}
+      {/* 모달 */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -199,9 +176,9 @@ export default function CalendarScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>수업을 등록할 학생 선택</Text>
+              <Text style={styles.modalTitle}>학생 선택</Text>
               <TouchableOpacity onPress={() => setStudentSelectVisible(false)}>
-                <Text style={styles.closeButtonText}>닫기</Text>
+                <Feather name="x" size={24} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -215,7 +192,7 @@ export default function CalendarScreen() {
                     navigation.navigate('StudentList');
                   }}
                 >
-                  <Text style={styles.modalAddStudentBtnText}>주소록에서 학생 등록하기</Text>
+                  <Text style={styles.modalAddStudentBtnText}>주소록에서 추가하기</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -246,63 +223,67 @@ export default function CalendarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
-  topMenuBar: {
-    height: 56,
-    backgroundColor: '#ffffff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  titleText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  addressBookButton: {
-    backgroundColor: '#EEF2F6',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  addressBookButtonText: {
-    fontSize: 14,
-    color: '#4F46E5',
-    fontWeight: '600',
+    backgroundColor: theme.colors.surfaceVariant,
   },
   calendarContainer: {
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    backgroundColor: theme.colors.surface,
     paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline,
   },
-  recordsListContainer: {
+  agendaListContainer: {
     flex: 1,
-    marginTop: 8,
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    padding: theme.spacing.lg,
   },
-  recordsListHeader: {
+  agendaTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.md,
+  },
+  agendaCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: theme.colors.white,
+    padding: theme.spacing.md,
+    borderRadius: theme.roundness,
+    marginBottom: theme.spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  timeColumn: {
+    width: 60,
+    borderRightWidth: 1,
+    borderRightColor: theme.colors.outline,
+    marginRight: theme.spacing.md,
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
   },
-  selectedDateTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  recordsCountText: {
+  timeText: {
     fontSize: 14,
-    color: '#6B7280',
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  infoColumn: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  studentNameText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  subjectText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginVertical: 4,
+  },
+  recordContentText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
   },
   loader: {
     flex: 1,
@@ -317,74 +298,39 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#9CA3AF',
+    color: theme.colors.textSecondary,
+    marginTop: 12,
     marginBottom: 16,
   },
   addRecordButtonInline: {
-    backgroundColor: '#ECF0FF',
+    backgroundColor: theme.colors.secondaryContainer,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: theme.roundness,
   },
   addRecordButtonInlineText: {
-    color: '#4F46E5',
+    color: theme.colors.onSecondaryContainer,
     fontWeight: 'bold',
     fontSize: 14,
   },
   listContent: {
     paddingBottom: 80,
   },
-  recordCard: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  recordHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  studentNameText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  processText: {
-    fontSize: 13,
-    color: '#6B7280',
-    backgroundColor: '#E5E7EB',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-
-  recordContentText: {
-    fontSize: 14,
-    color: '#4B5563',
-    lineHeight: 20,
-  },
   fabButton: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#4F46E5',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 24,
+    backgroundColor: theme.colors.primary,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-  },
-  fabButtonText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 15,
   },
   modalOverlay: {
     flex: 1,
@@ -392,7 +338,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '70%',
@@ -405,17 +351,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: theme.colors.outline,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
-  },
-  closeButtonText: {
-    fontSize: 15,
-    color: '#EF4444',
-    fontWeight: '600',
+    color: theme.colors.textPrimary,
   },
   modalEmpty: {
     alignItems: 'center',
@@ -423,17 +364,17 @@ const styles = StyleSheet.create({
   },
   modalEmptyText: {
     fontSize: 15,
-    color: '#9CA3AF',
+    color: theme.colors.textSecondary,
     marginBottom: 16,
   },
   modalAddStudentBtn: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: theme.colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: theme.roundness,
   },
   modalAddStudentBtnText: {
-    color: '#ffffff',
+    color: theme.colors.white,
     fontWeight: 'bold',
   },
   studentSelectItem: {
@@ -442,15 +383,15 @@ const styles = StyleSheet.create({
   studentSelectName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: theme.colors.textPrimary,
   },
   studentSelectSchool: {
     fontSize: 13,
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   separator: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.surfaceVariant,
   },
 });
