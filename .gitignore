@@ -214,3 +214,7 @@ android/key.properties
 auth.json
 credentials.json
 expo-credentials.json
+
+# Local SDK & JDK
+android-sdk/
+jdk/
