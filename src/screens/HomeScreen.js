@@ -16,7 +16,7 @@ import { theme } from '../theme';
 export default function HomeScreen() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
-  
+
   const [loading, setLoading] = useState(true);
   const [todayRecords, setTodayRecords] = useState([]);
   const [studentCount, setStudentCount] = useState(0);
@@ -27,7 +27,7 @@ export default function HomeScreen() {
       const today = new Date().toISOString().split('T')[0];
       const records = await Database.getRecordsByDate(today);
       const students = await Database.getAllStudents();
-      
+
       setTodayRecords(records);
       setStudentCount(students.length);
     } catch (error) {
@@ -51,10 +51,10 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        
+
         {/* Header Section */}
         <View style={styles.headerSection}>
-          <Text style={styles.greetingText}>안녕하세요, 선생님 👋</Text>
+          <Text style={styles.greetingText}>안녕하세요, 선생님</Text>
           <Text style={styles.dateText}>{getTodayDateString()}</Text>
         </View>
 
@@ -67,7 +67,7 @@ export default function HomeScreen() {
             <Text style={styles.summaryValue}>{todayRecords.length}</Text>
             <Text style={styles.summaryLabel}>오늘 수업</Text>
           </View>
-          
+
           <View style={styles.summaryCard}>
             <View style={styles.iconCircle}>
               <Feather name="users" size={24} color={theme.colors.primary} />
@@ -95,8 +95,8 @@ export default function HomeScreen() {
             </View>
           ) : (
             todayRecords.map((record, index) => (
-              <TouchableOpacity 
-                key={record.id || index} 
+              <TouchableOpacity
+                key={record.id || index}
                 style={styles.agendaCard}
                 onPress={() => navigation.navigate('ClassRecord', {
                   studentId: record.student_id,
@@ -120,15 +120,15 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>빠른 메뉴</Text>
           <View style={styles.quickActionGrid}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.quickActionBtn}
               onPress={() => navigation.navigate('StudentList')}
             >
               <Feather name="user-plus" size={20} color={theme.colors.onSecondaryContainer} />
               <Text style={styles.quickActionText}>학생 관리</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.quickActionBtn}
               onPress={() => navigation.navigate('Settings')}
             >
