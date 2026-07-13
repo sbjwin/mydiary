@@ -7,8 +7,7 @@ export const GoogleDriveService = {
   init: () => {
     GoogleSignin.configure({
       scopes: SCOPES,
-      // webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com', // 개발자 설정 필요
-      // iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com', // 개발자 설정 필요
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     });
   },
 
@@ -35,10 +34,6 @@ export const GoogleDriveService = {
         parents: ['appDataFolder'],
       };
 
-      const form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', new Blob([backupJsonString], { type: 'application/json' }));
-
       // 1. 기존 파일 찾기
       const searchRes = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name="mydiary_backup.json"', {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -55,13 +50,28 @@ export const GoogleDriveService = {
         method = 'PATCH';
       }
 
+      // React Native의 FormData/Blob 버그를 우회하기 위해 multipart/related 문자열 바디 구성
+      const boundary = 'mydiary_backup_boundary';
+      const delimiter = `\r\n--${boundary}\r\n`;
+      const closeDelim = `\r\n--${boundary}--`;
+
+      const body =
+        delimiter +
+        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+        JSON.stringify(metadata) +
+        delimiter +
+        'Content-Type: application/json\r\n\r\n' +
+        backupJsonString +
+        closeDelim;
+
       // 2. 업로드
       const uploadRes = await fetch(uploadUrl, {
         method,
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`,
         },
-        body: form,
+        body: body,
       });
 
       return await uploadRes.json();

@@ -1,4 +1,4 @@
-package com.mydiary
+package com.sbjwin.mydiary
 import expo.modules.ReactActivityDelegateWrapper
 
 import com.facebook.react.ReactActivity

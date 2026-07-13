@@ -82,9 +82,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.mydiary"
+    namespace "com.sbjwin.mydiary"
     defaultConfig {
-        applicationId "com.mydiary"
+        applicationId "com.sbjwin.mydiary"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
