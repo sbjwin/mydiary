@@ -500,13 +500,16 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(192, 199, 204, 0.2)',
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 64 : 56,
     zIndex: 40,
   },
   bottomActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   saveButton: {
+    flex: 1,
     backgroundColor: '#2f6378',
     height: 48,
     borderRadius: 9999,
@@ -525,8 +528,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   deleteButton: {
-    width: '100%',
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    height: 48,
+    backgroundColor: 'rgba(186, 26, 26, 0.05)',
+    borderRadius: 9999,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -534,6 +539,6 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: '#ba1a1a',
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: 14,
   },
 });
