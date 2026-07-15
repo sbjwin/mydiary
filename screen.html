@@ -1,0 +1,291 @@
+<!DOCTYPE html><html lang="ko" class="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&amp;family=Work+Sans:wght@500;600&amp;display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#31647a",
+                        "inverse-surface": "#2d3134",
+                        "surface": "#f7fafd",
+                        "on-tertiary-container": "#fffeff",
+                        "secondary": "#4a6457",
+                        "outline": "#71787c",
+                        "on-primary-container": "#fffeff",
+                        "primary": "#2f6378",
+                        "on-surface": "#181c1f",
+                        "surface-bright": "#f7fafd",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e5e8ec",
+                        "on-error-container": "#93000a",
+                        "primary-fixed-dim": "#9bcee6",
+                        "outline-variant": "#c0c7cc",
+                        "on-surface-variant": "#41484c",
+                        "on-tertiary-fixed": "#331100",
+                        "inverse-on-surface": "#eef1f4",
+                        "on-primary-fixed": "#001f2a",
+                        "surface-container-low": "#f1f4f7",
+                        "secondary-fixed-dim": "#b0cdbd",
+                        "secondary-container": "#c9e7d5",
+                        "on-primary-fixed-variant": "#134c61",
+                        "error-container": "#ffdad6",
+                        "surface-dim": "#d7dade",
+                        "secondary-fixed": "#cce9d8",
+                        "on-tertiary-fixed-variant": "#693b22",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#181c1f",
+                        "tertiary-fixed-dim": "#fab896",
+                        "on-secondary-fixed": "#062016",
+                        "on-error": "#ffffff",
+                        "surface-container-highest": "#e0e3e6",
+                        "surface-variant": "#e0e3e6",
+                        "inverse-primary": "#9bcee6",
+                        "on-secondary-fixed-variant": "#324c40",
+                        "tertiary-fixed": "#ffdbca",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#835136",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#9f694c",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#4a7c92",
+                        "surface-container": "#ebeef2",
+                        "on-secondary-container": "#4e685b",
+                        "background": "#f7fafd",
+                        "primary-fixed": "#bde9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "12px",
+                        "xl": "20px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "8px",
+                        "lg": "24px",
+                        "gutter": "20px",
+                        "md": "16px",
+                        "margin-mobile": "16px",
+                        "xs": "4px",
+                        "xl": "40px",
+                        "unit": "4px",
+                        "margin-desktop": "64px"
+                    },
+                    "fontFamily": {
+                        "title-lg": ["Manrope"],
+                        "display-lg": ["Work Sans"],
+                        "body-md": ["Manrope"],
+                        "headline-lg-mobile": ["Work Sans"],
+                        "label-md": ["Manrope"],
+                        "caption": ["Manrope"],
+                        "headline-lg": ["Work Sans"],
+                        "headline-md": ["Work Sans"],
+                        "body-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    }catch(_e){}</script><meta charset="utf-8"></head><body class="bg-surface text-on-surface">
+<!-- Top AppBar -->
+<header class="w-full top-0 sticky z-40 bg-surface shadow-sm flex items-center justify-between px-margin-mobile py-sm h-14">
+<div class="flex items-center gap-2">
+<button class="p-2 -ml-2 rounded-full hover:bg-surface-container-low active:scale-95 transition-all text-on-surface-variant">
+<span class="material-symbols-outlined" data-original-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-semibold text-primary">학생 정보 등록</h1>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-container-low active:scale-95 transition-all text-primary">
+<span class="material-symbols-outlined">help</span>
+</button>
+</header>
+<main class="max-w-screen-md mx-auto px-margin-mobile pt-md pb-32">
+<form id="student-form" class="space-y-lg">
+<!-- Student Basic Info Section -->
+<section class="space-y-md">
+<div class="flex items-center gap-2 mb-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">person</span>
+<h2 class="font-title-lg text-title-lg text-on-surface">학생 기본 정보</h2>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-md shadow-[0px_4px_12px_rgba(0,0,0,0.05)] space-y-md">
+<!-- Name -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="name">
+                            이름 <span class="text-error">*</span>
+</label>
+<input type="text" id="name" placeholder="이름을 입력하세요" required="" class="w-full h-11 px-md rounded-lg bg-surface-container-low border border-outline-variant font-body-lg text-body-lg text-on-surface form-input-focus transition-all">
+</div>
+<div class="grid grid-cols-2 gap-md">
+<!-- School & Grade -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="school">
+                                학교 및 학년
+                            </label>
+<input type="text" id="school" placeholder="예: 서초초 3학년" class="w-full h-11 px-md rounded-lg bg-surface-container-low border border-outline-variant font-body-lg text-body-lg text-on-surface form-input-focus transition-all">
+</div>
+<!-- Resident ID -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="ssn">
+                                주민등록번호
+                            </label>
+<input type="text" id="ssn" placeholder="###### - #######" class="w-full h-11 px-md rounded-lg bg-surface-container-low border border-outline-variant font-body-lg text-body-lg text-on-surface form-input-focus transition-all">
+</div>
+</div>
+<!-- Address -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="address">
+                            주소
+                        </label>
+<textarea id="address" rows="2" placeholder="거주지 주소를 상세히 입력하세요" class="w-full p-md rounded-lg bg-surface-container-low border border-outline-variant font-body-lg text-body-lg text-on-surface form-input-focus transition-all resize-none"></textarea>
+</div>
+<div class="grid grid-cols-2 gap-md">
+<!-- Phone -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="tel">
+                                전화번호
+                            </label>
+<input type="tel" id="tel" placeholder="02-000-0000" class="w-full h-11 px-md rounded-lg bg-surface-container-low border border-outline-variant font-body-lg text-body-lg text-on-surface form-input-focus transition-all">
+</div>
+<!-- Mobile -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="mobile">
+                                휴대전화
+                            </label>
+<input type="tel" id="mobile" placeholder="010-0000-0000" class="w-full h-11 px-md rounded-lg bg-surface-container-low border border-outline-variant font-body-lg text-body-lg text-on-surface form-input-focus transition-all">
+</div>
+</div>
+<!-- Email -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="email">
+                            이메일
+                        </label>
+<input type="email" id="email" placeholder="example@studio.com" class="w-full h-11 px-md rounded-lg bg-surface-container-low border border-outline-variant font-body-lg text-body-lg text-on-surface form-input-focus transition-all">
+</div>
+<!-- Learning Method -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-sm">학습 방법</label>
+<div class="flex p-1 bg-surface-container-high rounded-full w-full max-w-[240px]">
+<button type="button" onclick="setLearningMethod('visit')" id="btn-visit" class="flex-1 py-2 text-label-md font-label-md rounded-full transition-all segmented-control-active">
+                                방문
+                            </button>
+<button type="button" onclick="setLearningMethod('center')" id="btn-center" class="flex-1 py-2 text-label-md font-label-md rounded-full transition-all text-on-surface-variant">
+                                센터
+                            </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Parent Info Section -->
+<section class="space-y-md">
+<div class="flex items-center gap-2 mb-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">family_restroom</span>
+<h2 class="font-title-lg text-title-lg text-on-surface">학부모 정보</h2>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-md shadow-[0px_4px_12px_rgba(0,0,0,0.05)] grid grid-cols-2 gap-md">
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="parent-name">
+                            성함
+                        </label>
+<input type="text" id="parent-name" placeholder="학부모 성함" class="w-full h-11 px-md rounded-lg bg-surface-container-low border border-outline-variant font-body-lg text-body-lg text-on-surface form-input-focus transition-all">
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="parent-mobile">
+                            휴대전화
+                        </label>
+<input type="tel" id="parent-mobile" placeholder="010-0000-0000" class="w-full h-11 px-md rounded-lg bg-surface-container-low border border-outline-variant font-body-lg text-body-lg text-on-surface form-input-focus transition-all">
+</div>
+</div>
+</section>
+<!-- Notes Section -->
+<section class="space-y-md">
+<div class="flex items-center gap-2 mb-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">sticky_note_2</span>
+<h2 class="font-title-lg text-title-lg text-on-surface">기타 사항</h2>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-md shadow-[0px_4px_12px_rgba(0,0,0,0.05)] border-l-[4px] border-primary">
+<textarea id="notes" rows="4" placeholder="학생에 대한 특이사항이나 수업 참고 내용을 입력하세요" class="w-full p-2 border-none bg-transparent font-body-lg text-body-lg text-on-surface focus:ring-0 resize-none min-h-[120px]"></textarea>
+</div>
+</section>
+<!-- Decorative Visual -->
+<div class="rounded-xl overflow-hidden h-32 relative group">
+<div class="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent z-10"></div>
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="A serene and minimalist educational setting with a wooden desk, a soft-bound blue notebook, and a single high-quality pen. The lighting is warm and natural, coming from a nearby window, creating soft shadows. The aesthetic is clean, professional, and psychologically comforting, using a palette of soft slates and warm whites that aligns with the Studio branding." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAr63oG3o8oYQu2EEaS-Thd2tVZ52GxTs5FrMlz_tebRgA4Yhd83V_uHhl2nfKZP18Kki-n0Ot9zb-B5Eojx2iQAAe4wZ98zoe90e9f1IjEAzBkVYZhobCHjY_H-Ux5hvw6d4uS98V-0XcP3GOKpsI-PHfEgLmKZ92SKMpydjFVSU0mt-XzlAqmbXvSrtUGoD6KWSBOSu_tT-mutd-gbuf9HAy1zCGPwHhzrrfwRf4K6UNLnrcQrKwIxkq4hmbthDDk8u-M2Co7UVA">
+<div class="absolute bottom-md left-md z-20">
+<p class="text-on-primary font-title-lg text-title-lg drop-shadow-md">기록은 성장의 밑거름입니다.</p>
+</div>
+</div>
+</form>
+</main>
+<!-- Fixed Bottom Actions -->
+<div class="fixed bottom-0 left-0 right-0 p-gutter bg-surface/80 backdrop-blur-md z-40 border-t border-outline-variant/10">
+<div class="max-w-screen-md mx-auto flex gap-md flex-col">
+<button class="flex-1 h-12 bg-primary text-on-primary font-title-lg text-title-lg rounded-full shadow-lg hover:bg-primary-container active:scale-95 transition-all duration-150 flex items-center justify-center gap-2" form="student-form" type="submit">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">save</span>
+                저장하기
+            </button><button class="w-full py-2 text-error font-label-md hover:bg-error-container/10 rounded-lg transition-all flex items-center justify-center gap-1" type="button">
+    <span class="material-symbols-outlined text-[18px]">delete</span>
+    학생 정보 삭제
+</button>
+</div>
+</div>
+<!-- Micro-interaction Script -->
+<script>
+        function setLearningMethod(method) {
+            const visitBtn = document.getElementById('btn-visit');
+            const centerBtn = document.getElementById('btn-center');
+            
+            if (method === 'visit') {
+                visitBtn.classList.add('segmented-control-active', 'text-on-primary');
+                visitBtn.classList.remove('text-on-surface-variant');
+                centerBtn.classList.remove('segmented-control-active', 'text-on-primary');
+                centerBtn.classList.add('text-on-surface-variant');
+            } else {
+                centerBtn.classList.add('segmented-control-active', 'text-on-primary');
+                centerBtn.classList.remove('text-on-surface-variant');
+                visitBtn.classList.remove('segmented-control-active', 'text-on-primary');
+                visitBtn.classList.add('text-on-surface-variant');
+            }
+        }
+
+        // Simple mask for SSN field
+        const ssnInput = document.getElementById('ssn');
+        ssnInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/[^0-9]/g, '');
+            if (value.length > 6) {
+                value = value.slice(0, 6) + ' - ' + value.slice(6, 13);
+            }
+            e.target.value = value.slice(0, 18);
+        });
+
+        // Form Submission Logic
+        document.getElementById('student-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const saveBtn = e.target.querySelector('button[type="submit"]');
+            const originalContent = saveBtn.innerHTML;
+            
+            // Visual feedback
+            saveBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> 저장 중...';
+            saveBtn.disabled = true;
+            
+            setTimeout(() => {
+                saveBtn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> 저장 완료';
+                saveBtn.classList.replace('bg-primary', 'bg-secondary');
+                
+                setTimeout(() => {
+                    saveBtn.innerHTML = originalContent;
+                    saveBtn.classList.replace('bg-secondary', 'bg-primary');
+                    saveBtn.disabled = false;
+                }, 2000);
+            }, 1000);
+        });
+    </script>
+
+</body></html>
