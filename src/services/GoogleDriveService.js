@@ -35,10 +35,16 @@ export const GoogleDriveService = {
       };
 
       // 1. 기존 파일 찾기
-      const searchRes = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name="mydiary_backup.json"', {
+      const q = encodeURIComponent("name='mydiary_backup.json'");
+      const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const searchData = await searchRes.json();
+      console.log('Upload Search Data:', searchData);
+
+      if (searchData.error) {
+        throw new Error(`Google API Error: ${searchData.error.message}`);
+      }
       
       let uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
       let method = 'POST';
@@ -74,7 +80,11 @@ export const GoogleDriveService = {
         body: body,
       });
 
-      return await uploadRes.json();
+      const uploadData = await uploadRes.json();
+      if (uploadData.error) {
+        throw new Error(`Upload Error: ${uploadData.error.message}`);
+      }
+      return uploadData;
     } catch (e) {
       console.error('Failed to upload backup:', e);
       throw e;
@@ -87,10 +97,16 @@ export const GoogleDriveService = {
       const accessToken = await GoogleDriveService.signInAndGetToken();
 
       // 1. 파일 찾기
-      const searchRes = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name="mydiary_backup.json"', {
+      const q = encodeURIComponent("name='mydiary_backup.json'");
+      const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const searchData = await searchRes.json();
+      console.log('Download Search Data:', searchData);
+
+      if (searchData.error) {
+        throw new Error(`Google API Error: ${searchData.error.message}`);
+      }
 
       if (!searchData.files || searchData.files.length === 0) {
         throw new Error('Backup file not found in Google Drive.');
