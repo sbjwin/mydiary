@@ -335,23 +335,13 @@ export default function StudentDetailScreen() {
             </TouchableOpacity>
 
             {isEditMode && (
-              <>
-                <TouchableOpacity
-                  style={styles.recordLinkButton}
-                  onPress={() => navigation.navigate('ClassRecord', { studentId })}
-                >
-                  <Icon name="book" size={14} color="#41484c" style={{ marginRight: 6 }} />
-                  <Text style={styles.recordLinkButtonText}>수업 일지 보기/작성</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={handleDelete}
-                >
-                  <Icon name="trash" size={16} color="#ba1a1a" style={{ marginRight: 6 }} />
-                  <Text style={styles.deleteButtonText}>학생 정보 삭제</Text>
-                </TouchableOpacity>
-              </>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={handleDelete}
+              >
+                <Icon name="trash" size={16} color="#ba1a1a" style={{ marginRight: 6 }} />
+                <Text style={styles.deleteButtonText}>학생 정보 삭제</Text>
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -543,21 +533,6 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: '#ba1a1a',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  recordLinkButton: {
-    width: '100%',
-    height: 44,
-    backgroundColor: 'rgba(47, 99, 120, 0.05)',
-    borderRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  recordLinkButtonText: {
-    color: '#41484c',
     fontWeight: '600',
     fontSize: 15,
   },
