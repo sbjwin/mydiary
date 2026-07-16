@@ -66,7 +66,7 @@ export const GoogleDriveService = {
         'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
         JSON.stringify(metadata) +
         delimiter +
-        'Content-Type: application/json\r\n\r\n' +
+        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
         backupJsonString +
         closeDelim;
 
