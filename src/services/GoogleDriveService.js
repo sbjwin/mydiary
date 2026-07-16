@@ -54,6 +54,7 @@ export const GoogleDriveService = {
         const fileId = searchData.files[0].id;
         uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
         method = 'PATCH';
+        delete metadata.parents; // PATCH 요청 시 parents 필드를 포함하면 에러 발생
       }
 
       // React Native의 FormData/Blob 버그를 우회하기 위해 multipart/related 문자열 바디 구성
