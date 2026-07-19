@@ -29,9 +29,8 @@ export const GoogleDriveService = {
     try {
       const accessToken = await GoogleDriveService.signInAndGetToken();
       
-      const metadata = {
+      let metadata = {
         name: 'mydiary_backup.json',
-        parents: ['appDataFolder'],
       };
 
       // 1. 기존 파일 찾기
@@ -54,7 +53,9 @@ export const GoogleDriveService = {
         const fileId = searchData.files[0].id;
         uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
         method = 'PATCH';
-        delete metadata.parents; // PATCH 요청 시 parents 필드를 포함하면 에러 발생
+      } else {
+        // 새 파일 생성 시에만 parents 지정
+        metadata.parents = ['appDataFolder'];
       }
 
       // React Native의 FormData/Blob 버그를 우회하기 위해 multipart/related 문자열 바디 구성
