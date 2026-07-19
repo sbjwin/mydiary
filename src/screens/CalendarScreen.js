@@ -9,11 +9,21 @@ import {
   ActivityIndicator,
   Modal
 } from 'react-native';
-import { Calendar } from 'react-native-calendars';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Database } from '../database/Database';
 import { theme } from '../theme';
+
+// 달력 한글 설정
+LocaleConfig.locales['ko'] = {
+  monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+  monthNamesShort: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+  dayNames: ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'],
+  dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
+  today: '오늘',
+};
+LocaleConfig.defaultLocale = 'ko';
 
 const Separator = () => <View style={styles.separator} />;
 
@@ -90,7 +100,7 @@ export default function CalendarScreen() {
       })}
     >
       <View style={styles.timeColumn}>
-        <Feather name="clock" size={20} color={theme.colors.primary} style={{marginBottom: 4}}/>
+        <Feather name="clock" size={20} color={theme.colors.primary} style={{ marginBottom: 4 }} />
         <Text style={styles.timeText}>--:--</Text>
       </View>
       <View style={styles.infoColumn}>
@@ -109,6 +119,7 @@ export default function CalendarScreen() {
       <View style={styles.calendarContainer}>
         <Calendar
           current={selectedDate}
+          monthFormat={'yyyy년 MM월'} // 년도와 월을 한글화
           onDayPress={handleDayPress}
           markedDates={markedDates}
           theme={{
