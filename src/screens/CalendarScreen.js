@@ -104,27 +104,68 @@ export default function CalendarScreen() {
     });
   };
 
-  const renderRecordItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.agendaCard}
-      onPress={() => navigation.navigate('ClassRecord', {
-        studentId: item.student_id,
-        recordId: item.id
-      })}
-    >
-      <View style={styles.timeColumn}>
-        <Feather name="clock" size={20} color={theme.colors.primary} style={{ marginBottom: 4 }} />
-        <Text style={styles.timeText}>{item.class_time || '--:--'}</Text>
-      </View>
-      <View style={styles.infoColumn}>
-        <Text style={styles.studentNameText}>{item.studentName}</Text>
-        <Text style={styles.subjectText}>{item.book_issue_date || '과정 미입력'}</Text>
-        <Text style={styles.recordContentText} numberOfLines={2}>
-          {item.content || '기록된 수업 내용이 없습니다.'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderRecordItem = ({ item, index }) => {
+    // 달력의 점 색상과 동일한 규칙으로 카드 왼쪽 띠(Border) 색상 결정
+    const dotColors = [theme.colors.primary, '#8D6E63', '#78909C', '#5C6BC0', '#4DB6AC'];
+    const cardColor = dotColors[index % dotColors.length];
+
+    // 시간 포맷팅 (예: 14:30 -> 02:30 PM)
+    let displayTime = item.class_time || '--:--';
+    let ampm = '';
+    if (item.class_time && item.class_time.includes(':')) {
+      const [h, m] = item.class_time.split(':');
+      const hour = parseInt(h, 10);
+      ampm = hour >= 12 ? 'PM' : 'AM';
+      const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
+      displayTime = `${formattedHour < 10 ? '0' : ''}${formattedHour}:${m}`;
+    }
+
+    // 임시 태그 라벨 (향후 DB 필드로 교체 가능)
+    const tagLabels = ['스튜디오 A', '온라인', '방문 수업'];
+    const tagLabel = tagLabels[index % tagLabels.length];
+
+    return (
+      <TouchableOpacity
+        style={[styles.agendaCard, { borderLeftColor: cardColor, borderLeftWidth: 4 }]}
+        onPress={() => navigation.navigate('ClassRecord', {
+          studentId: item.student_id,
+          recordId: item.id
+        })}
+      >
+        <View style={styles.cardMainRow}>
+          {/* 시간 영역 */}
+          <View style={styles.timeColumn}>
+            <Text style={styles.timeTextLarge}>{displayTime}</Text>
+            {!!ampm && <Text style={styles.timeAmPm}>{ampm}</Text>}
+          </View>
+
+          {/* 정보 영역 */}
+          <View style={styles.infoColumn}>
+            <Text style={styles.studentNameText}>{item.studentName}</Text>
+            <View style={styles.subjectRow}>
+              <Feather name="music" size={12} color={theme.colors.textSecondary} style={{ marginRight: 4 }} />
+              <Text style={styles.subjectText}>{item.book_issue_date || '과정 미입력'}</Text>
+            </View>
+          </View>
+
+          {/* 태그 및 메뉴 영역 */}
+          <View style={styles.actionColumn}>
+            <View style={[styles.badgeContainer, { backgroundColor: cardColor + '1A' }]}>
+              <Text style={[styles.badgeText, { color: cardColor }]}>{tagLabel}</Text>
+            </View>
+            <Feather name="more-vertical" size={20} color={theme.colors.textSecondary} style={styles.moreIcon} />
+          </View>
+        </View>
+
+        {/* 기존 앱 장점: 하단 내용 미리보기 */}
+        <View style={styles.previewContainer}>
+          <Text style={styles.recordContentText} numberOfLines={1}>
+            {item.content || '기록된 수업 내용이 없습니다.'}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -267,9 +308,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   agendaCard: {
-    flexDirection: 'row',
     backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
     borderRadius: theme.roundness,
     marginBottom: theme.spacing.md,
     shadowColor: '#000',
@@ -277,19 +316,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    overflow: 'hidden', // 왼쪽 보더 반경 유지를 위해
+  },
+  cardMainRow: {
+    flexDirection: 'row',
+    padding: theme.spacing.md,
+    paddingBottom: 8, // 미리보기가 아래에 있으므로 간격 축소
   },
   timeColumn: {
-    width: 60,
-    borderRightWidth: 1,
-    borderRightColor: theme.colors.outline,
-    marginRight: theme.spacing.md,
+    width: 65,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: theme.spacing.sm,
   },
-  timeText: {
-    fontSize: 14,
+  timeTextLarge: {
+    fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: theme.colors.primary,
+  },
+  timeAmPm: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+    marginTop: 2,
   },
   infoColumn: {
     flex: 1,
@@ -299,16 +348,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  subjectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   subjectText: {
-    fontSize: 12,
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    marginVertical: 4,
+  },
+  actionColumn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  badgeContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 4,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  moreIcon: {
+    padding: 2,
+  },
+  previewContainer: {
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
+    paddingLeft: 16 + 65 + 8, // timeColumn 너비만큼 들여쓰기
   },
   recordContentText: {
     fontSize: 13,
     color: theme.colors.textSecondary,
-    marginTop: 4,
+    fontStyle: 'italic', // 기존 앱과의 차별화를 위해 기울임꼴 적용
   },
   loader: {
     flex: 1,
