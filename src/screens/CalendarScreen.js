@@ -47,13 +47,26 @@ export default function CalendarScreen() {
       const allStuds = await Database.getAllStudents();
       setStudents(allStuds);
 
-      const newMarkedDates = {};
-
+      const dateGroups = {};
       allRecs.forEach((rec) => {
-        newMarkedDates[rec.class_date] = {
-          marked: true,
-          dotColor: theme.colors.primary,
-        };
+        if (!dateGroups[rec.class_date]) {
+          dateGroups[rec.class_date] = [];
+        }
+        dateGroups[rec.class_date].push(rec);
+      });
+
+      const newMarkedDates = {};
+      // 수업 갯수에 따라 다른 색상의 점 표시 (디자인 참고)
+      const dotColors = [theme.colors.primary, '#8D6E63', '#78909C', '#5C6BC0', '#4DB6AC'];
+
+      Object.keys(dateGroups).forEach(date => {
+        const recordsForDate = dateGroups[date];
+        const dots = recordsForDate.map((rec, i) => ({
+          key: rec.id || `dot-${i}`,
+          color: dotColors[i % dotColors.length]
+        }));
+        
+        newMarkedDates[date] = { dots: dots };
       });
 
       newMarkedDates[selectedDate] = {
@@ -121,6 +134,7 @@ export default function CalendarScreen() {
           current={selectedDate}
           monthFormat={'yyyy년 MM월'} // 년도와 월을 한글화
           onDayPress={handleDayPress}
+          markingType={'multi-dot'}
           markedDates={markedDates}
           theme={{
             backgroundColor: theme.colors.surface,
