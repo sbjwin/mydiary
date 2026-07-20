@@ -1,4 +1,10 @@
-pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") 
+pluginManagement { 
+  repositories {
+    gradlePluginPortal()
+    google()
+    mavenCentral()
+  }
+  includeBuild("../node_modules/@react-native/gradle-plugin") 
   def expoPluginsPath = new File(
     providers.exec {
       workingDir(rootDir)
