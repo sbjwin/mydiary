@@ -101,7 +101,7 @@ export default function CalendarScreen() {
     >
       <View style={styles.timeColumn}>
         <Feather name="clock" size={20} color={theme.colors.primary} style={{ marginBottom: 4 }} />
-        <Text style={styles.timeText}>--:--</Text>
+        <Text style={styles.timeText}>{item.class_time || '--:--'}</Text>
       </View>
       <View style={styles.infoColumn}>
         <Text style={styles.studentNameText}>{item.studentName}</Text>

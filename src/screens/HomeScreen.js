@@ -104,7 +104,9 @@ export default function HomeScreen() {
                 })}
               >
                 <View style={styles.agendaInfo}>
-                  <Text style={styles.studentName}>{record.studentName}</Text>
+                  <Text style={styles.studentName}>
+                    {record.studentName} {record.class_time ? `(${record.class_time})` : ''}
+                  </Text>
                   <Text style={styles.processText}>{record.book_issue_date || '과정 미입력'}</Text>
                   <Text style={styles.agendaContent} numberOfLines={1}>
                     {record.content || '기록된 내용이 없습니다.'}

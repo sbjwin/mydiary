@@ -28,6 +28,7 @@ export default function ClassRecordScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [editingDate, setEditingDate] = useState('');
+  const [editingTime, setEditingTime] = useState('');
   const [editingContent, setEditingContent] = useState('');
   const [editingBookIssue, setEditingBookIssue] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -37,6 +38,7 @@ export default function ClassRecordScreen() {
     const today = dateStr || new Date().toISOString().split('T')[0];
     setEditingRecord(null);
     setEditingDate(today);
+    setEditingTime('');
     setEditingContent('');
     setEditingBookIssue('');
     setModalVisible(true);
@@ -46,6 +48,7 @@ export default function ClassRecordScreen() {
   const openEditModal = useCallback((record) => {
     setEditingRecord(record);
     setEditingDate(record.class_date);
+    setEditingTime(record.class_time || '');
     setEditingContent(record.content || '');
     setEditingBookIssue(record.book_issue_date || '');
     setModalVisible(true);
@@ -97,6 +100,7 @@ export default function ClassRecordScreen() {
     const recordData = {
       student_id: studentId,
       class_date: editingDate,
+      class_time: editingTime.trim() || null,
       book_issue_date: editingBookIssue.trim() || null,
       content: editingContent.trim() || null,
     };
@@ -143,7 +147,8 @@ export default function ClassRecordScreen() {
       <View style={styles.sheetContainer}>
         <View style={styles.sheetTopRow}>
           <Text style={styles.sheetTopText}>
-            출고/과정: <Text style={styles.sheetValueText}>{item.book_issue_date || '(미입력)'}</Text>
+            시간: <Text style={styles.sheetValueText}>{item.class_time || '(시간 미지정)'}</Text>
+            {'  |  '}출고/과정: <Text style={styles.sheetValueText}>{item.book_issue_date || '(미입력)'}</Text>
           </Text>
         </View>
         
@@ -269,6 +274,18 @@ export default function ClassRecordScreen() {
                     />
                   </View>
                 )}
+              </View>
+
+              {/* 수업 시간 입력 필드 */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.fieldLabel}>수업 시간</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={editingTime}
+                  onChangeText={setEditingTime}
+                  placeholder="예: 14:00 또는 14시~15시"
+                  placeholderTextColor="#9CA3AF"
+                />
               </View>
 
               {/* 그림 2 상단 설정 매핑 */}
