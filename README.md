@@ -42,21 +42,38 @@ npm run start
 
 Android 환경에서 앱을 구동하고 빌드하는 가이드입니다. (Android Studio 및 Android SDK가 설치되어 있어야 합니다.)
 
-### 1. 로컬 에뮬레이터/기기에서 실행
-기기가 USB로 연결되어 있거나 에뮬레이터가 켜져 있는 상태에서 아래 명령어를 실행하면 앱이 설치되고 구동됩니다.
+### 1. 로컬 기기 연결 확인 (`adb devices`)
+앱을 실제 안드로이드 기기에 설치하고 테스트하기 전, 기기가 PC와 제대로 연결되었는지 확인해야 합니다.
 ```bash
-npm run android
+adb devices
+```
+*   명령어 실행 후 `List of devices attached` 아래에 기기 식별자(예: `R3CX...`)와 `device`라는 문구가 나타나면 정상적으로 연결된 것입니다.
+*   만약 `unauthorized` 상태로 뜬다면, 스마트폰 화면을 켜고 **'USB 디버깅 허용'** 팝업에서 확인을 눌러주세요.
+
+### 2. 안드로이드 기기에 앱 빌드 및 실행 (`--variant`)
+기기가 정상적으로 연결된 상태에서, 아래 명령어를 통해 앱을 빌드하고 기기에 직접 설치하여 실행할 수 있습니다.
+
+*   **디버그(Debug) 모드 실행** (개발 및 테스트용)
+```bash
+npm run android -- --variant debug
+```
+> 기본 명령어인 `npm run android`를 입력해도 디버그 모드로 구동됩니다.
+
+*   **릴리즈(Release) 모드 실행** (실제 배포 환경과 동일한 최적화 모드)
+개발용 서버(Metro) 없이, 실제 스토어에 출시되었을 때와 똑같은 성능과 환경으로 기기에서 테스트할 때 사용합니다.
+```bash
+npm run android -- --variant release
 ```
 
-### 2. 안드로이드 APK 빌드 (테스트용)
-기기에 직접 넣어서 테스트해볼 수 있는 디버그용 `.apk` 파일을 추출하는 방법입니다.
+### 3. 안드로이드 APK 수동 빌드 (파일 추출용)
+기기에 바로 실행하지 않고, 주변 사람들에게 전달하거나 따로 보관하기 위해 `.apk` 파일만 추출하는 방법입니다.
 ```bash
 cd android
 ./gradlew assembleDebug
 ```
 *   **결과물 경로**: `android/app/build/outputs/apk/debug/app-debug.apk`
 
-### 3. 안드로이드 AAB/APK 릴리즈 빌드 (배포용)
+### 4. 안드로이드 AAB/APK 릴리즈 빌드 (배포용)
 구글 플레이스토어에 배포하기 위해서는 정식 서명 키(Keystore) 설정이 필요합니다. 서명 키가 적용된 후 아래 명령어로 릴리즈 빌드를 진행합니다.
 ```bash
 cd android
