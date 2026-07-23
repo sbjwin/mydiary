@@ -135,15 +135,30 @@ export default function CalendarScreen() {
     const dotColors = [theme.colors.primary, '#8D6E63', '#78909C', '#5C6BC0', '#4DB6AC'];
     const cardColor = dotColors[index % dotColors.length];
 
-    // 시간 포맷팅 (예: 14:30 -> 02:30 PM)
-    let displayTime = item.class_time || '--:--';
-    let ampm = '';
-    if (item.class_time && item.class_time.includes(':')) {
-      const [h, m] = item.class_time.split(':');
-      const hour = parseInt(h, 10);
-      ampm = hour >= 12 ? 'PM' : 'AM';
-      const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
-      displayTime = `${formattedHour < 10 ? '0' : ''}${formattedHour}:${m}`;
+    // 시간 포맷팅 (항상 2줄로 일관되게 표시: 예: 오전 / 10시, 오후 / 04:00)
+    let periodText = '미지정';
+    let timeText = '--:--';
+
+    if (item.class_time) {
+      const raw = item.class_time.trim();
+      if (raw.includes(':')) {
+        const [h, m] = raw.split(':');
+        const hour = parseInt(h, 10);
+        if (!isNaN(hour)) {
+          periodText = hour >= 12 ? '오후' : '오전';
+          const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
+          timeText = `${formattedHour < 10 ? '0' : ''}${formattedHour}:${m}`;
+        } else {
+          timeText = raw;
+          periodText = '수업';
+        }
+      } else if (raw.includes('오전') || raw.includes('오후')) {
+        periodText = raw.includes('오후') ? '오후' : '오전';
+        timeText = raw.replace(/오전|오후/g, '').trim();
+      } else {
+        periodText = '수업';
+        timeText = raw;
+      }
     }
 
     // DB에 저장된 학생의 학습 방법 (방문 / 센터), 미지정 시 기본값 '방문'
@@ -158,10 +173,10 @@ export default function CalendarScreen() {
         })}
       >
         <View style={styles.cardMainRow}>
-          {/* 시간 영역 */}
+          {/* 시간 영역 (항상 2줄 일관 구성) */}
           <View style={styles.timeColumn}>
-            <Text style={styles.timeTextLarge}>{displayTime}</Text>
-            {!!ampm && <Text style={styles.timeAmPm}>{ampm}</Text>}
+            <Text style={styles.timeAmPm}>{periodText}</Text>
+            <Text style={styles.timeTextLarge}>{timeText}</Text>
           </View>
 
           {/* 정보 영역 */}
