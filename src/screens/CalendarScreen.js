@@ -16,7 +16,7 @@ import { Database } from '../database/Database';
 import { theme } from '../theme';
 
 // 달력 한글 설정
-LocaleConfig.locales['ko'] = {
+LocaleConfig.locales.ko = {
   monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
   monthNamesShort: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
   dayNames: ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'],
@@ -24,6 +24,38 @@ LocaleConfig.locales['ko'] = {
   today: '오늘',
 };
 LocaleConfig.defaultLocale = 'ko';
+
+const CustomDay = React.memo(({ date, state, marking, onPress }) => {
+  const isSelected = marking?.selected;
+  const classCount = marking?.classCount || 0;
+  const isToday = state === 'today';
+
+  return (
+    <TouchableOpacity
+      onPress={() => onPress(date)}
+      style={[
+        styles.dayContainer,
+        isSelected && styles.selectedDay
+      ]}
+    >
+      <Text
+        style={[
+          styles.dayText,
+          state === 'disabled' && styles.disabledDayText,
+          isToday && styles.todayText,
+          isSelected && styles.selectedDayText
+        ]}
+      >
+        {date.day}
+      </Text>
+      {classCount > 0 && (
+        <View style={styles.classBadge}>
+          <Text style={styles.classBadgeText}>{classCount}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+});
 
 const Separator = () => <View style={styles.separator} />;
 
@@ -56,23 +88,17 @@ export default function CalendarScreen() {
       });
 
       const newMarkedDates = {};
-      // 수업 갯수에 따라 다른 색상의 점 표시 (디자인 참고)
-      const dotColors = [theme.colors.primary, '#8D6E63', '#78909C', '#5C6BC0', '#4DB6AC'];
 
       Object.keys(dateGroups).forEach(date => {
         const recordsForDate = dateGroups[date];
-        const dots = recordsForDate.map((rec, i) => ({
-          key: rec.id || `dot-${i}`,
-          color: dotColors[i % dotColors.length]
-        }));
-        
-        newMarkedDates[date] = { dots: dots };
+        newMarkedDates[date] = { 
+          classCount: recordsForDate.length 
+        };
       });
 
       newMarkedDates[selectedDate] = {
         ...newMarkedDates[selectedDate],
         selected: true,
-        selectedColor: theme.colors.primary,
       };
 
       setMarkedDates(newMarkedDates);
@@ -126,7 +152,7 @@ export default function CalendarScreen() {
 
     return (
       <TouchableOpacity
-        style={[styles.agendaCard, { borderLeftColor: cardColor, borderLeftWidth: 4 }]}
+        style={[styles.agendaCard, { borderLeftColor: cardColor }]}
         onPress={() => navigation.navigate('ClassRecord', {
           studentId: item.student_id,
           recordId: item.id
@@ -143,7 +169,7 @@ export default function CalendarScreen() {
           <View style={styles.infoColumn}>
             <Text style={styles.studentNameText}>{item.studentName}</Text>
             <View style={styles.subjectRow}>
-              <Feather name="music" size={12} color={theme.colors.textSecondary} style={{ marginRight: 4 }} />
+              <Feather name="music" size={12} color={theme.colors.textSecondary} style={styles.musicIcon} />
               <Text style={styles.subjectText}>{item.book_issue_date || '과정 미입력'}</Text>
             </View>
           </View>
@@ -175,17 +201,12 @@ export default function CalendarScreen() {
           current={selectedDate}
           monthFormat={'yyyy년 MM월'} // 년도와 월을 한글화
           onDayPress={handleDayPress}
-          markingType={'multi-dot'}
           markedDates={markedDates}
+          dayComponent={CustomDay}
           theme={{
             backgroundColor: theme.colors.surface,
             calendarBackground: theme.colors.surface,
-            selectedDayBackgroundColor: theme.colors.primary,
-            selectedDayTextColor: theme.colors.white,
-            todayTextColor: theme.colors.primary,
             arrowColor: theme.colors.primary,
-            dotColor: theme.colors.primary,
-            selectedDotColor: theme.colors.white,
             monthTextColor: theme.colors.textPrimary,
             textMonthFontWeight: 'bold',
             textDayHeaderFontWeight: '600',
@@ -317,6 +338,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     overflow: 'hidden', // 왼쪽 보더 반경 유지를 위해
+    borderLeftWidth: 4,
   },
   cardMainRow: {
     flexDirection: 'row',
@@ -353,6 +375,9 @@ const styles = StyleSheet.create({
   subjectRow: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  musicIcon: {
+    marginRight: 4,
   },
   subjectText: {
     fontSize: 13,
@@ -494,5 +519,49 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: theme.colors.surfaceVariant,
+  },
+  dayContainer: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
+    position: 'relative',
+  },
+  selectedDay: {
+    backgroundColor: theme.colors.primary,
+  },
+  dayText: {
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+  },
+  disabledDayText: {
+    color: theme.colors.outline,
+  },
+  todayText: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
+  },
+  selectedDayText: {
+    color: theme.colors.white,
+    fontWeight: 'bold',
+  },
+  classBadge: {
+    position: 'absolute',
+    bottom: -6,
+    backgroundColor: theme.colors.secondaryContainer,
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.surface,
+  },
+  classBadgeText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: theme.colors.onSecondaryContainer,
   },
 });
