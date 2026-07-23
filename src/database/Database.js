@@ -130,6 +130,13 @@ export const Database = {
 
       const filteredRecords = records.filter((r) => r.class_date === dateString);
 
+      // 수업 시간(class_time) 기준 오름차순 정렬 (HH:mm)
+      filteredRecords.sort((a, b) => {
+        const timeA = a.class_time || '00:00';
+        const timeB = b.class_time || '00:00';
+        return timeA.localeCompare(timeB);
+      });
+
       return filteredRecords.map((record) => {
         const student = students.find((s) => s.id === record.student_id);
         return {
