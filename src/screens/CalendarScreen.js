@@ -50,7 +50,7 @@ const CustomDay = React.memo(({ date, state, marking, onPress }) => {
       </Text>
       {classCount > 0 && (
         <View style={styles.classBadge}>
-          <Text style={styles.classBadgeText}>{classCount}</Text>
+          <Text style={styles.classBadgeText}>{`수업 ${classCount}`}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -91,8 +91,8 @@ export default function CalendarScreen() {
 
       Object.keys(dateGroups).forEach(date => {
         const recordsForDate = dateGroups[date];
-        newMarkedDates[date] = { 
-          classCount: recordsForDate.length 
+        newMarkedDates[date] = {
+          classCount: recordsForDate.length
         };
       });
 
@@ -550,12 +550,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -6,
     backgroundColor: theme.colors.secondaryContainer,
-    borderRadius: 10,
-    minWidth: 16,
-    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
     borderWidth: 1,
     borderColor: theme.colors.surface,
   },
