@@ -146,9 +146,8 @@ export default function CalendarScreen() {
       displayTime = `${formattedHour < 10 ? '0' : ''}${formattedHour}:${m}`;
     }
 
-    // 임시 태그 라벨 (향후 DB 필드로 교체 가능)
-    const tagLabels = ['스튜디오 A', '온라인', '방문 수업'];
-    const tagLabel = tagLabels[index % tagLabels.length];
+    // DB에 저장된 학생의 학습 방법 (방문 / 센터), 미지정 시 기본값 '방문'
+    const tagLabel = item.studyMethod || item.study_method || '방문';
 
     return (
       <TouchableOpacity

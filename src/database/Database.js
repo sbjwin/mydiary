@@ -142,6 +142,7 @@ export const Database = {
         return {
           ...record,
           studentName: student ? student.name : '알 수 없는 학생',
+          studyMethod: student ? student.study_method : null,
         };
       });
     } catch (e) {
