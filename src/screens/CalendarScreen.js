@@ -183,7 +183,7 @@ export default function CalendarScreen() {
           <View style={styles.infoColumn}>
             <Text style={styles.studentNameText}>{item.studentName}</Text>
             <View style={styles.subjectRow}>
-              <Text style={styles.subjectText}>{item.book_issue_date || '과정 미입력'}</Text>
+              <Text style={styles.subjectText}>{item.course || '과정 미입력'}</Text>
             </View>
           </View>
 

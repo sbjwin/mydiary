@@ -104,7 +104,21 @@ export const Database = {
   getAllRecords: async () => {
     try {
       const data = await AsyncStorage.getItem(RECORDS_KEY);
-      return data ? JSON.parse(data) : [];
+      if (!data) return [];
+      let records = JSON.parse(data);
+      let migrated = false;
+      records = records.map(record => {
+        if (record.book_issue_date !== undefined) {
+          record.course = record.book_issue_date;
+          delete record.book_issue_date;
+          migrated = true;
+        }
+        return record;
+      });
+      if (migrated) {
+        await AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+      }
+      return records;
     } catch (e) {
       console.error('Failed to get class records:', e);
       return [];

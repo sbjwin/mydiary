@@ -30,7 +30,7 @@ export default function ClassRecordScreen() {
   const [editingDate, setEditingDate] = useState('');
   const [editingTime, setEditingTime] = useState('');
   const [editingContent, setEditingContent] = useState('');
-  const [editingBookIssue, setEditingBookIssue] = useState('');
+  const [editingCourse, setEditingCourse] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // 기록 추가 모달 열기
@@ -40,7 +40,7 @@ export default function ClassRecordScreen() {
     setEditingDate(today);
     setEditingTime('');
     setEditingContent('');
-    setEditingBookIssue('');
+    setEditingCourse('');
     setModalVisible(true);
   }, []);
 
@@ -50,7 +50,7 @@ export default function ClassRecordScreen() {
     setEditingDate(record.class_date);
     setEditingTime(record.class_time || '');
     setEditingContent(record.content || '');
-    setEditingBookIssue(record.book_issue_date || '');
+    setEditingCourse(record.course || '');
     setModalVisible(true);
   }, []);
 
@@ -101,7 +101,7 @@ export default function ClassRecordScreen() {
       student_id: studentId,
       class_date: editingDate,
       class_time: editingTime.trim() || null,
-      book_issue_date: editingBookIssue.trim() || null,
+      course: editingCourse.trim() || null,
       content: editingContent.trim() || null,
     };
 
@@ -148,7 +148,7 @@ export default function ClassRecordScreen() {
         <View style={styles.sheetTopRow}>
           <Text style={styles.sheetTopText}>
             시간: <Text style={styles.sheetValueText}>{item.class_time || '(시간 미지정)'}</Text>
-            {'  |  '}출고/과정: <Text style={styles.sheetValueText}>{item.book_issue_date || '(미입력)'}</Text>
+            {'  |  '}수업과정: <Text style={styles.sheetValueText}>{item.course || '(미입력)'}</Text>
           </Text>
         </View>
         
@@ -293,8 +293,8 @@ export default function ClassRecordScreen() {
                 <Text style={styles.fieldLabel}>수업과정</Text>
                 <TextInput
                   style={styles.modalInput}
-                  value={editingBookIssue}
-                  onChangeText={setEditingBookIssue}
+                  value={editingCourse}
+                  onChangeText={setEditingCourse}
                   placeholder="예: 6/25 출고, A과정"
                   placeholderTextColor="#9CA3AF"
                 />
