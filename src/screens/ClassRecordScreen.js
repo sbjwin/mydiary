@@ -290,7 +290,7 @@ export default function ClassRecordScreen() {
 
               {/* 그림 2 상단 설정 매핑 */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>교재 출고 정보 (출고일/과정)</Text>
+                <Text style={styles.fieldLabel}>수업과정</Text>
                 <TextInput
                   style={styles.modalInput}
                   value={editingBookIssue}
