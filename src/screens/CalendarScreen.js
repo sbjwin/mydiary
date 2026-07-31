@@ -183,7 +183,6 @@ export default function CalendarScreen() {
           <View style={styles.infoColumn}>
             <Text style={styles.studentNameText}>{item.studentName}</Text>
             <View style={styles.subjectRow}>
-              <Feather name="music" size={12} color={theme.colors.textSecondary} style={styles.musicIcon} />
               <Text style={styles.subjectText}>{item.book_issue_date || '과정 미입력'}</Text>
             </View>
           </View>
