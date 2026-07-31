@@ -295,7 +295,7 @@ export default function ClassRecordScreen() {
                   style={styles.modalInput}
                   value={editingCourse}
                   onChangeText={setEditingCourse}
-                  placeholder="예: 6/25 출고, A과정"
+                  placeholder="예: 파이썬 기초, 리액트 심화 등"
                   placeholderTextColor="#9CA3AF"
                 />
               </View>
