@@ -348,7 +348,7 @@ export default function StudentDetailScreen() {
               style={styles.saveButton}
               onPress={handleSave}
             >
-              <Icon name="save" size={18} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
+              <Feather name="save" size={18} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
               <Text style={styles.saveButtonText}>저장하기</Text>
             </TouchableOpacity>
 
@@ -357,7 +357,7 @@ export default function StudentDetailScreen() {
                 style={styles.deleteButton}
                 onPress={handleDelete}
               >
-                <Icon name="trash" size={16} color={theme.colors.error} style={{ marginRight: 6 }} />
+                <Feather name="trash-2" size={16} color={theme.colors.error} style={{ marginRight: 6 }} />
                 <Text style={styles.deleteButtonText}>학생 정보 삭제</Text>
               </TouchableOpacity>
             )}
