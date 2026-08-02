@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  ScrollView, 
-  SafeAreaView, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
   Alert,
   FlatList,
   Modal
@@ -24,12 +24,12 @@ export default function ClassRecordScreen() {
   const { studentId, recordId, selectedDate } = route.params || {};
 
   const [student, setStudent] = useState(null);
-  
+
   // 전체 일지 리스트와 화면에 보여질 리스트(무한 스크롤 용)
   const [allRecords, setAllRecords] = useState([]);
   const [displayedRecords, setDisplayedRecords] = useState([]);
   const [page, setPage] = useState(1);
-  
+
   // 개별 기록 작성/수정 모달 관련 상태
   const [modalVisible, setModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -70,7 +70,7 @@ export default function ClassRecordScreen() {
       // 날짜 최신순 정렬
       const sortedRecs = recs.sort((a, b) => b.class_date.localeCompare(a.class_date));
       setAllRecords(sortedRecs);
-      
+
       // 초기 렌더링 (첫 페이지 로드)
       setDisplayedRecords(sortedRecs.slice(0, PAGE_SIZE));
       setPage(1);
@@ -220,7 +220,7 @@ export default function ClassRecordScreen() {
         <View style={styles.emptyContainer}>
           <Feather name="folder-minus" size={48} color={theme.colors.outline} style={{ marginBottom: 16 }} />
           <Text style={styles.emptyText}>등록된 수업 일지가 없습니다.</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.addRecordButton}
             onPress={() => openAddModal()}
           >
@@ -241,13 +241,13 @@ export default function ClassRecordScreen() {
           maxToRenderPerBatch={10}     // 한 번에 렌더링할 개수
           windowSize={5}               // 위아래로 렌더링해둘 여유 공간 (기본값 21보다 훨씬 적게)
           updateCellsBatchingPeriod={50} // 렌더링 배치 간격(ms)
-          // --- 최적화 옵션 끝 ---
+        // --- 최적화 옵션 끝 ---
         />
       )}
 
       {/* 우측 하단 플로팅 버튼 */}
       {allRecords.length > 0 && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.fabButton}
           onPress={() => openAddModal()}
         >
@@ -278,7 +278,7 @@ export default function ClassRecordScreen() {
               {/* 날짜 선택 필드 */}
               <View style={styles.inputGroup}>
                 <Text style={styles.fieldLabel}>수업 날짜 *</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.dateSelector}
                   onPress={() => setShowDatePicker(!showDatePicker)}
                 >
@@ -342,15 +342,15 @@ export default function ClassRecordScreen() {
               </View>
 
               <View style={styles.modalActions}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.modalBtn, styles.saveModalBtn]}
                   onPress={handleSaveRecord}
                 >
                   <Text style={styles.saveModalBtnText}>저장하기</Text>
                 </TouchableOpacity>
-                
+
                 {editingRecord && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={[styles.modalBtn, styles.deleteModalBtn]}
                     onPress={() => handleDeleteRecord(editingRecord.id)}
                   >
