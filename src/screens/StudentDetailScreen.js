@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Database } from '../database/Database';
-import Icon from 'react-native-vector-icons/FontAwesome5';
+import { Feather } from '@expo/vector-icons';
 import { theme } from '../theme';
 
 export default function StudentDetailScreen() {
@@ -148,7 +148,7 @@ export default function StudentDetailScreen() {
             try {
               await Database.deleteStudent(studentId);
               Alert.alert('완료', '학생 주소록이 삭제되었습니다.', [
-                { text: '확인', onPress: () => navigation.popToTop() }
+                { text: '확인', onPress: () => navigation.goBack() }
               ]);
             } catch (e) {
               console.error('Failed to delete student:', e);
@@ -170,7 +170,7 @@ export default function StudentDetailScreen() {
 
           {/* 학생 기본 정보 */}
           <View style={styles.sectionHeader}>
-            <Icon name="user-alt" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
+            <Feather name="user" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>학생 기본 정보</Text>
           </View>
 
@@ -279,7 +279,7 @@ export default function StudentDetailScreen() {
 
           {/* 학부모 정보 */}
           <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-            <Icon name="user-friends" size={14} color={theme.colors.primary} style={styles.sectionIcon} />
+            <Feather name="users" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>학부모 정보</Text>
           </View>
 
@@ -309,7 +309,7 @@ export default function StudentDetailScreen() {
 
           {/* 기타 사항 */}
           <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-            <Icon name="sticky-note" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
+            <Feather name="file-text" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>기타 사항</Text>
           </View>
 
