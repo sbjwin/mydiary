@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
 import { GoogleDriveService } from '../services/GoogleDriveService';
+import { theme } from '../theme';
 
 export default function SettingsScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
@@ -71,17 +73,19 @@ export default function SettingsScreen({ navigation }) {
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.backupButton} onPress={handleBackup} disabled={loading}>
+          <Feather name="cloud-upload" size={20} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
           <Text style={styles.buttonText}>구글 드라이브에 백업</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.restoreButton} onPress={handleRestore} disabled={loading}>
+          <Feather name="cloud-download" size={20} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
           <Text style={styles.buttonText}>구글 드라이브에서 복원</Text>
         </TouchableOpacity>
       </View>
 
       {loading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#007bff" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>처리 중입니다...</Text>
         </View>
       )}
@@ -92,37 +96,41 @@ export default function SettingsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.surfaceVariant,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
+    marginBottom: 8,
+    color: theme.colors.textPrimary,
   },
   description: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 30,
+    color: theme.colors.textSecondary,
+    marginBottom: 24,
   },
   buttonContainer: {
-    gap: 15,
+    gap: 14,
   },
   backupButton: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primary,
+    padding: 16,
+    borderRadius: theme.roundness,
   },
   restoreButton: {
-    backgroundColor: '#28a745',
-    padding: 15,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#059669',
+    padding: 16,
+    borderRadius: theme.roundness,
   },
   buttonText: {
-    color: '#fff',
+    color: theme.colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -136,6 +144,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
 });
