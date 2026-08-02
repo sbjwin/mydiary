@@ -41,9 +41,17 @@ export default function ClassRecordScreen() {
   const [editingCourse, setEditingCourse] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const getTodayFormatted = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // 기록 추가 모달 열기
   const openAddModal = useCallback((dateStr = '') => {
-    const today = dateStr || new Date().toISOString().split('T')[0];
+    const today = dateStr || getTodayFormatted();
     setEditingRecord(null);
     setEditingDate(today);
     setEditingTime('');

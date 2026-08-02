@@ -21,10 +21,18 @@ export default function HomeScreen() {
   const [todayRecords, setTodayRecords] = useState([]);
   const [studentCount, setStudentCount] = useState(0);
 
+  const getTodayFormatted = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayFormatted();
       const records = await Database.getRecordsByDate(today);
       const students = await Database.getAllStudents();
 
