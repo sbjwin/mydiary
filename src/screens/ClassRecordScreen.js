@@ -13,7 +13,11 @@ import {
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
+import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
+import { theme } from '../theme';
+
+const PAGE_SIZE = 15;
 
 export default function ClassRecordScreen() {
   const route = useRoute();
@@ -21,8 +25,10 @@ export default function ClassRecordScreen() {
 
   const [student, setStudent] = useState(null);
   
-  // 날짜별 수업 리스트
-  const [records, setRecords] = useState([]);
+  // 전체 일지 리스트와 화면에 보여질 리스트(무한 스크롤 용)
+  const [allRecords, setAllRecords] = useState([]);
+  const [displayedRecords, setDisplayedRecords] = useState([]);
+  const [page, setPage] = useState(1);
   
   // 개별 기록 작성/수정 모달 관련 상태
   const [modalVisible, setModalVisible] = useState(false);
@@ -63,17 +69,21 @@ export default function ClassRecordScreen() {
       const recs = await Database.getRecordsByStudent(studentId);
       // 날짜 최신순 정렬
       const sortedRecs = recs.sort((a, b) => b.class_date.localeCompare(a.class_date));
-      setRecords(sortedRecs);
+      setAllRecords(sortedRecs);
+      
+      // 초기 렌더링 (첫 페이지 로드)
+      setDisplayedRecords(sortedRecs.slice(0, PAGE_SIZE));
+      setPage(1);
 
       // 만약 특정 recordId가 파라미터로 넘어왔다면 즉시 편집창을 연다
       if (recordId) {
-        const rec = recs.find(r => r.id === recordId);
+        const rec = sortedRecs.find(r => r.id === recordId);
         if (rec) {
           openEditModal(rec);
         }
       } else if (selectedDate) {
         // 특정 날짜가 전달되었고 기존 기록이 없다면 새 기록 작성창을 연다
-        const existing = recs.find(r => r.class_date === selectedDate);
+        const existing = sortedRecs.find(r => r.class_date === selectedDate);
         if (existing) {
           openEditModal(existing);
         } else {
@@ -89,6 +99,15 @@ export default function ClassRecordScreen() {
     loadData();
   }, [loadData]);
 
+  // 무한 스크롤 페이징 처리
+  const handleLoadMore = () => {
+    const nextItemIndex = page * PAGE_SIZE;
+    if (nextItemIndex < allRecords.length) {
+      const nextPageRecords = allRecords.slice(nextItemIndex, nextItemIndex + PAGE_SIZE);
+      setDisplayedRecords((prev) => [...prev, ...nextPageRecords]);
+      setPage((prevPage) => prevPage + 1);
+    }
+  };
 
   // 기록 저장 처리 (추가 또는 수정)
   const handleSaveRecord = async () => {
@@ -114,7 +133,7 @@ export default function ClassRecordScreen() {
         await Database.addClassRecord(recordData);
       }
       setModalVisible(false);
-      loadData();
+      loadData(); // 최신 데이터 다시 로드
     } catch (e) {
       console.error('Failed to save record:', e);
       Alert.alert('오류', '저장에 실패했습니다.');
@@ -142,63 +161,64 @@ export default function ClassRecordScreen() {
     ]);
   };
 
-  const renderRecordCard = ({ item }) => {
+  const renderRecordCard = useCallback(({ item }) => {
+    const [, month, day] = item.class_date.split('-');
     return (
-      <View style={styles.sheetContainer}>
-        <View style={styles.sheetTopRow}>
-          <Text style={styles.sheetTopText}>
-            시간: <Text style={styles.sheetValueText}>{item.class_time || '(시간 미지정)'}</Text>
-            {'  |  '}수업과정: <Text style={styles.sheetValueText}>{item.course || '(미입력)'}</Text>
-          </Text>
-        </View>
-        
-        {/* 그림 2 하단 사선 디자인 날짜 칸 + 수업 내용 */}
-        <View style={styles.sheetBody}>
-          <View style={styles.diagonalDateContainer}>
-            {/* 사선 효과 및 날짜 정보 */}
-            <View style={styles.diagonalLine} />
-            <Text style={styles.diagonalMonthText}>{item.class_date.split('-')[1]}월</Text>
-            <Text style={styles.diagonalDayText}>{item.class_date.split('-')[2]}일</Text>
+      <View style={styles.cardContainer}>
+        {/* 카드 헤더 (날짜 및 뱃지) */}
+        <View style={styles.cardHeader}>
+          <View style={styles.dateBadge}>
+            <Feather name="calendar" size={14} color={theme.colors.primary} />
+            <Text style={styles.dateBadgeText}>{month}월 {day}일</Text>
           </View>
-          <View style={styles.sheetContentArea}>
-            <Text style={styles.sheetContentText}>
-              {item.content || '기록된 내용이 없습니다.'}
-            </Text>
+          <View style={styles.timeCourseWrapper}>
+            <Text style={styles.timeText}>{item.class_time || '(미지정)'}</Text>
+            <View style={styles.dotSeparator} />
+            <Text style={styles.courseText} numberOfLines={1}>{item.course || '과정 미입력'}</Text>
           </View>
         </View>
 
-        {/* 카드 제어 버튼 */}
+        {/* 카드 본문 */}
+        <View style={styles.cardBody}>
+          <Text style={styles.contentText}>
+            {item.content || '기록된 내용이 없습니다.'}
+          </Text>
+        </View>
+
+        {/* 카드 액션 버튼 */}
         <View style={styles.cardActions}>
-          <TouchableOpacity 
-            style={styles.cardActionButton} 
-            onPress={() => openEditModal(item)}
-          >
-            <Text style={styles.editActionText}>수정</Text>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => openEditModal(item)}>
+            <Feather name="edit-2" size={16} color={theme.colors.primary} />
+            <Text style={styles.actionBtnText}>수정</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.cardActionButton} 
-            onPress={() => handleDeleteRecord(item.id)}
-          >
-            <Text style={styles.deleteActionText}>삭제</Text>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => handleDeleteRecord(item.id)}>
+            <Feather name="trash-2" size={16} color={theme.colors.error} />
+            <Text style={[styles.actionBtnText, { color: theme.colors.error }]}>삭제</Text>
           </TouchableOpacity>
         </View>
       </View>
     );
-  };
+  }, [openEditModal, handleDeleteRecord]);
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 학생 기본 정보 */}
+      {/* 학생 기본 정보 바 */}
       {student && (
         <View style={styles.studentBar}>
-          <Text style={styles.studentName}>{student.name} 학생</Text>
-          <Text style={styles.studentDetails}>{student.school_grade || '학교/학년 미지정'}</Text>
+          <View>
+            <Text style={styles.studentName}>{student.name} 학생</Text>
+            <Text style={styles.studentDetails}>{student.school_grade || '학교/학년 미지정'}</Text>
+          </View>
+          <View style={styles.recordCountBadge}>
+            <Text style={styles.recordCountText}>총 {allRecords.length}회 기록</Text>
+          </View>
         </View>
       )}
 
       {/* 수업 목록 */}
-      {records.length === 0 ? (
+      {allRecords.length === 0 ? (
         <View style={styles.emptyContainer}>
+          <Feather name="folder-minus" size={48} color={theme.colors.outline} style={{ marginBottom: 16 }} />
           <Text style={styles.emptyText}>등록된 수업 일지가 없습니다.</Text>
           <TouchableOpacity 
             style={styles.addRecordButton}
@@ -209,20 +229,30 @@ export default function ClassRecordScreen() {
         </View>
       ) : (
         <FlatList
-          data={records}
+          data={displayedRecords}
           keyExtractor={(item) => item.id}
           renderItem={renderRecordCard}
           contentContainerStyle={styles.listContent}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          // --- 최적화 옵션 시작 ---
+          removeClippedSubviews={true} // 화면 밖 아이템 메모리 해제
+          initialNumToRender={15}      // 초기 렌더링 개수
+          maxToRenderPerBatch={10}     // 한 번에 렌더링할 개수
+          windowSize={5}               // 위아래로 렌더링해둘 여유 공간 (기본값 21보다 훨씬 적게)
+          updateCellsBatchingPeriod={50} // 렌더링 배치 간격(ms)
+          // --- 최적화 옵션 끝 ---
         />
       )}
 
       {/* 우측 하단 플로팅 버튼 */}
-      {records.length > 0 && (
+      {allRecords.length > 0 && (
         <TouchableOpacity 
           style={styles.fabButton}
           onPress={() => openAddModal()}
         >
-          <Text style={styles.fabButtonText}>+ 일지 추가</Text>
+          <Feather name="plus" size={20} color={theme.colors.onPrimary} style={{ marginRight: 4 }} />
+          <Text style={styles.fabButtonText}>일지 추가</Text>
         </TouchableOpacity>
       )}
 
@@ -241,7 +271,7 @@ export default function ClassRecordScreen() {
                   {editingRecord ? '수업 일지 수정' : '새 수업 일지 등록'}
                 </Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Text style={styles.closeButtonText}>✕</Text>
+                  <Feather name="x" size={24} color={theme.colors.outline} />
                 </TouchableOpacity>
               </View>
 
@@ -257,7 +287,6 @@ export default function ClassRecordScreen() {
                   </Text>
                 </TouchableOpacity>
 
-                {/* 인라인 달력 (날짜 선택 활성화 시) */}
                 {showDatePicker && (
                   <View style={styles.inlineCalendar}>
                     <Calendar
@@ -267,16 +296,15 @@ export default function ClassRecordScreen() {
                         setShowDatePicker(false);
                       }}
                       theme={{
-                        selectedDayBackgroundColor: '#6366F1',
-                        todayTextColor: '#6366F1',
-                        arrowColor: '#6366F1',
+                        selectedDayBackgroundColor: theme.colors.primary,
+                        todayTextColor: theme.colors.primary,
+                        arrowColor: theme.colors.primary,
                       }}
                     />
                   </View>
                 )}
               </View>
 
-              {/* 수업 시간 입력 필드 */}
               <View style={styles.inputGroup}>
                 <Text style={styles.fieldLabel}>수업 시간</Text>
                 <TextInput
@@ -284,11 +312,10 @@ export default function ClassRecordScreen() {
                   value={editingTime}
                   onChangeText={setEditingTime}
                   placeholder="예: 14:00 또는 14시~15시"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.colors.outline}
                 />
               </View>
 
-              {/* 그림 2 상단 설정 매핑 */}
               <View style={styles.inputGroup}>
                 <Text style={styles.fieldLabel}>수업과정</Text>
                 <TextInput
@@ -296,12 +323,10 @@ export default function ClassRecordScreen() {
                   value={editingCourse}
                   onChangeText={setEditingCourse}
                   placeholder="예: 파이썬 기초, 리액트 심화 등"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.colors.outline}
                 />
               </View>
 
-
-              {/* 수업 내용 */}
               <View style={styles.inputGroup}>
                 <Text style={styles.fieldLabel}>수업 내용 기록 *</Text>
                 <TextInput
@@ -309,14 +334,13 @@ export default function ClassRecordScreen() {
                   value={editingContent}
                   onChangeText={setEditingContent}
                   placeholder="오늘 진행한 수업 내용을 기록하세요."
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.colors.outline}
                   multiline={true}
                   numberOfLines={6}
                   textAlignVertical="top"
                 />
               </View>
 
-              {/* 저장 및 제어 버튼 */}
               <View style={styles.modalActions}>
                 <TouchableOpacity 
                   style={[styles.modalBtn, styles.saveModalBtn]}
@@ -345,179 +369,170 @@ export default function ClassRecordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.surfaceVariant,
   },
   studentBar: {
-    backgroundColor: '#ffffff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: theme.colors.white,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.colors.secondaryContainer,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   studentName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
+    color: theme.colors.textPrimary,
   },
   studentDetails: {
     fontSize: 13,
-    color: '#6B7280',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+  },
+  recordCountBadge: {
+    backgroundColor: theme.colors.secondaryContainer,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.roundness,
+  },
+  recordCountText: {
+    color: theme.colors.primary,
+    fontSize: 13,
+    fontWeight: 'bold',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: theme.spacing.lg,
   },
   emptyText: {
-    fontSize: 15,
-    color: '#9CA3AF',
-    marginBottom: 16,
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    marginBottom: 20,
   },
   addRecordButton: {
-    backgroundColor: '#6366F1',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: theme.roundness,
   },
   addRecordButtonText: {
-    color: '#ffffff',
+    color: theme.colors.onPrimary,
     fontWeight: 'bold',
+    fontSize: 15,
   },
   listContent: {
-    padding: 16,
+    padding: theme.spacing.lg,
     paddingBottom: 90,
   },
-  // 그림 2 양식 느낌의 낱장 시트 형태 카드
-  sheetContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: '#9CA3AF',
-    marginBottom: 20,
-    overflow: 'hidden',
+  // 모던 카드 UI 
+  cardContainer: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.roundness,
+    marginBottom: theme.spacing.md,
+    padding: theme.spacing.md,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 2,
   },
-  sheetTopRow: {
+  cardHeader: {
     flexDirection: 'row',
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#9CA3AF',
-    backgroundColor: '#F9FAFB',
-  },
-  sheetTopText: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4B5563',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  sheetValueText: {
-    color: '#111827',
-    fontWeight: 'normal',
-  },
-  sheetBody: {
-    flexDirection: 'row',
-    height: 110,
-  },
-  diagonalDateContainer: {
-    width: 80,
-    borderRightWidth: 1.5,
-    borderRightColor: '#9CA3AF',
-    justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
-    backgroundColor: '#FFFFFF',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.secondaryContainer,
+    paddingBottom: theme.spacing.sm,
   },
-  // 사선 효과 재현 (CSS 보더)
-  diagonalLine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    borderTopWidth: 1,
-    borderTopColor: '#D1D5DB',
-    transform: [{ rotate: '38deg' }],
-    opacity: 0.4,
+  dateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.secondaryContainer,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 6,
   },
-  diagonalMonthText: {
-    position: 'absolute',
-    top: 15,
-    left: 12,
+  dateBadgeText: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
     fontSize: 13,
-    fontWeight: 'bold',
-    color: '#374151',
   },
-  diagonalDayText: {
-    position: 'absolute',
-    bottom: 15,
-    right: 12,
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  sheetContentArea: {
+  timeCourseWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
-    padding: 12,
-    backgroundColor: '#FAFDFB', // 연한 필기용 모눈종이 느낌의 배경
+    justifyContent: 'flex-end',
   },
-  sheetContentText: {
+  timeText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  dotSeparator: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.outline,
+    marginHorizontal: 8,
+  },
+  courseText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    maxWidth: 100,
+  },
+  cardBody: {
+    paddingVertical: theme.spacing.sm,
+    minHeight: 60,
+  },
+  contentText: {
     fontSize: 14,
-    color: '#1F2937',
-    lineHeight: 20,
+    color: theme.colors.textPrimary,
+    lineHeight: 22,
   },
   cardActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    backgroundColor: '#FAFAFA',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
     gap: 16,
+    paddingTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: '#F9FAFB',
   },
-  cardActionButton: {
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingVertical: 4,
     paddingHorizontal: 8,
   },
-  editActionText: {
+  actionBtnText: {
     fontSize: 13,
-    color: '#4F46E5',
-    fontWeight: 'bold',
-  },
-  deleteActionText: {
-    fontSize: 13,
-    color: '#EF4444',
-    fontWeight: 'bold',
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
   fabButton: {
     position: 'absolute',
     bottom: 60,
     right: 24,
-    backgroundColor: '#6366F1',
-    paddingVertical: 12,
+    backgroundColor: theme.colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 24,
+    borderRadius: 28,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   fabButtonText: {
-    color: '#ffffff',
+    color: theme.colors.onPrimary,
     fontWeight: 'bold',
     fontSize: 15,
   },
@@ -525,20 +540,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
-    padding: 16,
+    padding: theme.spacing.lg,
   },
   modalScroll: {
     flexGrow: 1,
     justifyContent: 'center',
   },
   modalContent: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: theme.colors.white,
+    borderRadius: 20,
+    padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    shadowRadius: 10,
     elevation: 8,
   },
   modalHeader: {
@@ -546,18 +561,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: '#9CA3AF',
+    color: theme.colors.textPrimary,
   },
   inputGroup: {
     marginBottom: 16,
@@ -565,64 +573,64 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#4B5563',
-    marginBottom: 6,
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
   },
   dateSelector: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: theme.colors.outline,
+    borderRadius: theme.roundness,
+    padding: 14,
     backgroundColor: '#F9FAFB',
   },
   dateSelectorText: {
     fontSize: 14,
-    color: '#111827',
+    color: theme.colors.textPrimary,
   },
   inlineCalendar: {
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
+    borderColor: theme.colors.secondaryContainer,
+    borderRadius: theme.roundness,
     overflow: 'hidden',
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 10,
+    borderColor: theme.colors.outline,
+    borderRadius: theme.roundness,
+    padding: 14,
     fontSize: 14,
-    color: '#111827',
-    backgroundColor: '#ffffff',
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.white,
   },
   contentTextArea: {
     height: 120,
   },
   modalActions: {
     flexDirection: 'column',
-    gap: 10,
-    marginTop: 12,
+    gap: 12,
+    marginTop: 8,
   },
   modalBtn: {
-    height: 44,
-    borderRadius: 8,
+    height: 48,
+    borderRadius: theme.roundness,
     justifyContent: 'center',
     alignItems: 'center',
   },
   saveModalBtn: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: theme.colors.primary,
   },
   saveModalBtnText: {
-    color: '#ffffff',
+    color: theme.colors.onPrimary,
     fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 16,
   },
   deleteModalBtn: {
-    backgroundColor: '#EF4444',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
   },
   deleteModalBtnText: {
-    color: '#ffffff',
+    color: theme.colors.error,
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 15,
   },
 });

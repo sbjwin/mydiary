@@ -15,6 +15,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Database } from '../database/Database';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import { theme } from '../theme';
 
 export default function StudentDetailScreen() {
   const navigation = useNavigation();
@@ -146,7 +147,7 @@ export default function StudentDetailScreen() {
 
           {/* 학생 기본 정보 */}
           <View style={styles.sectionHeader}>
-            <Icon name="user-alt" size={16} color="#2f6378" style={styles.sectionIcon} />
+            <Icon name="user-alt" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>학생 기본 정보</Text>
           </View>
 
@@ -158,7 +159,7 @@ export default function StudentDetailScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder="이름을 입력하세요"
-                placeholderTextColor="#c0c7cc"
+                placeholderTextColor={theme.colors.outline}
               />
             </View>
 
@@ -170,7 +171,7 @@ export default function StudentDetailScreen() {
                   value={schoolGrade}
                   onChangeText={setSchoolGrade}
                   placeholder="예: 서초초 3학년"
-                  placeholderTextColor="#c0c7cc"
+                  placeholderTextColor={theme.colors.outline}
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1 }]}>
@@ -180,7 +181,7 @@ export default function StudentDetailScreen() {
                   value={residentNumber}
                   onChangeText={setResidentNumber}
                   placeholder="###### - #######"
-                  placeholderTextColor="#c0c7cc"
+                  placeholderTextColor={theme.colors.outline}
                   keyboardType="numbers-and-punctuation"
                 />
               </View>
@@ -193,7 +194,7 @@ export default function StudentDetailScreen() {
                 value={address}
                 onChangeText={setAddress}
                 placeholder="거주지 주소를 상세히 입력하세요"
-                placeholderTextColor="#c0c7cc"
+                placeholderTextColor={theme.colors.outline}
                 multiline={true}
                 numberOfLines={2}
                 textAlignVertical="top"
@@ -208,7 +209,7 @@ export default function StudentDetailScreen() {
                   value={phoneNumber}
                   onChangeText={setPhoneNumber}
                   placeholder="02-000-0000"
-                  placeholderTextColor="#c0c7cc"
+                  placeholderTextColor={theme.colors.outline}
                   keyboardType="phone-pad"
                 />
               </View>
@@ -219,7 +220,7 @@ export default function StudentDetailScreen() {
                   value={mobilePhone}
                   onChangeText={setMobilePhone}
                   placeholder="010-0000-0000"
-                  placeholderTextColor="#c0c7cc"
+                  placeholderTextColor={theme.colors.outline}
                   keyboardType="phone-pad"
                 />
               </View>
@@ -232,7 +233,7 @@ export default function StudentDetailScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="example@studio.com"
-                placeholderTextColor="#c0c7cc"
+                placeholderTextColor={theme.colors.outline}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -259,7 +260,7 @@ export default function StudentDetailScreen() {
 
           {/* 학부모 정보 */}
           <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-            <Icon name="user-friends" size={14} color="#2f6378" style={styles.sectionIcon} />
+            <Icon name="user-friends" size={14} color={theme.colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>학부모 정보</Text>
           </View>
 
@@ -272,7 +273,7 @@ export default function StudentDetailScreen() {
                   value={parentName}
                   onChangeText={setParentName}
                   placeholder="학부모 성함"
-                  placeholderTextColor="#c0c7cc"
+                  placeholderTextColor={theme.colors.outline}
                 />
               </View>
               <View style={[styles.inputGroup, { flex: 1, marginBottom: 0 }]}>
@@ -282,7 +283,7 @@ export default function StudentDetailScreen() {
                   value={parentMobilePhone}
                   onChangeText={setParentMobilePhone}
                   placeholder="010-0000-0000"
-                  placeholderTextColor="#c0c7cc"
+                  placeholderTextColor={theme.colors.outline}
                   keyboardType="phone-pad"
                 />
               </View>
@@ -291,7 +292,7 @@ export default function StudentDetailScreen() {
 
           {/* 기타 사항 */}
           <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-            <Icon name="sticky-note" size={16} color="#2f6378" style={styles.sectionIcon} />
+            <Icon name="sticky-note" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>기타 사항</Text>
           </View>
 
@@ -301,7 +302,7 @@ export default function StudentDetailScreen() {
               value={notes}
               onChangeText={setNotes}
               placeholder="학생에 대한 특이사항이나 수업 참고 내용을 입력하세요"
-              placeholderTextColor="#c0c7cc"
+              placeholderTextColor={theme.colors.outline}
               multiline={true}
               numberOfLines={4}
               textAlignVertical="top"
@@ -330,7 +331,7 @@ export default function StudentDetailScreen() {
               style={styles.saveButton}
               onPress={handleSave}
             >
-              <Icon name="save" size={18} color="#ffffff" style={{ marginRight: 8 }} />
+              <Icon name="save" size={18} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
               <Text style={styles.saveButtonText}>저장하기</Text>
             </TouchableOpacity>
 
@@ -339,7 +340,7 @@ export default function StudentDetailScreen() {
                 style={styles.deleteButton}
                 onPress={handleDelete}
               >
-                <Icon name="trash" size={16} color="#ba1a1a" style={{ marginRight: 6 }} />
+                <Icon name="trash" size={16} color={theme.colors.error} style={{ marginRight: 6 }} />
                 <Text style={styles.deleteButtonText}>학생 정보 삭제</Text>
               </TouchableOpacity>
             )}
@@ -354,13 +355,13 @@ export default function StudentDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7fafd',
+    backgroundColor: theme.colors.surfaceVariant,
   },
   keyboardAvoid: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: theme.spacing.lg,
     paddingBottom: 160,
   },
   sectionHeader: {
@@ -373,17 +374,17 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#181c1f',
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
   },
   cardContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 16,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.roundness,
+    padding: theme.spacing.lg,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 12,
+    shadowRadius: 8,
     elevation: 2,
   },
   row: {
@@ -393,23 +394,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#41484c',
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   required: {
-    color: '#ba1a1a',
+    color: theme.colors.error,
   },
   input: {
-    backgroundColor: '#f1f4f7',
-    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: theme.roundness,
     borderWidth: 1,
-    borderColor: '#c0c7cc',
+    borderColor: theme.colors.outline,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
-    color: '#181c1f',
+    fontSize: 14,
+    color: theme.colors.textPrimary,
     minHeight: 44,
   },
   textArea: {
@@ -418,7 +419,7 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#e5e8ec',
+    backgroundColor: theme.colors.secondaryContainer,
     borderRadius: 9999,
     padding: 4,
     maxWidth: 240,
@@ -430,7 +431,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toggleBtnActive: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -440,35 +441,35 @@ const styles = StyleSheet.create({
   toggleBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#41484c',
+    color: theme.colors.textSecondary,
   },
   toggleBtnTextActive: {
-    color: '#2f6378',
+    color: theme.colors.primary,
   },
   notesContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.roundness,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 12,
+    shadowRadius: 8,
     elevation: 2,
     borderLeftWidth: 4,
-    borderLeftColor: '#2f6378',
+    borderLeftColor: theme.colors.primary,
     minHeight: 120,
   },
   notesInput: {
     flex: 1,
     padding: 16,
-    fontSize: 16,
-    color: '#181c1f',
+    fontSize: 14,
+    color: theme.colors.textPrimary,
   },
   bannerContainer: {
     marginTop: 24,
     marginBottom: 16,
     height: 128,
-    borderRadius: 20,
+    borderRadius: theme.roundness,
     overflow: 'hidden',
   },
   bannerImage: {
@@ -483,9 +484,9 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   bannerText: {
-    color: '#ffffff',
+    color: theme.colors.white,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     textShadowColor: 'rgba(0, 0, 0, 0.4)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
@@ -495,12 +496,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(247, 250, 253, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(192, 199, 204, 0.2)',
+    borderTopColor: 'rgba(0, 0, 0, 0.05)',
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 64 : 56,
+    paddingBottom: Platform.OS === 'ios' ? 64 : 24,
     zIndex: 40,
   },
   bottomActionsContainer: {
@@ -510,35 +511,35 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#2f6378',
-    height: 48,
+    backgroundColor: theme.colors.primary,
+    height: 52,
     borderRadius: 9999,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
     elevation: 4,
   },
   saveButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 18,
+    color: theme.colors.onPrimary,
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   deleteButton: {
     paddingHorizontal: 16,
-    height: 48,
-    backgroundColor: 'rgba(186, 26, 26, 0.05)',
+    height: 52,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
     borderRadius: 9999,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
   deleteButtonText: {
-    color: '#ba1a1a',
-    fontWeight: '600',
+    color: theme.colors.error,
+    fontWeight: 'bold',
     fontSize: 14,
   },
 });
