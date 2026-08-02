@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   },
   fabButton: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 60,
     right: 24,
     backgroundColor: '#6366F1',
     paddingVertical: 12,
