@@ -265,7 +265,7 @@ export default function ClassRecordScreen() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
