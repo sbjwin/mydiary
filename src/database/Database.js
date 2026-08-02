@@ -106,16 +106,15 @@ export const Database = {
       const data = await AsyncStorage.getItem(RECORDS_KEY);
       if (!data) return [];
       let records = JSON.parse(data);
-      let migrated = false;
-      records = records.map(record => {
-        if (record.book_issue_date !== undefined) {
-          record.course = record.book_issue_date;
-          delete record.book_issue_date;
-          migrated = true;
-        }
-        return record;
-      });
-      if (migrated) {
+      const needsMigration = records.some((r) => r.book_issue_date !== undefined);
+      if (needsMigration) {
+        records = records.map((record) => {
+          if (record.book_issue_date !== undefined) {
+            record.course = record.book_issue_date;
+            delete record.book_issue_date;
+          }
+          return record;
+        });
         await AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(records));
       }
       return records;
