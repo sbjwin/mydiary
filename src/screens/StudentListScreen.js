@@ -10,7 +10,9 @@ import {
   ActivityIndicator 
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
+import { theme } from '../theme';
 
 const Separator = () => <View style={styles.separator} />;
 
@@ -51,12 +53,12 @@ export default function StudentListScreen() {
     if (searchQuery.trim() === '') {
       setFilteredStudents(students);
     } else {
-      const query = searchQuery.toLowerCase();
       const filtered = students.filter((s) => {
         const nameMatch = s.name.toLowerCase().includes(query);
         const schoolMatch = s.school_grade && s.school_grade.toLowerCase().includes(query);
-        const phoneMatch = s.mobile_phone && s.mobile_phone.replace(/-/g, '').includes(query.replace(/-/g, ''));
-        return nameMatch || schoolMatch || phoneMatch;
+        const mobileMatch = s.mobile_phone && s.mobile_phone.replace(/-/g, '').includes(query.replace(/-/g, ''));
+        const phoneMatch = s.phone_number && s.phone_number.replace(/-/g, '').includes(query.replace(/-/g, ''));
+        return nameMatch || schoolMatch || mobileMatch || phoneMatch;
       });
       setFilteredStudents(filtered);
     }
@@ -75,11 +77,11 @@ export default function StudentListScreen() {
           ) : null}
         </View>
         <Text style={styles.mobilePhone}>
-          {item.mobile_phone ? `📱 ${item.mobile_phone}` : '휴대전화 없음'}
+          {item.mobile_phone ? `📱 ${item.mobile_phone}` : item.phone_number ? `📞 ${item.phone_number}` : '전화번호 없음'}
         </Text>
       </View>
       <View style={styles.arrowIcon}>
-        <Text style={styles.arrowIconText}>▶</Text>
+        <Feather name="chevron-right" size={18} color={theme.colors.outline} />
       </View>
     </TouchableOpacity>
   );
@@ -88,10 +90,11 @@ export default function StudentListScreen() {
     <SafeAreaView style={styles.container}>
       {/* 검색 바 */}
       <View style={styles.searchContainer}>
+        <Feather name="search" size={18} color={theme.colors.textSecondary} style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
-          placeholder="이름, 학교, 휴대전화 번호 검색..."
-          placeholderTextColor="#9CA3AF"
+          placeholder="이름, 학교, 전화번호 검색..."
+          placeholderTextColor={theme.colors.outline}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -100,14 +103,14 @@ export default function StudentListScreen() {
             style={styles.clearButton} 
             onPress={() => setSearchQuery('')}
           >
-            <Text style={styles.clearButtonText}>✕</Text>
+            <Feather name="x" size={18} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
 
       {/* 목록 본문 */}
       {loading ? (
-        <ActivityIndicator size="large" color="#6366F1" style={styles.loader} />
+        <ActivityIndicator size="large" color={theme.colors.primary} style={styles.loader} />
       ) : filteredStudents.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
@@ -118,7 +121,8 @@ export default function StudentListScreen() {
               style={styles.addButtonInline}
               onPress={() => navigation.navigate('StudentDetail')}
             >
-              <Text style={styles.addButtonInlineText}>+ 새 학생 등록하기</Text>
+              <Feather name="plus" size={16} color={theme.colors.onPrimary} style={{ marginRight: 4 }} />
+              <Text style={styles.addButtonInlineText}>새 학생 등록하기</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -137,7 +141,8 @@ export default function StudentListScreen() {
         style={styles.fabButton}
         onPress={() => navigation.navigate('StudentDetail')}
       >
-        <Text style={styles.fabButtonText}>+ 학생 추가</Text>
+        <Feather name="user-plus" size={18} color={theme.colors.onPrimary} style={{ marginRight: 6 }} />
+        <Text style={styles.fabButtonText}>학생 추가</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -146,30 +151,26 @@ export default function StudentListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.surfaceVariant,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
     margin: 12,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: theme.roundness,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: theme.colors.outline,
   },
   searchInput: {
     flex: 1,
     height: 44,
     fontSize: 15,
-    color: '#111827',
+    color: theme.colors.textPrimary,
   },
   clearButton: {
-    padding: 8,
-  },
-  clearButtonText: {
-    fontSize: 16,
-    color: '#9CA3AF',
+    padding: 6,
   },
   loader: {
     flex: 1,
@@ -184,22 +185,24 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
-    color: '#9CA3AF',
+    color: theme.colors.textSecondary,
     marginBottom: 16,
   },
   addButtonInline: {
-    backgroundColor: '#6366F1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: theme.roundness,
   },
   addButtonInlineText: {
-    color: '#ffffff',
+    color: theme.colors.onPrimary,
     fontWeight: 'bold',
     fontSize: 14,
   },
   listContent: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
     paddingBottom: 80,
   },
   studentCard: {
@@ -208,7 +211,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
   },
   studentInfo: {
     flex: 1,
@@ -221,37 +224,35 @@ const styles = StyleSheet.create({
   studentName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#111827',
+    color: theme.colors.textPrimary,
     marginRight: 8,
   },
   schoolGrade: {
     fontSize: 13,
-    color: '#6B7280',
-    backgroundColor: '#F3F4F6',
+    color: theme.colors.textSecondary,
+    backgroundColor: theme.colors.secondaryContainer,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   mobilePhone: {
     fontSize: 14,
-    color: '#4B5563',
+    color: theme.colors.textSecondary,
   },
   arrowIcon: {
     paddingLeft: 8,
   },
-  arrowIconText: {
-    fontSize: 12,
-    color: '#D1D5DB',
-  },
   separator: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.surfaceVariant,
   },
   fabButton: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#6366F1',
+    backgroundColor: theme.colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 24,
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   fabButtonText: {
-    color: '#ffffff',
+    color: theme.colors.onPrimary,
     fontWeight: 'bold',
     fontSize: 15,
   },
