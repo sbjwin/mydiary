@@ -41,6 +41,29 @@ export default function StudentDetailScreen() {
   // 기타 데이터 상태
   const [notes, setNotes] = useState('');
 
+  // 입력 자동 포맷팅 핸들러
+  const formatPhoneNumber = (text) => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    if (cleaned.startsWith('02')) {
+      if (cleaned.length <= 2) return cleaned;
+      if (cleaned.length <= 5) return cleaned.replace(/(\d{2})(\d{1,3})/, '$1-$2');
+      if (cleaned.length <= 9) return cleaned.replace(/(\d{2})(\d{3})(\d{1,4})/, '$1-$2-$3');
+      return cleaned.replace(/(\d{2})(\d{4})(\d{1,4})/, '$1-$2-$3');
+    }
+    if (cleaned.length <= 3) return cleaned;
+    if (cleaned.length <= 7) return cleaned.replace(/(\d{3})(\d{1,4})/, '$1-$2');
+    return cleaned.replace(/(\d{3})(\d{4})(\d{1,4})/, '$1-$2-$3');
+  };
+
+  const handleResidentNumberChange = (text) => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    let formatted = cleaned;
+    if (cleaned.length > 6) {
+      formatted = `${cleaned.slice(0, 6)}-${cleaned.slice(6, 13)}`;
+    }
+    setResidentNumber(formatted);
+  };
+
   // 기존 데이터 불러오기
   useEffect(() => {
     if (isEditMode) {
@@ -163,28 +186,26 @@ export default function StudentDetailScreen() {
               />
             </View>
 
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 16 }]}>
-                <Text style={styles.label}>학교 및 학년</Text>
-                <TextInput
-                  style={styles.input}
-                  value={schoolGrade}
-                  onChangeText={setSchoolGrade}
-                  placeholder="예: 서초초 3학년"
-                  placeholderTextColor={theme.colors.outline}
-                />
-              </View>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>주민등록번호</Text>
-                <TextInput
-                  style={styles.input}
-                  value={residentNumber}
-                  onChangeText={setResidentNumber}
-                  placeholder="###### - #######"
-                  placeholderTextColor={theme.colors.outline}
-                  keyboardType="numbers-and-punctuation"
-                />
-              </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>학교 및 학년</Text>
+              <TextInput
+                style={styles.input}
+                value={schoolGrade}
+                onChangeText={setSchoolGrade}
+                placeholder="예: 서초초 3학년"
+                placeholderTextColor={theme.colors.outline}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>주민등록번호</Text>
+              <TextInput
+                style={styles.input}
+                value={residentNumber}
+                onChangeText={handleResidentNumberChange}
+                placeholder="###### - #######"
+                placeholderTextColor={theme.colors.outline}
+                keyboardType="numbers-and-punctuation"
+              />
             </View>
 
             <View style={styles.inputGroup}>
@@ -201,29 +222,27 @@ export default function StudentDetailScreen() {
               />
             </View>
 
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 16 }]}>
-                <Text style={styles.label}>전화번호</Text>
-                <TextInput
-                  style={styles.input}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  placeholder="02-000-0000"
-                  placeholderTextColor={theme.colors.outline}
-                  keyboardType="phone-pad"
-                />
-              </View>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>휴대전화</Text>
-                <TextInput
-                  style={styles.input}
-                  value={mobilePhone}
-                  onChangeText={setMobilePhone}
-                  placeholder="010-0000-0000"
-                  placeholderTextColor={theme.colors.outline}
-                  keyboardType="phone-pad"
-                />
-              </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>전화번호</Text>
+              <TextInput
+                style={styles.input}
+                value={phoneNumber}
+                onChangeText={(text) => setPhoneNumber(formatPhoneNumber(text))}
+                placeholder="02-000-0000"
+                placeholderTextColor={theme.colors.outline}
+                keyboardType="phone-pad"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>휴대전화</Text>
+              <TextInput
+                style={styles.input}
+                value={mobilePhone}
+                onChangeText={(text) => setMobilePhone(formatPhoneNumber(text))}
+                placeholder="010-0000-0000"
+                placeholderTextColor={theme.colors.outline}
+                keyboardType="phone-pad"
+              />
             </View>
 
             <View style={styles.inputGroup}>
@@ -265,28 +284,26 @@ export default function StudentDetailScreen() {
           </View>
 
           <View style={styles.cardContainer}>
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, { flex: 1, marginRight: 16, marginBottom: 0 }]}>
-                <Text style={styles.label}>성함</Text>
-                <TextInput
-                  style={styles.input}
-                  value={parentName}
-                  onChangeText={setParentName}
-                  placeholder="학부모 성함"
-                  placeholderTextColor={theme.colors.outline}
-                />
-              </View>
-              <View style={[styles.inputGroup, { flex: 1, marginBottom: 0 }]}>
-                <Text style={styles.label}>휴대전화</Text>
-                <TextInput
-                  style={styles.input}
-                  value={parentMobilePhone}
-                  onChangeText={setParentMobilePhone}
-                  placeholder="010-0000-0000"
-                  placeholderTextColor={theme.colors.outline}
-                  keyboardType="phone-pad"
-                />
-              </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>성함</Text>
+              <TextInput
+                style={styles.input}
+                value={parentName}
+                onChangeText={setParentName}
+                placeholder="학부모 성함"
+                placeholderTextColor={theme.colors.outline}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>휴대전화</Text>
+              <TextInput
+                style={styles.input}
+                value={parentMobilePhone}
+                onChangeText={(text) => setParentMobilePhone(formatPhoneNumber(text))}
+                placeholder="010-0000-0000"
+                placeholderTextColor={theme.colors.outline}
+                keyboardType="phone-pad"
+              />
             </View>
           </View>
 
