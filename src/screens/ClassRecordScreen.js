@@ -9,7 +9,9 @@ import {
   SafeAreaView,
   Alert,
   FlatList,
-  Modal
+  Modal,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
@@ -263,7 +265,10 @@ export default function ClassRecordScreen() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <ScrollView contentContainerStyle={styles.modalScroll}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
@@ -360,7 +365,7 @@ export default function ClassRecordScreen() {
               </View>
             </View>
           </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
