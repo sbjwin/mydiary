@@ -14,7 +14,7 @@ import {
   Platform
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
-import { Calendar } from 'react-native-calendars';
+import { Cale1ndar } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
 import { theme } from '../theme';
