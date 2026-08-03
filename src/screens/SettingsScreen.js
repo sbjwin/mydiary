@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  Image
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
 import { GoogleDriveService } from '../services/GoogleDriveService';
@@ -7,26 +16,82 @@ import { theme } from '../theme';
 
 export default function SettingsScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
 
   useEffect(() => {
-    // 구글 로그인 초기화
+    // 구글 로그인 초기화 및 현재 로그인 상태 확인
     GoogleDriveService.init();
+    checkLoginStatus();
   }, []);
+
+  const checkLoginStatus = async () => {
+    try {
+      const user = await GoogleDriveService.getCurrentUser();
+      setUserInfo(user);
+    } catch (e) {
+      console.error('Failed to check user status:', e);
+    }
+  };
+
+  const handleSignIn = async () => {
+    try {
+      setLoading(true);
+      const user = await GoogleDriveService.signIn();
+      setUserInfo(user);
+      if (user) {
+        Alert.alert('로그인 성공', `${user.name || user.email} 계정이 연결되었습니다.`);
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('로그인 실패', '구글 계정 연결 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      '구글 계정 연결 해제',
+      '구글 계정 연결을 해제하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '해제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await GoogleDriveService.signOut();
+              setUserInfo(null);
+              Alert.alert('완료', '구글 계정 연결이 해제되었습니다.');
+            } catch (e) {
+              console.error(e);
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleBackup = async () => {
     try {
       setLoading(true);
-      
+
       // 1. 모든 데이터 추출
       const allDataString = await Database.exportAllData();
-      
+
       // 2. 구글 드라이브에 업로드
       await GoogleDriveService.uploadBackup(allDataString);
-      
-      Alert.alert('백업 성공', '구글 드라이브에 데이터가 성공적으로 백업되었습니다.');
+
+      // 성공 후 로그인 사용자 정보 갱신
+      await checkLoginStatus();
+
+      Alert.alert('백업 성공', '개인 구글 드라이브에 데이터가 성공적으로 백업되었습니다.');
     } catch (error) {
       console.error(error);
-      Alert.alert('백업 실패', '백업 중 오류가 발생했습니다. 개발자 설정을 확인해주세요.');
+      Alert.alert('백업 실패', '백업 중 오류가 발생했습니다. 구글 계정 연결을 확인해주세요.');
     } finally {
       setLoading(false);
     }
@@ -44,13 +109,15 @@ export default function SettingsScreen({ navigation }) {
           onPress: async () => {
             try {
               setLoading(true);
-              
+
               // 1. 구글 드라이브에서 데이터 다운로드
               const backupData = await GoogleDriveService.downloadBackup();
-              
+
               // 2. 로컬 DB에 덮어쓰기
               await Database.importAllData(backupData);
-              
+
+              await checkLoginStatus();
+
               Alert.alert('복원 성공', '데이터가 성공적으로 복원되었습니다.');
             } catch (error) {
               console.error(error);
@@ -65,22 +132,70 @@ export default function SettingsScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>데이터 백업 및 복원</Text>
-      <Text style={styles.description}>
-        앱 데이터를 구글 드라이브에 안전하게 보관하세요.
-      </Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <Text style={styles.headerTitle}>설정</Text>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.backupButton} onPress={handleBackup} disabled={loading}>
-          <Feather name="upload-cloud" size={20} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
-          <Text style={styles.buttonText}>구글 드라이브에 백업</Text>
-        </TouchableOpacity>
+      {/* 1. 구글 계정 연결 카드 */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Feather name="user" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Text style={styles.cardTitle}>구글 계정 연결</Text>
+        </View>
 
-        <TouchableOpacity style={styles.restoreButton} onPress={handleRestore} disabled={loading}>
-          <Feather name="download-cloud" size={20} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
-          <Text style={styles.buttonText}>구글 드라이브에서 복원</Text>
-        </TouchableOpacity>
+        {userInfo ? (
+          <View style={styles.accountContainer}>
+            <View style={styles.userInfoRow}>
+              {userInfo.photo ? (
+                <Image source={{ uri: userInfo.photo }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarFallback}>
+                  <Feather name="user" size={20} color={theme.colors.primary} />
+                </View>
+              )}
+              <View style={styles.userDetails}>
+                <Text style={styles.userName}>{userInfo.name || '구글 사용자'}</Text>
+                <Text style={styles.userEmail}>{userInfo.email}</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} disabled={loading}>
+              <Feather name="log-out" size={14} color={theme.colors.error} style={{ marginRight: 4 }} />
+              <Text style={styles.signOutText}>연결 해제</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.noAccountContainer}>
+            <Text style={styles.noAccountText}>
+              개인 구글 드라이브에 안전하게 데이터를 백업 및 복원하려면 구글 계정을 연결해 주세요.
+            </Text>
+            <TouchableOpacity style={styles.connectButton} onPress={handleSignIn} disabled={loading}>
+              <Feather name="log-in" size={18} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
+              <Text style={styles.connectButtonText}>구글 계정 연결하기</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* 2. 데이터 백업 및 복원 카드 */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Feather name="database" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Text style={styles.cardTitle}>데이터 백업 및 복원</Text>
+        </View>
+        <Text style={styles.cardDescription}>
+          연결된 본인의 구글 드라이브 전용 공간에 앱 데이터를 안전하게 보관하거나 기기로 복원합니다.
+        </Text>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.backupButton} onPress={handleBackup} disabled={loading}>
+            <Feather name="upload-cloud" size={18} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
+            <Text style={styles.buttonText}>구글 드라이브에 백업</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.restoreButton} onPress={handleRestore} disabled={loading}>
+            <Feather name="download-cloud" size={18} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
+            <Text style={styles.buttonText}>구글 드라이브에서 복원</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading && (
@@ -89,36 +204,144 @@ export default function SettingsScreen({ navigation }) {
           <Text style={styles.loadingText}>처리 중입니다...</Text>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: theme.spacing.lg,
     backgroundColor: theme.colors.surfaceVariant,
   },
-  title: {
+  scrollContent: {
+    padding: theme.spacing.lg,
+    paddingBottom: 40,
+  },
+  headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 20,
     color: theme.colors.textPrimary,
   },
-  description: {
-    fontSize: 14,
+  card: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.roundness,
+    padding: theme.spacing.lg,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  cardDescription: {
+    fontSize: 13,
     color: theme.colors.textSecondary,
-    marginBottom: 24,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  accountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: theme.roundness,
+    borderWidth: 1,
+    borderColor: theme.colors.outline,
+  },
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    marginRight: 12,
+  },
+  avatarFallback: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: theme.colors.secondaryContainer,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  userDetails: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  userEmail: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+  },
+  signOutText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: theme.colors.error,
+  },
+  noAccountContainer: {
+    backgroundColor: '#F9FAFB',
+    padding: 14,
+    borderRadius: theme.roundness,
+    alignItems: 'center',
+  },
+  noAccountText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  connectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: theme.roundness,
+    width: '100%',
+  },
+  connectButtonText: {
+    color: theme.colors.onPrimary,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   buttonContainer: {
-    gap: 14,
+    gap: 12,
   },
   backupButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.colors.primary,
-    padding: 16,
+    padding: 14,
     borderRadius: theme.roundness,
   },
   restoreButton: {
@@ -126,12 +349,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#059669',
-    padding: 16,
+    padding: 14,
     borderRadius: theme.roundness,
   },
   buttonText: {
     color: theme.colors.onPrimary,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   loadingOverlay: {
@@ -143,7 +366,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.textPrimary,
   },
 });

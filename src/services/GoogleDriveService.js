@@ -129,6 +129,31 @@ export const GoogleDriveService = {
     }
   },
 
+  // 현재 로그인된 유저 정보 가져오기
+  getCurrentUser: async () => {
+    try {
+      const currentUser = await GoogleSignin.getCurrentUser();
+      if (currentUser) {
+        return currentUser.user || currentUser.data?.user || null;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  // 구글 로그인 실행
+  signIn: async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      return response ? (response.user || response.data?.user || null) : null;
+    } catch (error) {
+      console.error('Google Sign-In Error:', error);
+      throw error;
+    }
+  },
+
   // 로그아웃
   signOut: async () => {
     try {
