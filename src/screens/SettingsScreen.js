@@ -73,12 +73,12 @@ export default function SettingsScreen({ navigation }) {
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.backupButton} onPress={handleBackup} disabled={loading}>
-          <Feather name="cloud-upload" size={20} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
+          <Feather name="upload-cloud" size={20} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
           <Text style={styles.buttonText}>구글 드라이브에 백업</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.restoreButton} onPress={handleRestore} disabled={loading}>
-          <Feather name="cloud-download" size={20} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
+          <Feather name="download-cloud" size={20} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
           <Text style={styles.buttonText}>구글 드라이브에서 복원</Text>
         </TouchableOpacity>
       </View>
