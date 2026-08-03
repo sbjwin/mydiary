@@ -13,11 +13,13 @@ import {
   ImageBackground
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Database } from '../database/Database';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../theme';
 
 export default function StudentDetailScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const { studentId } = route.params || {};
@@ -342,7 +344,7 @@ export default function StudentDetailScreen() {
         </ScrollView>
 
         {/* Fixed Bottom Actions */}
-        <View style={styles.bottomFixedBar}>
+        <View style={[styles.bottomFixedBar, { paddingBottom: Math.max(insets.bottom + 20, Platform.OS === 'ios' ? 48 : 36) }]}>
           <View style={styles.bottomActionsContainer}>
             <TouchableOpacity
               style={styles.saveButton}
@@ -518,14 +520,12 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(0, 0, 0, 0.05)',
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: Platform.OS === 'ios' ? 64 : 24,
     zIndex: 40,
   },
   bottomActionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginTop: -26,
   },
   saveButton: {
     flex: 1,
