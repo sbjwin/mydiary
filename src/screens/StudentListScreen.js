@@ -53,11 +53,13 @@ export default function StudentListScreen() {
     if (searchQuery.trim() === '') {
       setFilteredStudents(students);
     } else {
+      const q = searchQuery.trim().toLowerCase();
+      const qDigits = q.replace(/-/g, '');
       const filtered = students.filter((s) => {
-        const nameMatch = s.name.toLowerCase().includes(query);
-        const schoolMatch = s.school_grade && s.school_grade.toLowerCase().includes(query);
-        const mobileMatch = s.mobile_phone && s.mobile_phone.replace(/-/g, '').includes(query.replace(/-/g, ''));
-        const phoneMatch = s.phone_number && s.phone_number.replace(/-/g, '').includes(query.replace(/-/g, ''));
+        const nameMatch = s.name.toLowerCase().includes(q);
+        const schoolMatch = s.school_grade && s.school_grade.toLowerCase().includes(q);
+        const mobileMatch = s.mobile_phone && s.mobile_phone.replace(/-/g, '').includes(qDigits);
+        const phoneMatch = s.phone_number && s.phone_number.replace(/-/g, '').includes(qDigits);
         return nameMatch || schoolMatch || mobileMatch || phoneMatch;
       });
       setFilteredStudents(filtered);

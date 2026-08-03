@@ -14,7 +14,7 @@ import {
   Platform
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
-import { Cale1ndar } from 'react-native-calendars';
+import { Calendar } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
 import { theme } from '../theme';
@@ -151,7 +151,7 @@ export default function ClassRecordScreen() {
   };
 
   // 기록 삭제 처리
-  const handleDeleteRecord = async (id) => {
+  const handleDeleteRecord = useCallback((id) => {
     Alert.alert('기록 삭제', '이 수업 일지를 삭제하시겠습니까?', [
       { text: '취소', style: 'cancel' },
       {
@@ -169,7 +169,7 @@ export default function ClassRecordScreen() {
         }
       }
     ]);
-  };
+  }, [loadData, modalVisible]);
 
   const renderRecordCard = useCallback(({ item }) => {
     const [, month, day] = item.class_date.split('-');
