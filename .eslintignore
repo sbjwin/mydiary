@@ -1,0 +1,8 @@
+android-sdk/
+screen.html
+node_modules/
+android/
+ios/
+.expo/
+build/
+coverage/
