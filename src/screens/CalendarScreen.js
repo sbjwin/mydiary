@@ -113,13 +113,14 @@ export default function CalendarScreen() {
     }
   }, [isCollapsed, expandCalendar, collapseCalendar]);
 
-  // 제스처 감지 (PanResponder) - 드래그해서 달력 접기/펼치기
+  // 제스처 감지 (PanResponder) - 달력 전체 및 핸들바 어디서나 드래그하여 접기/펼치기
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // 수직 드래그 거리가 8px 이상일 때 반응
-        return Math.abs(gestureState.dy) > 8;
+        // 수직 드래그 방향이 명확하고(dy > dx), 10px 이상 슬라이드 시 드래그 감지
+        const { dx, dy } = gestureState;
+        return Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx);
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy < -20) {
@@ -269,14 +270,15 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 캘린더 애니메이션 래퍼 컴포넌트 */}
+      {/* 캘린더 애니메이션 래퍼 컴포넌트 (달력 본문 어디서나 슬라이드 제스처 동작) */}
       <Animated.View
+        {...panResponder.panHandlers}
         style={[
           styles.calendarAnimatedWrapper,
           {
             maxHeight: calendarAnim.interpolate({
               inputRange: [0, 1],
-              outputRange: [0, 360],
+              outputRange: [0, 440], // 6주 달력(30, 31일 등)도 가려지지 않도록 높이 440px로 확장
             }),
             opacity: calendarAnim.interpolate({
               inputRange: [0, 0.3, 1],
