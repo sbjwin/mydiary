@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,7 +7,9 @@ import {
   FlatList,
   SafeAreaView,
   ActivityIndicator,
-  Modal
+  Modal,
+  Animated,
+  PanResponder
 } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
@@ -77,6 +79,59 @@ export default function CalendarScreen() {
   const [loading, setLoading] = useState(true);
   const [studentSelectVisible, setStudentSelectVisible] = useState(false);
   const [markedDates, setMarkedDates] = useState({});
+
+  // 달력 접기/펼치기 상태 및 애니메이션 관리를 위한 상태 및 ref
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const calendarAnim = useRef(new Animated.Value(1)).current; // 1: 펼침, 0: 접힘
+
+  // 달력 접기 애니메이션 처리 함수
+  const collapseCalendar = useCallback(() => {
+    setIsCollapsed(true);
+    Animated.timing(calendarAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+  }, [calendarAnim]);
+
+  // 달력 펼치기 애니메이션 처리 함수
+  const expandCalendar = useCallback(() => {
+    setIsCollapsed(false);
+    Animated.timing(calendarAnim, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+  }, [calendarAnim]);
+
+  // 접기/펼치기 토글 처리 함수
+  const toggleCalendar = useCallback(() => {
+    if (isCollapsed) {
+      expandCalendar();
+    } else {
+      collapseCalendar();
+    }
+  }, [isCollapsed, expandCalendar, collapseCalendar]);
+
+  // 제스처 감지 (PanResponder) - 드래그해서 달력 접기/펼치기
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // 수직 드래그 거리가 8px 이상일 때 반응
+        return Math.abs(gestureState.dy) > 8;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy < -20) {
+          // 위로 드래그 시 접기
+          collapseCalendar();
+        } else if (gestureState.dy > 20) {
+          // 아래로 드래그 시 펼치기
+          expandCalendar();
+        }
+      },
+    })
+  ).current;
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -214,24 +269,60 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 캘린더 컴포넌트 */}
-      <View style={styles.calendarContainer}>
-        <Calendar
-          current={selectedDate}
-          monthFormat={'yyyy년 MM월'} // 년도와 월을 한글화
-          onDayPress={handleDayPress}
-          markedDates={markedDates}
-          dayComponent={CustomDay}
-          theme={{
-            backgroundColor: theme.colors.surface,
-            calendarBackground: theme.colors.surface,
-            arrowColor: theme.colors.primary,
-            monthTextColor: theme.colors.textPrimary,
-            textMonthFontWeight: 'bold',
-            textDayHeaderFontWeight: '600',
-          }}
-        />
-      </View>
+      {/* 캘린더 애니메이션 래퍼 컴포넌트 */}
+      <Animated.View
+        style={[
+          styles.calendarAnimatedWrapper,
+          {
+            maxHeight: calendarAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 360],
+            }),
+            opacity: calendarAnim.interpolate({
+              inputRange: [0, 0.3, 1],
+              outputRange: [0, 0.5, 1],
+            }),
+          },
+        ]}
+      >
+        <View style={styles.calendarContainer}>
+          <Calendar
+            current={selectedDate}
+            monthFormat={'yyyy년 MM월'} // 년도와 월을 한글화
+            onDayPress={handleDayPress}
+            markedDates={markedDates}
+            dayComponent={CustomDay}
+            theme={{
+              backgroundColor: theme.colors.surface,
+              calendarBackground: theme.colors.surface,
+              arrowColor: theme.colors.primary,
+              monthTextColor: theme.colors.textPrimary,
+              textMonthFontWeight: 'bold',
+              textDayHeaderFontWeight: '600',
+            }}
+          />
+        </View>
+      </Animated.View>
+
+      {/* 접기/펼치기 제스처 & 핸들 바 영역 */}
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={toggleCalendar}
+        style={styles.handleContainer}
+        {...panResponder.panHandlers}
+      >
+        <View style={styles.handlePill} />
+        <View style={styles.handleContent}>
+          <Feather
+            name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+            size={16}
+            color={theme.colors.textSecondary}
+          />
+          <Text style={styles.handleText}>
+            {isCollapsed ? '달력 펼치기' : '달력 접기'}
+          </Text>
+        </View>
+      </TouchableOpacity>
 
       {/* 일정 목록 */}
       <View style={styles.agendaListContainer}>
@@ -331,11 +422,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.surfaceVariant,
   },
+  calendarAnimatedWrapper: {
+    overflow: 'hidden',
+  },
   calendarContainer: {
     backgroundColor: theme.colors.surface,
     paddingBottom: 8,
+  },
+  handleContainer: {
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.outline,
+  },
+  handlePill: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.outline,
+    marginBottom: 4,
+    opacity: 0.6,
+  },
+  handleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  handleText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginLeft: 4,
+    fontWeight: '600',
   },
   agendaListContainer: {
     flex: 1,
