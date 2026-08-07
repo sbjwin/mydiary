@@ -7,7 +7,8 @@ import {
   FlatList, 
   TextInput, 
   SafeAreaView, 
-  ActivityIndicator 
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -24,6 +25,30 @@ export default function StudentListScreen() {
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // 모달 제어용 상태
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [actionModalVisible, setActionModalVisible] = useState(false);
+
+  // 학생 클릭 처리: 선택 모달 노출
+  const handleStudentPress = (student) => {
+    setSelectedStudent(student);
+    setActionModalVisible(true);
+  };
+
+  // 수업일지 화면으로 이동
+  const handleNavigateToRecord = () => {
+    if (!selectedStudent) return;
+    setActionModalVisible(false);
+    navigation.navigate('ClassRecord', { studentId: selectedStudent.id });
+  };
+
+  // 학생 정보 수정 화면으로 이동
+  const handleNavigateToDetail = () => {
+    if (!selectedStudent) return;
+    setActionModalVisible(false);
+    navigation.navigate('StudentDetail', { studentId: selectedStudent.id });
+  };
 
   // 학생 목록 가져오기
   const loadStudents = async () => {
@@ -69,7 +94,7 @@ export default function StudentListScreen() {
   const renderStudentItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.studentCard}
-      onPress={() => navigation.navigate('StudentDetail', { studentId: item.id })}
+      onPress={() => handleStudentPress(item)}
     >
       <View style={styles.studentInfo}>
         <View style={styles.nameRow}>
@@ -146,6 +171,68 @@ export default function StudentListScreen() {
         <Feather name="user-plus" size={18} color={theme.colors.onPrimary} style={{ marginRight: 6 }} />
         <Text style={styles.fabButtonText}>학생 추가</Text>
       </TouchableOpacity>
+
+      {/* 학생 메뉴 선택 모달 (수업일지 보기 vs 정보 수정) */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={actionModalVisible}
+        onRequestClose={() => setActionModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setActionModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            {selectedStudent && (
+              <>
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalTitleContainer}>
+                    <Text style={styles.modalStudentName}>{selectedStudent.name}</Text>
+                    {selectedStudent.school_grade ? (
+                      <Text style={styles.modalStudentSub}>{selectedStudent.school_grade}</Text>
+                    ) : null}
+                  </View>
+                  <TouchableOpacity onPress={() => setActionModalVisible(false)} style={styles.modalCloseBtn}>
+                    <Feather name="x" size={22} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* 메뉴 1: 수업일지 보기 / 작성 */}
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={handleNavigateToRecord}
+                >
+                  <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
+                    <Feather name="book-open" size={20} color={theme.colors.primary} />
+                  </View>
+                  <View style={styles.actionMenuTextContainer}>
+                    <Text style={styles.actionMenuTitle}>수업일지 보기 / 작성</Text>
+                    <Text style={styles.actionMenuSub}>학생의 수업 기록과 일지를 관리합니다</Text>
+                  </View>
+                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+                </TouchableOpacity>
+
+                {/* 메뉴 2: 학생 정보 수정 */}
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={handleNavigateToDetail}
+                >
+                  <View style={[styles.actionIconBadge, { backgroundColor: '#E0F2FE' }]}>
+                    <Feather name="edit-3" size={20} color="#0284C7" />
+                  </View>
+                  <View style={styles.actionMenuTextContainer}>
+                    <Text style={styles.actionMenuTitle}>학생 정보 수정</Text>
+                    <Text style={styles.actionMenuSub}>연락처, 주소, 학부모 정보를 수정합니다</Text>
+                  </View>
+                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -268,5 +355,79 @@ const styles = StyleSheet.create({
     color: theme.colors.onPrimary,
     fontWeight: 'bold',
     fontSize: 15,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 36,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceVariant,
+  },
+  modalTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  modalStudentName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+    marginRight: 8,
+  },
+  modalStudentSub: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  actionMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: theme.roundness,
+    backgroundColor: theme.colors.surfaceVariant + '80',
+    marginBottom: 12,
+  },
+  actionIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  actionMenuTextContainer: {
+    flex: 1,
+  },
+  actionMenuTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  actionMenuSub: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
   },
 });

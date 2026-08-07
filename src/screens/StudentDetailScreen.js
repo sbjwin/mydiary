@@ -171,9 +171,20 @@ export default function StudentDetailScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
 
           {/* 학생 기본 정보 */}
-          <View style={styles.sectionHeader}>
-            <Feather name="user" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>학생 기본 정보</Text>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionHeaderLeft}>
+              <Feather name="user" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
+              <Text style={styles.sectionTitle}>학생 기본 정보</Text>
+            </View>
+            {isEditMode && (
+              <TouchableOpacity
+                style={styles.viewRecordHeaderBtn}
+                onPress={() => navigation.navigate('ClassRecord', { studentId })}
+              >
+                <Feather name="book-open" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                <Text style={styles.viewRecordHeaderBtnText}>수업일지 보기</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={styles.cardContainer}>
@@ -387,6 +398,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  viewRecordHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.secondaryContainer,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: theme.roundness,
+  },
+  viewRecordHeaderBtnText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
   },
   sectionIcon: {
     marginRight: 8,
