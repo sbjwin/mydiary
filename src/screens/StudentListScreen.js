@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  FlatList, 
-  TextInput, 
-  SafeAreaView, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  TextInput,
+  SafeAreaView,
   ActivityIndicator,
   Modal
 } from 'react-native';
@@ -20,7 +20,7 @@ const Separator = () => <View style={styles.separator} />;
 export default function StudentListScreen() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
-  
+
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,7 +92,7 @@ export default function StudentListScreen() {
   }, [searchQuery, students]);
 
   const renderStudentItem = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.studentCard}
       onPress={() => handleStudentPress(item)}
     >
@@ -126,8 +126,8 @@ export default function StudentListScreen() {
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity 
-            style={styles.clearButton} 
+          <TouchableOpacity
+            style={styles.clearButton}
             onPress={() => setSearchQuery('')}
           >
             <Feather name="x" size={18} color={theme.colors.textSecondary} />
@@ -144,7 +144,7 @@ export default function StudentListScreen() {
             {searchQuery ? '검색 결과에 맞는 학생이 없습니다.' : '등록된 학생 주소록이 없습니다.'}
           </Text>
           {!searchQuery && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addButtonInline}
               onPress={() => navigation.navigate('StudentDetail')}
             >
@@ -164,7 +164,7 @@ export default function StudentListScreen() {
       )}
 
       {/* 새 학생 등록 FAB */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.fabButton}
         onPress={() => navigation.navigate('StudentDetail')}
       >
