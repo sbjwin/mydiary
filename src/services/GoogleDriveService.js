@@ -28,7 +28,7 @@ export const GoogleDriveService = {
   uploadBackup: async (backupJsonString) => {
     try {
       const accessToken = await GoogleDriveService.signInAndGetToken();
-      
+
       let metadata = {
         name: 'mydiary_backup.json',
       };
@@ -44,7 +44,7 @@ export const GoogleDriveService = {
       if (searchData.error) {
         throw new Error(`Google API Error: ${searchData.error.message}`);
       }
-      
+
       let uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
       let method = 'POST';
 
@@ -120,7 +120,7 @@ export const GoogleDriveService = {
       const downloadRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      
+
       const backupData = await downloadRes.text();
       return JSON.parse(backupData);
     } catch (e) {
