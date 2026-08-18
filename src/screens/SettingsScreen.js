@@ -198,6 +198,28 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </View>
 
+      {/* 3. 도움말 및 앱 정보 카드 */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Feather name="help-circle" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Text style={styles.cardTitle}>도움말 및 앱 정보</Text>
+        </View>
+        <Text style={styles.cardDescription}>
+          mydiary의 사용 가이드, 주요 기능 설명 및 앱 제작자 정보를 확인하실 수 있습니다.
+        </Text>
+        <TouchableOpacity
+          style={styles.helpButton}
+          onPress={() => navigation.navigate('Help')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.helpButtonLeft}>
+            <Feather name="book-open" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+            <Text style={styles.helpButtonText}>도움말 및 앱 정보 보기</Text>
+          </View>
+          <Feather name="chevron-right" size={20} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -351,6 +373,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#059669',
     padding: 14,
     borderRadius: theme.roundness,
+  },
+  helpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: theme.roundness,
+    borderWidth: 1,
+    borderColor: theme.colors.outline,
+  },
+  helpButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  helpButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
   },
   buttonText: {
     color: theme.colors.onPrimary,

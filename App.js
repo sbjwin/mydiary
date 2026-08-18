@@ -12,12 +12,15 @@ import StudentDetailScreen from './src/screens/StudentDetailScreen';
 import ClassRecordScreen from './src/screens/ClassRecordScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import HelpScreen from './src/screens/HelpScreen';
 import { theme } from './src/theme';
+import { TouchableOpacity } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-function MainTabs() {
+function MainTabs({ navigation }) {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -60,7 +63,24 @@ function MainTabs() {
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: '홈' }} />
       <Tab.Screen name="Calendar" component={CalendarScreen} options={{ title: '달력' }} />
       <Tab.Screen name="StudentList" component={StudentListScreen} options={{ title: '학생' }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: '설정' }} />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          title: '설정',
+          // eslint-disable-next-line react/no-unstable-nested-components
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Help')}
+              style={{ marginRight: 16, padding: 4 }}
+              accessibilityLabel="도움말 및 앱 정보"
+              activeOpacity={0.7}
+            >
+              <Feather name="help-circle" size={22} color={theme.colors.primary} />
+            </TouchableOpacity>
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }
@@ -101,6 +121,11 @@ export default function App() {
           name="ClassRecord"
           component={ClassRecordScreen}
           options={{ title: '수업 일지 기록' }}
+        />
+        <Stack.Screen
+          name="Help"
+          component={HelpScreen}
+          options={{ title: '도움말 및 앱 정보' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
