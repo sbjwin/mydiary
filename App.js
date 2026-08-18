@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React from 'react';
-import { StatusBar } from 'react-native';
+import { StatusBar, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -12,12 +12,13 @@ import StudentDetailScreen from './src/screens/StudentDetailScreen';
 import ClassRecordScreen from './src/screens/ClassRecordScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import HelpScreen from './src/screens/HelpScreen';
 import { theme } from './src/theme';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-function MainTabs() {
+function MainTabs({ navigation }) {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -51,6 +52,22 @@ function MainTabs() {
           fontWeight: 'bold',
           fontSize: 18,
         },
+        // eslint-disable-next-line react/no-unstable-nested-components
+        headerRight: () => (
+          <TouchableOpacity
+            style={{ marginRight: 16, padding: 4 }}
+            onPress={() => navigation.navigate('Help')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="도움말 및 앱 정보"
+            accessibilityRole="button"
+          >
+            <MaterialCommunityIcons
+              name="help-circle-outline"
+              size={24}
+              color={theme.colors.primary || '#4a7c92'}
+            />
+          </TouchableOpacity>
+        ),
         tabBarStyle: {
           backgroundColor: theme.colors.surface || '#FFFFFF',
           borderTopColor: theme.colors.outline || '#E0E0E0',
@@ -101,6 +118,11 @@ export default function App() {
           name="ClassRecord"
           component={ClassRecordScreen}
           options={{ title: '수업 일지 기록' }}
+        />
+        <Stack.Screen
+          name="Help"
+          component={HelpScreen}
+          options={{ title: '도움말 및 앱 정보' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

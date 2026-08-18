@@ -198,6 +198,27 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </View>
 
+      {/* 3. 도움말 및 앱 정보 카드 */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Feather name="info" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Text style={styles.cardTitle}>도움말 및 앱 정보</Text>
+        </View>
+        <Text style={styles.cardDescription}>
+          앱의 주요 기능 사용법, 팁, 만든 사람(개발자) 정보 및 자주 묻는 질문을 확인합니다.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.helpButton}
+          onPress={() => navigation.navigate('Help')}
+          disabled={loading}
+        >
+          <Feather name="book-open" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Text style={styles.helpButtonText}>사용법 및 만든 사람 보기</Text>
+          <Feather name="chevron-right" size={18} color={theme.colors.primary} />
+        </TouchableOpacity>
+      </View>
+
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -351,6 +372,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#059669',
     padding: 14,
     borderRadius: theme.roundness,
+  },
+  helpButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 14,
+    borderRadius: theme.roundness,
+    borderWidth: 1,
+    borderColor: theme.colors.outline,
+  },
+  helpButtonText: {
+    flex: 1,
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   buttonText: {
     color: theme.colors.onPrimary,
