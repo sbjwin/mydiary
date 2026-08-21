@@ -107,20 +107,6 @@ export default function HelpScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'about' && styles.activeTabButton]}
-          onPress={() => setActiveTab('about')}
-        >
-          <Feather
-            name="user"
-            size={16}
-            color={activeTab === 'about' ? theme.colors.primary : theme.colors.textSecondary}
-          />
-          <Text style={[styles.tabText, activeTab === 'about' && styles.activeTabText]}>
-            만든 사람
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={[styles.tabButton, activeTab === 'faq' && styles.activeTabButton]}
           onPress={() => setActiveTab('faq')}
         >
@@ -131,6 +117,20 @@ export default function HelpScreen() {
           />
           <Text style={[styles.tabText, activeTab === 'faq' && styles.activeTabText]}>
             FAQ & 팁
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === 'about' && styles.activeTabButton]}
+          onPress={() => setActiveTab('about')}
+        >
+          <Feather
+            name="user"
+            size={16}
+            color={activeTab === 'about' ? theme.colors.primary : theme.colors.textSecondary}
+          />
+          <Text style={[styles.tabText, activeTab === 'about' && styles.activeTabText]}>
+            만든 사람
           </Text>
         </TouchableOpacity>
       </View>
@@ -173,7 +173,36 @@ export default function HelpScreen() {
           </View>
         )}
 
-        {/* 2. 만든 사람 탭 */}
+        {/* 2. FAQ 탭 */}
+        {activeTab === 'faq' && (
+          <View>
+            <View style={styles.bannerCard}>
+              <Feather name="help-circle" size={28} color={theme.colors.primary} />
+              <View style={styles.bannerTextContainer}>
+                <Text style={styles.bannerTitle}>자주 묻는 질문 (FAQ)</Text>
+                <Text style={styles.bannerSubtitle}>
+                  사용자분들이 자주 궁금해하시는 질문과 해결 팁을 모았습니다.
+                </Text>
+              </View>
+            </View>
+
+            {faqs.map((faq, index) => (
+              <View key={index} style={styles.card}>
+                <View style={styles.faqQRow}>
+                  <Text style={styles.faqQBadge}>Q</Text>
+                  <Text style={styles.faqQuestion}>{faq.q}</Text>
+                </View>
+                <View style={styles.faqDivider} />
+                <View style={styles.faqARow}>
+                  <Text style={styles.faqABadge}>A</Text>
+                  <Text style={styles.faqAnswer}>{faq.a}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* 3. 만든 사람 탭 */}
         {activeTab === 'about' && (
           <View>
             {/* 프로필 카드 */}
@@ -228,35 +257,6 @@ export default function HelpScreen() {
             <View style={styles.footerContainer}>
               <Text style={styles.footerText}>© 2026 Sung Baekjin (성백진). All rights reserved.</Text>
             </View>
-          </View>
-        )}
-
-        {/* 3. FAQ 탭 */}
-        {activeTab === 'faq' && (
-          <View>
-            <View style={styles.bannerCard}>
-              <Feather name="help-circle" size={28} color={theme.colors.primary} />
-              <View style={styles.bannerTextContainer}>
-                <Text style={styles.bannerTitle}>자주 묻는 질문 (FAQ)</Text>
-                <Text style={styles.bannerSubtitle}>
-                  사용자분들이 자주 궁금해하시는 질문과 해결 팁을 모았습니다.
-                </Text>
-              </View>
-            </View>
-
-            {faqs.map((faq, index) => (
-              <View key={index} style={styles.card}>
-                <View style={styles.faqQRow}>
-                  <Text style={styles.faqQBadge}>Q</Text>
-                  <Text style={styles.faqQuestion}>{faq.q}</Text>
-                </View>
-                <View style={styles.faqDivider} />
-                <View style={styles.faqARow}>
-                  <Text style={styles.faqABadge}>A</Text>
-                  <Text style={styles.faqAnswer}>{faq.a}</Text>
-                </View>
-              </View>
-            ))}
           </View>
         )}
       </ScrollView>
