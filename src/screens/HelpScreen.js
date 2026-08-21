@@ -43,6 +43,7 @@ export default function HelpScreen() {
       tips: [
         '우측 상단 "+" 버튼으로 신규 학생을 손쉽게 등록할 수 있습니다.',
         '학생 카드를 터치하면 해당 학생이 지금까지 수강한 모든 수업 기록과 출석 횟수, 총 학습 내용을 확인할 수 있습니다.',
+        '학생 정보 카드 및 전체 수업일지 보고서를 A4 양식으로 프린터 인쇄하거나 PDF로 학부모님께 카카오톡/메시지 공유할 수 있습니다.',
         '전화번호 터치 시 전화 걸기 또는 문자 메시지 전송이 연동됩니다.'
       ]
     },
@@ -170,7 +171,7 @@ export default function HelpScreen() {
               <Text style={styles.profileRole}>Developer & Creator</Text>
               <View style={styles.badgeContainer}>
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>mydiary v1.0.0</Text>
+                  <Text style={styles.badgeText}>mydiary v1.1.0</Text>
                 </View>
               </View>
             </View>
