@@ -49,7 +49,7 @@ export default function HelpScreen() {
     {
       id: 'print',
       icon: 'printer',
-      title: '4. 학생 카드 & 수업일지 출력 (인쇄/카톡 공유)',
+      title: '4. 학생 카드 & 수업일지 출력\n    (인쇄 / 카톡 공유)',
       desc: '학생의 인적사항 대장 및 수업 일지를 A4 양식으로 무선 프린터 인쇄하거나, 고화질 PDF로 카카오톡/메시지 발송할 수 있습니다.',
       tips: [
         '1) 학생 목록 탭: 학생 터치 시 나타나는 팝업 메뉴에서 [학생 카드 출력] 또는 [수업일지 보고서 출력]을 선택하여 바로 인쇄/공유할 수 있습니다.',
@@ -348,9 +348,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   cardTitle: {
+    flex: 1,
     fontSize: 16,
     fontWeight: 'bold',
     color: theme.colors.textPrimary,
+    lineHeight: 22,
   },
   cardDesc: {
     fontSize: 13,
