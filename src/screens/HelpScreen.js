@@ -213,7 +213,6 @@ export default function HelpScreen() {
             {/* 저작권 표시 */}
             <View style={styles.footerContainer}>
               <Text style={styles.footerText}>© 2026 Sung Baekjin (성백진). All rights reserved.</Text>
-              <Text style={styles.footerSubText}>Designed & Built with React Native & Expo</Text>
             </View>
           </View>
         )}
@@ -451,11 +450,6 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: theme.colors.textSecondary,
-    marginBottom: 2,
-  },
-  footerSubText: {
-    fontSize: 11,
-    color: '#94A3B8',
   },
   faqQRow: {
     flexDirection: 'row',
