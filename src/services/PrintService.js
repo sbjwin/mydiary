@@ -4,6 +4,17 @@ import { Alert } from 'react-native';
 
 const TEACHER_NAME = '성백진';
 
+// HTML 특수문자 이스케이프 헬퍼 (XSS 및 레이아웃 깨짐 방지)
+const escapeHtml = (text) => {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 // 오늘 날짜 포맷팅 (YYYY. MM. DD)
 const getFormattedToday = () => {
   const d = new Date();
@@ -166,17 +177,19 @@ const getCommonStyle = () => `
  */
 export const generateStudentProfileHtml = (student) => {
   const today = getFormattedToday();
-  const name = student?.name || '무명';
-  const schoolGrade = student?.school_grade || '-';
-  const residentNumber = student?.resident_number || '-';
-  const studyMethod = student?.study_method || '미지정';
-  const mobilePhone = student?.mobile_phone || '-';
-  const phoneNumber = student?.phone_number || '-';
-  const email = student?.email || '-';
-  const address = student?.address || '-';
-  const parentName = student?.parent_name || '-';
-  const parentMobilePhone = student?.parent_mobile_phone || '-';
-  const notes = student?.notes || '(등록된 특이사항이나 메모가 없습니다.)';
+  const name = escapeHtml(student?.name || '무명');
+  const schoolGrade = escapeHtml(student?.school_grade || '-');
+  const residentNumber = escapeHtml(student?.resident_number || '-');
+  const studyMethod = escapeHtml(student?.study_method || '미지정');
+  const mobilePhone = escapeHtml(student?.mobile_phone || '-');
+  const phoneNumber = escapeHtml(student?.phone_number || '-');
+  const email = escapeHtml(student?.email || '-');
+  const address = escapeHtml(student?.address || '-');
+  const parentName = escapeHtml(student?.parent_name || '-');
+  const parentMobilePhone = escapeHtml(student?.parent_mobile_phone || '-');
+  const notes = student?.notes
+    ? escapeHtml(student.notes).replace(/\n/g, '<br/>')
+    : '(등록된 특이사항이나 메모가 없습니다.)';
 
   return `
 <!DOCTYPE html>
@@ -259,8 +272,9 @@ export const generateStudentProfileHtml = (student) => {
  * 2. 수업일지 보고서 HTML 생성
  */
 export const generateClassRecordsHtml = (student, records = [], periodTitle = '전체 기간') => {
-  const name = student?.name || '학생';
-  const schoolGrade = student?.school_grade ? `(${student.school_grade})` : '';
+  const name = escapeHtml(student?.name || '학생');
+  const schoolGrade = student?.school_grade ? `(${escapeHtml(student.school_grade)})` : '';
+  const safePeriodTitle = escapeHtml(periodTitle);
   const totalCount = records.length;
 
   // 날짜 최신순 정렬
@@ -268,10 +282,10 @@ export const generateClassRecordsHtml = (student, records = [], periodTitle = '�
 
   const tableRows = sortedRecords.length > 0 ? sortedRecords.map((r, index) => {
     const roundNumber = totalCount - index; // 최신순일 때 역순 번호 (1부터 시작하도록)
-    const date = r.class_date || '-';
-    const time = r.class_time || '-';
-    const course = r.course || '-';
-    const content = (r.content || '-').replace(/\n/g, '<br/>');
+    const date = escapeHtml(r.class_date || '-');
+    const time = escapeHtml(r.class_time || '-');
+    const course = escapeHtml(r.course || '-');
+    const content = escapeHtml(r.content || '-').replace(/\n/g, '<br/>');
 
     return `
       <tr>
@@ -308,7 +322,7 @@ export const generateClassRecordsHtml = (student, records = [], periodTitle = '�
     </div>
     <div class="doc-meta">
       <div><strong>학생명:</strong> <span style="font-size: 13px; font-weight: bold; color: #111827;">${name}</span> ${schoolGrade}</div>
-      <div><strong>조회 기간:</strong> ${periodTitle}</div>
+      <div><strong>조회 기간:</strong> ${safePeriodTitle}</div>
       <div><strong>총 수업 횟수:</strong> <strong>${totalCount}회차</strong></div>
     </div>
   </div>
