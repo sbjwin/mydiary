@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,15 +13,17 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
+import { printClassRecords, shareClassRecords } from '../services/PrintService';
 import { theme } from '../theme';
 
 const PAGE_SIZE = 15;
 
 export default function ClassRecordScreen() {
+  const navigation = useNavigation();
   const route = useRoute();
   const { studentId, recordId, selectedDate } = route.params || {};
 
@@ -31,6 +33,77 @@ export default function ClassRecordScreen() {
   const [allRecords, setAllRecords] = useState([]);
   const [displayedRecords, setDisplayedRecords] = useState([]);
   const [page, setPage] = useState(1);
+
+  // 출력 모달 및 기간 필터 상태 ('all': 전체, '1m': 최근 1개월, '3m': 최근 3개월, 'current_month': 이번 달)
+  const [printModalVisible, setPrintModalVisible] = useState(false);
+  const [periodFilter, setPeriodFilter] = useState('all');
+
+  // 상단 헤더 우측 인쇄/공유 버튼
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          style={{ marginRight: 16, padding: 4 }}
+          onPress={() => setPrintModalVisible(true)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityLabel="수업 일지 출력 및 공유"
+          accessibilityRole="button"
+        >
+          <Feather name="printer" size={22} color={theme.colors.primary} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  // 필터링된 일지 목록 및 기간명 계산
+  const { filteredRecordsForPrint, periodTitle } = useMemo(() => {
+    if (!allRecords.length) {
+      return { filteredRecordsForPrint: [], periodTitle: '전체 기간' };
+    }
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    if (periodFilter === '1m') {
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(today.getMonth() - 1);
+      const limitStr = oneMonthAgo.toISOString().split('T')[0];
+      const filtered = allRecords.filter(r => r.class_date >= limitStr);
+      return {
+        filteredRecordsForPrint: filtered,
+        periodTitle: `최근 1개월 (${limitStr} ~ ${todayStr})`,
+      };
+    }
+
+    if (periodFilter === '3m') {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(today.getMonth() - 3);
+      const limitStr = threeMonthsAgo.toISOString().split('T')[0];
+      const filtered = allRecords.filter(r => r.class_date >= limitStr);
+      return {
+        filteredRecordsForPrint: filtered,
+        periodTitle: `최근 3개월 (${limitStr} ~ ${todayStr})`,
+      };
+    }
+
+    if (periodFilter === 'current_month') {
+      const yearMonth = todayStr.substring(0, 7); // YYYY-MM
+      const filtered = allRecords.filter(r => r.class_date && r.class_date.startsWith(yearMonth));
+      return {
+        filteredRecordsForPrint: filtered,
+        periodTitle: `${today.getFullYear()}년 ${today.getMonth() + 1}월`,
+      };
+    }
+
+    // 기본: 전체 기간
+    const sorted = [...allRecords].sort((a, b) => a.class_date.localeCompare(b.class_date));
+    const start = sorted[0]?.class_date || todayStr;
+    const end = sorted[sorted.length - 1]?.class_date || todayStr;
+    return {
+      filteredRecordsForPrint: allRecords,
+      periodTitle: `전체 기간 (${start} ~ ${end})`,
+    };
+  }, [allRecords, periodFilter]);
 
   // 개별 기록 작성/수정 모달 관련 상태
   const [modalVisible, setModalVisible] = useState(false);
@@ -215,12 +288,21 @@ export default function ClassRecordScreen() {
       {/* 학생 기본 정보 바 */}
       {student && (
         <View style={styles.studentBar}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.studentName}>{student.name} 학생</Text>
             <Text style={styles.studentDetails}>{student.school_grade || '학교/학년 미지정'}</Text>
           </View>
-          <View style={styles.recordCountBadge}>
-            <Text style={styles.recordCountText}>총 {allRecords.length}회 기록</Text>
+          <View style={styles.studentBarRight}>
+            <TouchableOpacity
+              style={styles.printBarBtn}
+              onPress={() => setPrintModalVisible(true)}
+            >
+              <Feather name="printer" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
+              <Text style={styles.printBarBtnText}>일지 출력</Text>
+            </TouchableOpacity>
+            <View style={styles.recordCountBadge}>
+              <Text style={styles.recordCountText}>총 {allRecords.length}회</Text>
+            </View>
           </View>
         </View>
       )}
@@ -375,9 +457,122 @@ export default function ClassRecordScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
-  );
-}
+
+        {/* 수업 일지 출력 모달 (기간 선택 + 프린터 인쇄 vs PDF 공유) */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={printModalVisible}
+          onRequestClose={() => setPrintModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.actionModalOverlay}
+            activeOpacity={1}
+            onPress={() => setPrintModalVisible(false)}
+          >
+            <View style={styles.actionModalContent}>
+              <View style={styles.actionModalHeader}>
+                <View style={styles.actionModalTitleContainer}>
+                  <Text style={styles.actionModalTitle}>수업 일지 보고서 출력</Text>
+                  <Text style={styles.actionModalSubtitle}>
+                    {student?.name || '학생'} 학생의 수업 기록 ({filteredRecordsForPrint.length}건 선택됨)
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setPrintModalVisible(false)} style={styles.actionModalCloseBtn}>
+                  <Feather name="x" size={22} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* 기간 필터 선택 칩 */}
+              <Text style={styles.filterSectionLabel}>출력 기간 선택</Text>
+              <View style={styles.filterChipGroup}>
+                <TouchableOpacity
+                  style={[styles.filterChip, periodFilter === 'all' && styles.filterChipActive]}
+                  onPress={() => setPeriodFilter('all')}
+                >
+                  <Text style={[styles.filterChipText, periodFilter === 'all' && styles.filterChipTextActive]}>
+                    전체 기간
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.filterChip, periodFilter === 'current_month' && styles.filterChipActive]}
+                  onPress={() => setPeriodFilter('current_month')}
+                >
+                  <Text style={[styles.filterChipText, periodFilter === 'current_month' && styles.filterChipTextActive]}>
+                    이번 달
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.filterChip, periodFilter === '1m' && styles.filterChipActive]}
+                  onPress={() => setPeriodFilter('1m')}
+                >
+                  <Text style={[styles.filterChipText, periodFilter === '1m' && styles.filterChipTextActive]}>
+                    최근 1개월
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.filterChip, periodFilter === '3m' && styles.filterChipActive]}
+                  onPress={() => setPeriodFilter('3m')}
+                >
+                  <Text style={[styles.filterChipText, periodFilter === '3m' && styles.filterChipTextActive]}>
+                    최근 3개월
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 선택된 대상 요약 배너 */}
+              <View style={styles.summaryBadgeBox}>
+                <Feather name="info" size={14} color={theme.colors.primary} style={{ marginRight: 6 }} />
+                <Text style={styles.summaryBadgeText}>
+                  조회: {periodTitle} ({filteredRecordsForPrint.length}회차 기록)
+                </Text>
+              </View>
+
+              {/* 메뉴 1: 무선/유선 프린터로 인쇄 */}
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={async () => {
+                  setPrintModalVisible(false);
+                  await printClassRecords(student, filteredRecordsForPrint, periodTitle);
+                }}
+              >
+                <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
+                  <Feather name="printer" size={22} color={theme.colors.primary} />
+                </View>
+                <View style={styles.actionMenuTextContainer}>
+                  <Text style={styles.actionMenuTitle}>프린터로 인쇄 (A4)</Text>
+                  <Text style={styles.actionMenuSub}>Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다</Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+              </TouchableOpacity>
+
+              {/* 메뉴 2: PDF 파일 공유 (카톡/메시지) */}
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={async () => {
+                  setPrintModalVisible(false);
+                  await shareClassRecords(student, filteredRecordsForPrint, periodTitle);
+                }}
+              >
+                <View style={[styles.actionIconBadge, { backgroundColor: '#E0F2FE' }]}>
+                  <Feather name="share-2" size={22} color="#0284C7" />
+                </View>
+                <View style={styles.actionMenuTextContainer}>
+                  <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡/메시지)</Text>
+                  <Text style={styles.actionMenuSub}>학부모님 카톡, 문자, 이메일로 보고서를 발송합니다</Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+      </SafeAreaView>
+    );
+  }
 
 const styles = StyleSheet.create({
   container: {
@@ -394,6 +589,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  studentBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  printBarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: theme.roundness,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  printBarBtnText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+  },
   studentName: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -406,7 +621,7 @@ const styles = StyleSheet.create({
   },
   recordCountBadge: {
     backgroundColor: theme.colors.secondaryContainer,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: theme.roundness,
   },
@@ -645,5 +860,124 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     fontWeight: 'bold',
     fontSize: 15,
+  },
+  actionModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  actionModalContent: {
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 36,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  actionModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceVariant,
+  },
+  actionModalTitleContainer: {
+    flex: 1,
+  },
+  actionModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  actionModalSubtitle: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  actionModalCloseBtn: {
+    padding: 4,
+  },
+  filterSectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 10,
+  },
+  filterChipGroup: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  filterChipActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: theme.colors.primary,
+  },
+  filterChipText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+  },
+  filterChipTextActive: {
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
+  summaryBadgeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.secondaryContainer,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  summaryBadgeText: {
+    fontSize: 12.5,
+    color: theme.colors.primary,
+    fontWeight: '600',
+  },
+  actionMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: theme.roundness,
+    backgroundColor: theme.colors.surfaceVariant + '80',
+    marginBottom: 12,
+  },
+  actionIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  actionMenuTextContainer: {
+    flex: 1,
+  },
+  actionMenuTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  actionMenuSub: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
   },
 });

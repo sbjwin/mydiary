@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,11 +10,13 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ImageBackground
+  ImageBackground,
+  Modal
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Database } from '../database/Database';
+import { printStudentProfile, shareStudentProfile } from '../services/PrintService';
 import { Feather } from '@expo/vector-icons';
 import { theme } from '../theme';
 
@@ -42,6 +44,43 @@ export default function StudentDetailScreen() {
 
   // 기타 데이터 상태
   const [notes, setNotes] = useState('');
+
+  // 출력 모달 제어 상태
+  const [printModalVisible, setPrintModalVisible] = useState(false);
+
+  // 현재 입력 상태 기반 학생 객체
+  const getCurrentStudentData = () => ({
+    name: name.trim(),
+    school_grade: schoolGrade.trim() || null,
+    resident_number: residentNumber.trim() || null,
+    address: address.trim() || null,
+    phone_number: phoneNumber.trim() || null,
+    email: email.trim() || null,
+    mobile_phone: mobilePhone.trim() || null,
+    study_method: studyMethod.trim() || null,
+    parent_name: parentName.trim() || null,
+    parent_mobile_phone: parentMobilePhone.trim() || null,
+    notes: notes.trim() || null,
+  });
+
+  // 상단 헤더 우측 인쇄 버튼
+  useLayoutEffect(() => {
+    if (isEditMode) {
+      navigation.setOptions({
+        headerRight: () => (
+          <TouchableOpacity
+            style={{ marginRight: 16, padding: 4 }}
+            onPress={() => setPrintModalVisible(true)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="학생 카드 출력 및 공유"
+            accessibilityRole="button"
+          >
+            <Feather name="printer" size={22} color={theme.colors.primary} />
+          </TouchableOpacity>
+        ),
+      });
+    }
+  }, [navigation, isEditMode]);
 
   // 입력 자동 포맷팅 핸들러
   const formatPhoneNumber = (text) => {
@@ -177,13 +216,22 @@ export default function StudentDetailScreen() {
               <Text style={styles.sectionTitle}>학생 기본 정보</Text>
             </View>
             {isEditMode && (
-              <TouchableOpacity
-                style={styles.viewRecordHeaderBtn}
-                onPress={() => navigation.navigate('ClassRecord', { studentId })}
-              >
-                <Feather name="book-open" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
-                <Text style={styles.viewRecordHeaderBtnText}>수업일지 보기</Text>
-              </TouchableOpacity>
+              <View style={styles.headerBtnGroup}>
+                <TouchableOpacity
+                  style={styles.printHeaderBtn}
+                  onPress={() => setPrintModalVisible(true)}
+                >
+                  <Feather name="printer" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                  <Text style={styles.printHeaderBtnText}>카드 출력</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.viewRecordHeaderBtn}
+                  onPress={() => navigation.navigate('ClassRecord', { studentId })}
+                >
+                  <Feather name="book-open" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                  <Text style={styles.viewRecordHeaderBtnText}>수업일지</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
 
@@ -377,6 +425,68 @@ export default function StudentDetailScreen() {
           </View>
         </View>
 
+        {/* 학생 카드 출력 모달 (프린터 인쇄 vs PDF 공유) */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={printModalVisible}
+          onRequestClose={() => setPrintModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setPrintModalVisible(false)}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleContainer}>
+                  <Text style={styles.modalTitle}>학생 정보 카드 출력</Text>
+                  <Text style={styles.modalSubtitle}>{name || '학생'} 학생의 인적사항 양식</Text>
+                </View>
+                <TouchableOpacity onPress={() => setPrintModalVisible(false)} style={styles.modalCloseBtn}>
+                  <Feather name="x" size={22} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* 메뉴 1: 무선/유선 프린터로 인쇄 */}
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={async () => {
+                  setPrintModalVisible(false);
+                  await printStudentProfile(getCurrentStudentData());
+                }}
+              >
+                <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
+                  <Feather name="printer" size={22} color={theme.colors.primary} />
+                </View>
+                <View style={styles.actionMenuTextContainer}>
+                  <Text style={styles.actionMenuTitle}>프린터로 인쇄 (A4)</Text>
+                  <Text style={styles.actionMenuSub}>Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다</Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+              </TouchableOpacity>
+
+              {/* 메뉴 2: PDF 파일 공유 (카톡/메시지) */}
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={async () => {
+                  setPrintModalVisible(false);
+                  await shareStudentProfile(getCurrentStudentData());
+                }}
+              >
+                <View style={[styles.actionIconBadge, { backgroundColor: '#E0F2FE' }]}>
+                  <Feather name="share-2" size={22} color="#0284C7" />
+                </View>
+                <View style={styles.actionMenuTextContainer}>
+                  <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡/메시지)</Text>
+                  <Text style={styles.actionMenuSub}>카카오톡, 문자, 이메일로 PDF 문서를 전송합니다</Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -408,6 +518,26 @@ const styles = StyleSheet.create({
   sectionHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  headerBtnGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  printHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: theme.roundness,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  printHeaderBtnText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
   },
   viewRecordHeaderBtn: {
     flexDirection: 'row',
@@ -593,5 +723,77 @@ const styles = StyleSheet.create({
     color: theme.colors.error,
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 36,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceVariant,
+  },
+  modalTitleContainer: {
+    flex: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  actionMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: theme.roundness,
+    backgroundColor: theme.colors.surfaceVariant + '80',
+    marginBottom: 12,
+  },
+  actionIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  actionMenuTextContainer: {
+    flex: 1,
+  },
+  actionMenuTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  actionMenuSub: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
   },
 });

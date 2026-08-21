@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>학생 정보 및 수업일지 출력 템플릿 초안</title>
+  <style>
+    :root {
+      --primary: #2563EB;
+      --primary-light: #EFF6FF;
+      --primary-dark: #1D4ED8;
+      --text-main: #1F2937;
+      --text-muted: #6B7280;
+      --border-color: #D1D5DB;
+      --border-light: #E5E7EB;
+      --bg-gray: #F9FAFB;
+      --white: #FFFFFF;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", sans-serif;
+    }
+
+    body {
+      background-color: #374151;
+      color: var(--text-main);
+      padding: 24px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* 상단 컨트롤 바 (화면 전용) */
+    .toolbar {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      padding: 12px 24px;
+      border-radius: 9999px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      position: sticky;
+      top: 16px;
+      z-index: 100;
+    }
+
+    .tab-btn {
+      padding: 8px 18px;
+      border-radius: 9999px;
+      border: none;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      background: #F3F4F6;
+      color: #4B5563;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .print-btn {
+      padding: 8px 18px;
+      border-radius: 9999px;
+      border: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      background: white;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 12px;
+    }
+
+    .print-btn:hover {
+      background: #F9FAFB;
+    }
+
+    /* A4 규격 시트 컨테이너 */
+    .page-container {
+      width: 210mm;
+      min-height: 297mm;
+      background: white;
+      padding: 20mm 18mm;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      position: relative;
+      margin-bottom: 30px;
+    }
+
+    /* 헤더 스타일 */
+    .doc-header {
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .doc-title-box h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #111827;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .doc-title-box p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .doc-meta {
+      text-align: right;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .doc-meta strong {
+      color: var(--text-main);
+    }
+
+    /* 섹션 공통 스타일 */
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin: 18px 0 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 14px;
+      background-color: var(--primary);
+      border-radius: 2px;
+    }
+
+    /* 테이블 스타일 */
+    .form-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+    }
+
+    .form-table th, .form-table td {
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+
+    .form-table th {
+      background-color: var(--bg-gray);
+      color: #374151;
+      font-weight: 600;
+      text-align: center;
+      width: 18%;
+    }
+
+    .form-table td {
+      color: #1F2937;
+      background-color: #FFFFFF;
+    }
+
+    .badge-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+    }
+
+    /* 특이사항 메모 박스 */
+    .memo-box {
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 12px 14px;
+      min-height: 90px;
+      background: var(--bg-gray);
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #374151;
+      white-space: pre-wrap;
+    }
+
+    /* 수업일지 테이블 전용 */
+    .record-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .record-table th {
+      background-color: #F3F4F6;
+      border: 1px solid var(--border-color);
+      padding: 9px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #374151;
+      text-align: center;
+    }
+
+    .record-table td {
+      border: 1px solid var(--border-color);
+      padding: 10px 10px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .record-table tr:nth-child(even) td {
+      background-color: #FAFAFA;
+    }
+
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+
+    /* 서명 및 확인 푸터 */
+    .doc-footer {
+      margin-top: 30px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .sign-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-main);
+    }
+
+    .sign-line {
+      display: inline-block;
+      width: 90px;
+      border-bottom: 1px solid #111827;
+      margin-left: 6px;
+    }
+
+    /* 인쇄 전용 스타일 */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+
+      .toolbar {
+        display: none !important;
+      }
+
+      .page-container {
+        width: 100%;
+        min-height: auto;
+        padding: 0;
+        box-shadow: none;
+        margin: 0;
+        page-break-after: always;
+      }
+
+      .tab-content {
+        display: block !important;
+      }
+
+      #studentTab {
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 상단 컨트롤 툴바 (화면용) -->
+  <div class="toolbar">
+    <button class="tab-btn active" onclick="showTab('student')">1. 학생 정보 카드</button>
+    <button class="tab-btn" onclick="showTab('records')">2. 수업일지 보고서</button>
+    <button class="print-btn" onclick="window.print()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+      </svg>
+      인쇄 / PDF 저장
+    </button>
+  </div>
+
+  <!-- 1. 학생 정보 카드 양식 -->
+  <div id="studentTab" class="page-container tab-content">
+    <div class="doc-header">
+      <div class="doc-title-box">
+        <h1>학생 관리 기록 카드</h1>
+        <p>STUDENT PROFILE & INFORMATION</p>
+      </div>
+      <div class="doc-meta">
+        <div><strong>출력일자:</strong> 2026. 08. 21</div>
+        <div><strong>관리번호:</strong> STD-2026-0801</div>
+      </div>
+    </div>
+
+    <!-- 기본 인적사항 -->
+    <div class="section-title">기본 인적사항</div>
+    <table class="form-table">
+      <tr>
+        <th>성 명</th>
+        <td style="font-weight: 700; font-size: 14px;">김민준</td>
+        <th>학교 및 학년</th>
+        <td>서초초등학교 3학년</td>
+      </tr>
+      <tr>
+        <th>주민등록번호</th>
+        <td>170512 - 3******</td>
+        <th>학습 방법</th>
+        <td><span class="badge-chip">방문 학습</span></td>
+      </tr>
+      <tr>
+        <th>휴대전화</th>
+        <td>010-3456-7890</td>
+        <th>전화번호</th>
+        <td>02-588-1234</td>
+      </tr>
+      <tr>
+        <th>이메일</th>
+        <td colspan="3">minjun.kim@example.com</td>
+      </tr>
+      <tr>
+        <th>거주지 주소</th>
+        <td colspan="3">서울특별시 서초구 서초대로 123 서초래미안아파트 101동 1204호</td>
+      </tr>
+    </table>
+
+    <!-- 학부모 정보 -->
+    <div class="section-title">학부모 (보호자) 정보</div>
+    <table class="form-table">
+      <tr>
+        <th>학부모 성함</th>
+        <td>이지은 (모)</td>
+        <th>비상 연락처</th>
+        <td style="font-weight: 600; color: #1D4ED8;">010-9876-5432</td>
+      </tr>
+    </table>
+
+    <!-- 특이사항 및 지도 메모 -->
+    <div class="section-title">학습 특이사항 및 지도 참고내용</div>
+    <div class="memo-box">
+• 수학적 개념 이해도가 매우 빠르고 문제 해결에 적극적임.
+• 과제 수행 성실도가 높으며, 응용 심화 문제 풀이를 선호함.
+• 수업 전 숙제 점검 및 오답노트 위주의 1:1 피드백 진행 중.
+• 특이사항: 화요일 5교시 이후 수업 진행 희망.
+    </div>
+
+    <!-- 하단 확인 영역 -->
+    <div class="doc-footer">
+      <div>MyDiary 학습관리 시스템</div>
+      <div class="sign-area">
+        <span>담당 교사/원장: <strong>성백진</strong></span>
+        <span class="sign-line"></span> (인)
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 수업일지 보고서 양식 -->
+  <div id="recordsTab" class="page-container tab-content" style="display: none;">
+    <div class="doc-header">
+      <div class="doc-title-box">
+        <h1>수업 일지 및 학습 보고서</h1>
+        <p>STUDENT CLASS RECORDS & REPORT</p>
+      </div>
+      <div class="doc-meta">
+        <div><strong>학생명:</strong> <span style="font-size: 13px; font-weight: bold; color: #111827;">김민준</span> (3학년)</div>
+        <div><strong>출력 기간:</strong> 2026. 08. 01 ~ 2026. 08. 21</div>
+        <div><strong>총 수업 횟수:</strong> <strong>5회차</strong></div>
+      </div>
+    </div>
+
+    <!-- 수업 일지 테이블 -->
+    <table class="record-table">
+      <thead>
+        <tr>
+          <th style="width: 7%;">회차</th>
+          <th style="width: 14%;">수업일자</th>
+          <th style="width: 15%;">수업시간</th>
+          <th style="width: 18%;">과정 / 진도</th>
+          <th style="width: 46%;">수업 내용 및 지도 사항</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="text-center" style="font-weight: 600;">5</td>
+          <td class="text-center">2026-08-20</td>
+          <td class="text-center">15:00 ~ 16:00</td>
+          <td style="font-weight: 600; color: #1D4ED8;">파이썬 기초 5단원</td>
+          <td>조건문 if-else 및 반복문 for 기초 개념 이해. 별찍기 실습 문제 성공적으로 완료.</td>
+        </tr>
+        <tr>
+          <td class="text-center" style="font-weight: 600;">4</td>
+          <td class="text-center">2026-08-16</td>
+          <td class="text-center">15:00 ~ 16:00</td>
+          <td style="font-weight: 600; color: #1D4ED8;">파이썬 기초 4단원</td>
+          <td>자료형(리스트, 튜플, 딕셔너리)의 차이점과 인덱싱/슬라이싱 활용법 학습.</td>
+        </tr>
+        <tr>
+          <td class="text-center" style="font-weight: 600;">3</td>
+          <td class="text-center">2026-08-12</td>
+          <td class="text-center">15:00 ~ 16:00</td>
+          <td style="font-weight: 600; color: #1D4ED8;">파이썬 기초 3단원</td>
+          <td>연산자(산술, 비교, 논리)와 사용자 입력(input) 처리 방법 실습.</td>
+        </tr>
+        <tr>
+          <td class="text-center" style="font-weight: 600;">2</td>
+          <td class="text-center">2026-08-08</td>
+          <td class="text-center">15:00 ~ 16:00</td>
+          <td style="font-weight: 600; color: #1D4ED8;">파이썬 기초 2단원</td>
+          <td>변수의 개념과 문자열 포맷팅, print 함수 옵션 학습.</td>
+        </tr>
+        <tr>
+          <td class="text-center" style="font-weight: 600;">1</td>
+          <td class="text-center">2026-08-04</td>
+          <td class="text-center">15:00 ~ 16:00</td>
+          <td style="font-weight: 600; color: #1D4ED8;">파이썬 오리엔테이션</td>
+          <td>개발 환경(VS Code, Python) 설정 및 첫 Hello World 출력 실습. 학습 계획 수립.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 하단 확인 영역 -->
+    <div class="doc-footer" style="margin-top: 40px;">
+      <div>MyDiary 학습관리 시스템 | 성장의 기록</div>
+      <div class="sign-area">
+        <span>지도 강사: <strong>성백진</strong></span>
+        <span class="sign-line"></span> (인)
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showTab(tabName) {
+      const studentTab = document.getElementById('studentTab');
+      const recordsTab = document.getElementById('recordsTab');
+      const buttons = document.querySelectorAll('.tab-btn');
+
+      if (tabName === 'student') {
+        studentTab.style.display = 'block';
+        recordsTab.style.display = 'none';
+        buttons[0].classList.add('active');
+        buttons[1].classList.remove('active');
+      } else {
+        studentTab.style.display = 'none';
+        recordsTab.style.display = 'block';
+        buttons[0].classList.remove('active');
+        buttons[1].classList.add('active');
+      }
+    }
+  </script>
+</body>
+</html>

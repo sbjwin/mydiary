@@ -13,7 +13,8 @@
       "package": "com.sbjwin.mydiary"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-sharing"
     ]
   }
 }

@@ -166,7 +166,7 @@ export default function HelpScreen() {
               <View style={styles.profileAvatar}>
                 <Feather name="code" size={32} color={theme.colors.primary} />
               </View>
-              <Text style={styles.profileName}>Baekjin Sung</Text>
+              <Text style={styles.profileName}>Sung Baekjin (성백진)</Text>
               <Text style={styles.profileRole}>Developer & Creator</Text>
               <View style={styles.badgeContainer}>
                 <View style={styles.badge}>
@@ -211,7 +211,7 @@ export default function HelpScreen() {
 
             {/* 저작권 표시 */}
             <View style={styles.footerContainer}>
-              <Text style={styles.footerText}>© 2026 Baekjin Sung. All rights reserved.</Text>
+              <Text style={styles.footerText}>© 2026 Sung Baekjin (성백진). All rights reserved.</Text>
               <Text style={styles.footerSubText}>Designed & Built with React Native & Expo</Text>
             </View>
           </View>

@@ -8,11 +8,18 @@ import {
   TextInput,
   SafeAreaView,
   ActivityIndicator,
-  Modal
+  Modal,
+  Alert
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
+import {
+  printStudentProfile,
+  shareStudentProfile,
+  printClassRecords,
+  shareClassRecords
+} from '../services/PrintService';
 import { theme } from '../theme';
 
 const Separator = () => <View style={styles.separator} />;
@@ -29,6 +36,8 @@ export default function StudentListScreen() {
   // 모달 제어용 상태
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [actionModalVisible, setActionModalVisible] = useState(false);
+  const [printOptionModalVisible, setPrintOptionModalVisible] = useState(false);
+  const [printType, setPrintType] = useState('student'); // 'student' 또는 'records'
 
   // 학생 클릭 처리: 선택 모달 노출
   const handleStudentPress = (student) => {
@@ -48,6 +57,54 @@ export default function StudentListScreen() {
     if (!selectedStudent) return;
     setActionModalVisible(false);
     navigation.navigate('StudentDetail', { studentId: selectedStudent.id });
+  };
+
+  // 학생 카드 출력 모달 열기
+  const handleOpenStudentPrint = () => {
+    setActionModalVisible(false);
+    setPrintType('student');
+    setPrintOptionModalVisible(true);
+  };
+
+  // 수업일지 출력 모달 열기
+  const handleOpenRecordsPrint = () => {
+    setActionModalVisible(false);
+    setPrintType('records');
+    setPrintOptionModalVisible(true);
+  };
+
+  // 인쇄 실행
+  const handleExecutePrint = async () => {
+    if (!selectedStudent) return;
+    setPrintOptionModalVisible(false);
+
+    if (printType === 'student') {
+      await printStudentProfile(selectedStudent);
+    } else {
+      const records = await Database.getRecordsByStudent(selectedStudent.id);
+      if (records.length === 0) {
+        Alert.alert('알림', `${selectedStudent.name} 학생의 등록된 수업 일지가 없습니다.`);
+        return;
+      }
+      await printClassRecords(selectedStudent, records, '전체 기간');
+    }
+  };
+
+  // PDF 공유 실행
+  const handleExecuteShare = async () => {
+    if (!selectedStudent) return;
+    setPrintOptionModalVisible(false);
+
+    if (printType === 'student') {
+      await shareStudentProfile(selectedStudent);
+    } else {
+      const records = await Database.getRecordsByStudent(selectedStudent.id);
+      if (records.length === 0) {
+        Alert.alert('알림', `${selectedStudent.name} 학생의 등록된 수업 일지가 없습니다.`);
+        return;
+      }
+      await shareClassRecords(selectedStudent, records, '전체 기간');
+    }
   };
 
   // 학생 목록 가져오기
@@ -225,6 +282,100 @@ export default function StudentListScreen() {
                   <View style={styles.actionMenuTextContainer}>
                     <Text style={styles.actionMenuTitle}>학생 정보 수정</Text>
                     <Text style={styles.actionMenuSub}>연락처, 주소, 학부모 정보를 수정합니다</Text>
+                  </View>
+                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+                </TouchableOpacity>
+
+                {/* 메뉴 3: 학생 카드 출력 */}
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={handleOpenStudentPrint}
+                >
+                  <View style={[styles.actionIconBadge, { backgroundColor: '#ECFDF5' }]}>
+                    <Feather name="user-check" size={20} color="#059669" />
+                  </View>
+                  <View style={styles.actionMenuTextContainer}>
+                    <Text style={styles.actionMenuTitle}>학생 카드 출력</Text>
+                    <Text style={styles.actionMenuSub}>인적사항 및 학부모 정보 카드를 인쇄/공유합니다</Text>
+                  </View>
+                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+                </TouchableOpacity>
+
+                {/* 메뉴 4: 수업일지 보고서 출력 */}
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={handleOpenRecordsPrint}
+                >
+                  <View style={[styles.actionIconBadge, { backgroundColor: '#FDF2F8' }]}>
+                    <Feather name="printer" size={20} color="#DB2777" />
+                  </View>
+                  <View style={styles.actionMenuTextContainer}>
+                    <Text style={styles.actionMenuTitle}>수업일지 보고서 출력</Text>
+                    <Text style={styles.actionMenuSub}>전체 수업 기록 일지를 인쇄하거나 PDF로 공유합니다</Text>
+                  </View>
+                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* 인쇄 및 PDF 공유 방식 선택 모달 */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={printOptionModalVisible}
+        onRequestClose={() => setPrintOptionModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setPrintOptionModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            {selectedStudent && (
+              <>
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalTitleContainer}>
+                    <Text style={styles.modalStudentName}>
+                      {printType === 'student' ? '학생 정보 카드 출력' : '수업 일지 보고서 출력'}
+                    </Text>
+                    <Text style={styles.modalStudentSub}>
+                      {selectedStudent.name} 학생 대상
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setPrintOptionModalVisible(false)} style={styles.modalCloseBtn}>
+                    <Feather name="x" size={22} color={theme.colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* 옵션 1: 무선/유선 프린터로 인쇄 */}
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={handleExecutePrint}
+                >
+                  <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
+                    <Feather name="printer" size={22} color={theme.colors.primary} />
+                  </View>
+                  <View style={styles.actionMenuTextContainer}>
+                    <Text style={styles.actionMenuTitle}>프린터로 인쇄 (A4)</Text>
+                    <Text style={styles.actionMenuSub}>Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다</Text>
+                  </View>
+                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+                </TouchableOpacity>
+
+                {/* 옵션 2: PDF 파일 공유 (카톡/메시지) */}
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={handleExecuteShare}
+                >
+                  <View style={[styles.actionIconBadge, { backgroundColor: '#E0F2FE' }]}>
+                    <Feather name="share-2" size={22} color="#0284C7" />
+                  </View>
+                  <View style={styles.actionMenuTextContainer}>
+                    <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡/메시지)</Text>
+                    <Text style={styles.actionMenuSub}>카카오톡, 문자, 이메일로 PDF 문서를 전송합니다</Text>
                   </View>
                   <Feather name="chevron-right" size={20} color={theme.colors.outline} />
                 </TouchableOpacity>
