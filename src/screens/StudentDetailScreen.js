@@ -67,9 +67,10 @@ export default function StudentDetailScreen() {
   useLayoutEffect(() => {
     if (isEditMode) {
       navigation.setOptions({
+        // eslint-disable-next-line react/no-unstable-nested-components
         headerRight: () => (
           <TouchableOpacity
-            style={{ marginRight: 16, padding: 4 }}
+            style={styles.headerRightBtn}
             onPress={() => setPrintModalVisible(true)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityLabel="학생 카드 출력 및 공유"
@@ -496,6 +497,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.surfaceVariant,
+  },
+  headerRightBtn: {
+    marginRight: 16,
+    padding: 4,
   },
   keyboardAvoid: {
     flex: 1,
