@@ -1,18 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   FlatList,
   SafeAreaView,
   ActivityIndicator,
   Modal,
   Animated,
-  PanResponder,
-  KeyboardAvoidingView,
-  Platform
+  PanResponder
 } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
@@ -79,7 +76,6 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(getTodayFormatted());
   const [records, setRecords] = useState([]);
   const [students, setStudents] = useState([]);
-  const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [studentSelectVisible, setStudentSelectVisible] = useState(false);
   const [markedDates, setMarkedDates] = useState({});
@@ -143,11 +139,7 @@ export default function CalendarScreen() {
     try {
       const allRecs = await Database.getAllRecords();
       const allStuds = await Database.getAllStudents();
-      // 학생 목록 가나다(이름)순 정렬
-      const sortedStuds = (allStuds || []).sort((a, b) =>
-        (a.name || '').localeCompare(b.name || '', 'ko')
-      );
-      setStudents(sortedStuds);
+      setStudents(allStuds);
 
       const dateGroups = {};
       allRecs.forEach((rec) => {
@@ -188,34 +180,12 @@ export default function CalendarScreen() {
     }
   }, [isFocused, loadData]);
 
-  // 검색어에 따른 학생 목록 필터링
-  const filteredStudents = useMemo(() => {
-    if (!studentSearchQuery.trim()) {
-      return students;
-    }
-    const q = studentSearchQuery.trim().toLowerCase();
-    const qDigits = q.replace(/-/g, '');
-    return students.filter((s) => {
-      const nameMatch = s.name && s.name.toLowerCase().includes(q);
-      const schoolMatch = s.school_grade && s.school_grade.toLowerCase().includes(q);
-      const mobileMatch = s.mobile_phone && s.mobile_phone.replace(/-/g, '').includes(qDigits);
-      const phoneMatch = s.phone_number && s.phone_number.replace(/-/g, '').includes(qDigits);
-      return nameMatch || schoolMatch || mobileMatch || phoneMatch;
-    });
-  }, [students, studentSearchQuery]);
-
   const handleDayPress = (day) => {
     setSelectedDate(day.dateString);
   };
 
-  const handleOpenStudentSelect = () => {
-    setStudentSearchQuery('');
-    setStudentSelectVisible(true);
-  };
-
   const handleSelectStudentForRecord = (studentId) => {
     setStudentSelectVisible(false);
-    setStudentSearchQuery('');
     navigation.navigate('ClassRecord', {
       studentId,
       selectedDate
@@ -409,7 +379,7 @@ export default function CalendarScreen() {
             <Text style={styles.emptyText}>예정된 수업이 없습니다.</Text>
             <TouchableOpacity
               style={styles.addRecordButtonInline}
-              onPress={handleOpenStudentSelect}
+              onPress={() => setStudentSelectVisible(true)}
             >
               <Text style={styles.addRecordButtonInlineText}>+ 새 수업 추가</Text>
             </TouchableOpacity>
@@ -428,63 +398,27 @@ export default function CalendarScreen() {
       {records.length > 0 && (
         <TouchableOpacity
           style={styles.fabButton}
-          onPress={handleOpenStudentSelect}
+          onPress={() => setStudentSelectVisible(true)}
         >
           <Feather name="plus" size={24} color={theme.colors.white} />
         </TouchableOpacity>
       )}
 
-      {/* 학생 선택 모달 */}
+      {/* 모달 */}
       <Modal
         animationType="slide"
         transparent={true}
         visible={studentSelectVisible}
         onRequestClose={() => setStudentSelectVisible(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => setStudentSelectVisible(false)}
-          />
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>학생 선택</Text>
-              <TouchableOpacity
-                onPress={() => setStudentSelectVisible(false)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
+              <TouchableOpacity onPress={() => setStudentSelectVisible(false)}>
                 <Feather name="x" size={24} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
-
-            {/* 학생이 등록되어 있는 경우 검색창 표시 */}
-            {students.length > 0 && (
-              <View style={styles.modalSearchContainer}>
-                <Feather name="search" size={18} color={theme.colors.outline} style={styles.searchIcon} />
-                <TextInput
-                  style={styles.modalSearchInput}
-                  placeholder="학생 이름, 학교, 전화번호 검색..."
-                  placeholderTextColor={theme.colors.outline}
-                  value={studentSearchQuery}
-                  onChangeText={setStudentSearchQuery}
-                  autoCorrect={false}
-                  returnKeyType="search"
-                />
-                {studentSearchQuery.length > 0 && (
-                  <TouchableOpacity
-                    onPress={() => setStudentSearchQuery('')}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                    style={styles.clearSearchBtn}
-                  >
-                    <Feather name="x-circle" size={16} color={theme.colors.textSecondary} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
 
             {students.length === 0 ? (
               <View style={styles.modalEmpty}>
@@ -499,16 +433,10 @@ export default function CalendarScreen() {
                   <Text style={styles.modalAddStudentBtnText}>주소록에서 추가하기</Text>
                 </TouchableOpacity>
               </View>
-            ) : filteredStudents.length === 0 ? (
-              <View style={styles.modalEmpty}>
-                <Feather name="search" size={28} color={theme.colors.outline} style={{ marginBottom: 8 }} />
-                <Text style={styles.modalEmptyText}>검색 결과와 일치하는 학생이 없습니다.</Text>
-              </View>
             ) : (
               <FlatList
-                data={filteredStudents}
+                data={students}
                 keyExtractor={(item) => item.id}
-                keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={styles.studentSelectItem}
@@ -524,7 +452,7 @@ export default function CalendarScreen() {
               />
             )}
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -716,22 +644,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
   modalContent: {
     backgroundColor: theme.colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '75%',
+    maxHeight: '70%',
     padding: 20,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.outline,
   },
@@ -739,27 +664,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: theme.colors.textPrimary,
-  },
-  modalSearchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    height: 42,
-  },
-  searchIcon: {
-    marginRight: 6,
-  },
-  modalSearchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-    paddingVertical: 0,
-  },
-  clearSearchBtn: {
-    padding: 4,
   },
   modalEmpty: {
     alignItems: 'center',
