@@ -310,7 +310,7 @@ export default function ClassRecordScreen() {
       {/* 학생 기본 정보 바 */}
       {student && (
         <View style={styles.studentBar}>
-          <View style={{ flex: 1 }}>
+          <View style={styles.studentBarLeft}>
             <Text style={styles.studentName}>{student.name} 학생</Text>
             <Text style={styles.studentDetails}>{student.school_grade || '학교/학년 미지정'}</Text>
           </View>
@@ -319,7 +319,7 @@ export default function ClassRecordScreen() {
               style={styles.printBarBtn}
               onPress={() => setPrintModalVisible(true)}
             >
-              <Feather name="printer" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
+              <Feather name="printer" size={14} color={theme.colors.primary} style={styles.printBarIcon} />
               <Text style={styles.printBarBtnText}>일지 출력</Text>
             </TouchableOpacity>
             <View style={styles.recordCountBadge}>
@@ -332,7 +332,7 @@ export default function ClassRecordScreen() {
       {/* 수업 목록 */}
       {allRecords.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Feather name="folder-minus" size={48} color={theme.colors.outline} style={{ marginBottom: 16 }} />
+          <Feather name="folder-minus" size={48} color={theme.colors.outline} style={styles.emptyFolderIcon} />
           <Text style={styles.emptyText}>등록된 수업 일지가 없습니다.</Text>
           <TouchableOpacity
             style={styles.addRecordButton}
@@ -365,7 +365,7 @@ export default function ClassRecordScreen() {
           style={styles.fabButton}
           onPress={() => openAddModal()}
         >
-          <Feather name="plus" size={20} color={theme.colors.onPrimary} style={{ marginRight: 4 }} />
+          <Feather name="plus" size={20} color={theme.colors.onPrimary} style={styles.fabPlusIcon} />
           <Text style={styles.fabButtonText}>일지 추가</Text>
         </TouchableOpacity>
       )}
@@ -500,7 +500,7 @@ export default function ClassRecordScreen() {
             >
               <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 10 }}
+                contentContainerStyle={styles.modalScrollContent}
               >
                 <View style={styles.actionModalHeader}>
                   <View style={styles.actionModalTitleContainer}>
@@ -644,7 +644,7 @@ export default function ClassRecordScreen() {
 
                 {/* 선택된 대상 요약 배너 */}
                 <View style={styles.summaryBadgeBox}>
-                  <Feather name="info" size={14} color={theme.colors.primary} style={{ marginRight: 6 }} />
+                  <Feather name="info" size={14} color={theme.colors.primary} style={styles.summaryBadgeIcon} />
                   <Text style={styles.summaryBadgeText}>
                     조회: {periodTitle} ({filteredRecordsForPrint.length}회차 기록)
                   </Text>
@@ -676,7 +676,7 @@ export default function ClassRecordScreen() {
                     await shareClassRecords(student, filteredRecordsForPrint, periodTitle);
                   }}
                 >
-                  <View style={[styles.actionIconBadge, { backgroundColor: '#E0F2FE' }]}>
+                  <View style={[styles.actionIconBadge, styles.pdfShareIconBadge]}>
                     <Feather name="share-2" size={22} color="#0284C7" />
                   </View>
                   <View style={styles.actionMenuTextContainer}>
@@ -1168,5 +1168,26 @@ const styles = StyleSheet.create({
   actionMenuSub: {
     fontSize: 12,
     color: theme.colors.textSecondary,
+  },
+  studentBarLeft: {
+    flex: 1,
+  },
+  printBarIcon: {
+    marginRight: 4,
+  },
+  emptyFolderIcon: {
+    marginBottom: 16,
+  },
+  fabPlusIcon: {
+    marginRight: 4,
+  },
+  modalScrollContent: {
+    paddingBottom: 10,
+  },
+  summaryBadgeIcon: {
+    marginRight: 6,
+  },
+  pdfShareIconBadge: {
+    backgroundColor: '#E0F2FE',
   },
 });

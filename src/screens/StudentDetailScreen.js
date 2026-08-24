@@ -222,14 +222,14 @@ export default function StudentDetailScreen() {
                   style={styles.printHeaderBtn}
                   onPress={() => setPrintModalVisible(true)}
                 >
-                  <Feather name="printer" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                  <Feather name="printer" size={14} color={theme.colors.primary} style={styles.headerBtnIcon} />
                   <Text style={styles.printHeaderBtnText}>카드 출력</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.viewRecordHeaderBtn}
                   onPress={() => navigation.navigate('ClassRecord', { studentId })}
                 >
-                  <Feather name="book-open" size={14} color={theme.colors.primary} style={{ marginRight: 4 }} />
+                  <Feather name="book-open" size={14} color={theme.colors.primary} style={styles.headerBtnIcon} />
                   <Text style={styles.viewRecordHeaderBtnText}>수업일지</Text>
                 </TouchableOpacity>
               </View>
@@ -340,7 +340,7 @@ export default function StudentDetailScreen() {
           </View>
 
           {/* 학부모 정보 */}
-          <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+          <View style={[styles.sectionHeader, styles.sectionHeaderMargin]}>
             <Feather name="users" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>학부모 정보</Text>
           </View>
@@ -370,7 +370,7 @@ export default function StudentDetailScreen() {
           </View>
 
           {/* 기타 사항 */}
-          <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+          <View style={[styles.sectionHeader, styles.sectionHeaderMargin]}>
             <Feather name="file-text" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>기타 사항</Text>
           </View>
@@ -393,7 +393,7 @@ export default function StudentDetailScreen() {
             <ImageBackground
               source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAr63oG3o8oYQu2EEaS-Thd2tVZ52GxTs5FrMlz_tebRgA4Yhd83V_uHhl2nfKZP18Kki-n0Ot9zb-B5Eojx2iQAAe4wZ98zoe90e9f1IjEAzBkVYZhobCHjY_H-Ux5hvw6d4uS98V-0XcP3GOKpsI-PHfEgLmKZ92SKMpydjFVSU0mt-XzlAqmbXvSrtUGoD6KWSBOSu_tT-mutd-gbuf9HAy1zCGPwHhzrrfwRf4K6UNLnrcQrKwIxkq4hmbthDDk8u-M2Co7UVA' }}
               style={styles.bannerImage}
-              imageStyle={{ borderRadius: 20 }}
+              imageStyle={styles.bannerImageBorder}
             >
               <View style={styles.bannerOverlay}>
                 <Text style={styles.bannerText}>기록은 성장의 밑거름입니다.</Text>
@@ -410,7 +410,7 @@ export default function StudentDetailScreen() {
               style={styles.saveButton}
               onPress={handleSave}
             >
-              <Feather name="save" size={18} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
+              <Feather name="save" size={18} color={theme.colors.onPrimary} style={styles.saveBtnIcon} />
               <Text style={styles.saveButtonText}>저장하기</Text>
             </TouchableOpacity>
 
@@ -419,7 +419,7 @@ export default function StudentDetailScreen() {
                 style={styles.deleteButton}
                 onPress={handleDelete}
               >
-                <Feather name="trash-2" size={16} color={theme.colors.error} style={{ marginRight: 6 }} />
+                <Feather name="trash-2" size={16} color={theme.colors.error} style={styles.deleteBtnIcon} />
                 <Text style={styles.deleteButtonText}>학생 정보 삭제</Text>
               </TouchableOpacity>
             )}
@@ -475,7 +475,7 @@ export default function StudentDetailScreen() {
                   await shareStudentProfile(getCurrentStudentData());
                 }}
               >
-                <View style={[styles.actionIconBadge, { backgroundColor: '#E0F2FE' }]}>
+                <View style={[styles.actionIconBadge, styles.pdfShareIconBadge]}>
                   <Feather name="share-2" size={22} color="#0284C7" />
                 </View>
                 <View style={styles.actionMenuTextContainer}>
@@ -800,5 +800,23 @@ const styles = StyleSheet.create({
   actionMenuSub: {
     fontSize: 12,
     color: theme.colors.textSecondary,
+  },
+  headerBtnIcon: {
+    marginRight: 4,
+  },
+  sectionHeaderMargin: {
+    marginTop: 24,
+  },
+  bannerImageBorder: {
+    borderRadius: 20,
+  },
+  saveBtnIcon: {
+    marginRight: 8,
+  },
+  deleteBtnIcon: {
+    marginRight: 6,
+  },
+  pdfShareIconBadge: {
+    backgroundColor: '#E0F2FE',
   },
 });

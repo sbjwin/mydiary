@@ -222,7 +222,7 @@ export default function HelpScreen() {
             {/* 개발 취지 및 소개 카드 */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Feather name="heart" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                <Feather name="heart" size={18} color={theme.colors.primary} style={styles.cardHeaderIcon} />
                 <Text style={styles.cardTitle}>앱 기획 및 개발 취지</Text>
               </View>
               <Text style={styles.aboutParagraph}>
@@ -236,7 +236,7 @@ export default function HelpScreen() {
             {/* 문의 및 피드백 카드 */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Feather name="mail" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                <Feather name="mail" size={18} color={theme.colors.primary} style={styles.cardHeaderIcon} />
                 <Text style={styles.cardTitle}>문의 및 지원</Text>
               </View>
               <Text style={styles.cardDesc}>
@@ -516,5 +516,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.textSecondary,
     lineHeight: 20,
+  },
+  cardHeaderIcon: {
+    marginRight: 8,
   },
 });

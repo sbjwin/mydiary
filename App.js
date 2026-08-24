@@ -55,7 +55,7 @@ function MainTabs({ navigation }) {
         // eslint-disable-next-line react/no-unstable-nested-components
         headerRight: () => (
           <TouchableOpacity
-            style={{ marginRight: 16, padding: 4 }}
+            style={styles.headerRightBtn}
             onPress={() => navigation.navigate('Help')}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityLabel="도움말 및 앱 정보"
@@ -128,3 +128,11 @@ export default function App() {
     </NavigationContainer>
   );
 }
+
+const styles = {
+  headerRightBtn: {
+    marginRight: 16,
+    padding: 4,
+  },
+};
+

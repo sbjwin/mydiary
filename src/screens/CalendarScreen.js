@@ -502,7 +502,7 @@ export default function CalendarScreen() {
               </View>
             ) : filteredStudents.length === 0 ? (
               <View style={styles.modalEmpty}>
-                <Feather name="search" size={28} color={theme.colors.outline} style={{ marginBottom: 8 }} />
+                <Feather name="search" size={28} color={theme.colors.outline} style={styles.emptySearchIcon} />
                 <Text style={styles.modalEmptyText}>검색 결과와 일치하는 학생이 없습니다.</Text>
               </View>
             ) : (
@@ -775,6 +775,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
+  },
+  emptySearchIcon: {
+    marginBottom: 8,
   },
   modalEmptyText: {
     fontSize: 15,

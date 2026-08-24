@@ -138,7 +138,7 @@ export default function SettingsScreen({ navigation }) {
       {/* 1. 구글 계정 연결 카드 */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Feather name="user" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Feather name="user" size={18} color={theme.colors.primary} style={styles.cardHeaderIcon} />
           <Text style={styles.cardTitle}>구글 계정 연결</Text>
         </View>
 
@@ -158,7 +158,7 @@ export default function SettingsScreen({ navigation }) {
               </View>
             </View>
             <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} disabled={loading}>
-              <Feather name="log-out" size={14} color={theme.colors.error} style={{ marginRight: 4 }} />
+              <Feather name="log-out" size={14} color={theme.colors.error} style={styles.btnIconSmall} />
               <Text style={styles.signOutText}>연결 해제</Text>
             </TouchableOpacity>
           </View>
@@ -168,7 +168,7 @@ export default function SettingsScreen({ navigation }) {
               개인 구글 드라이브에 안전하게 데이터를 백업 및 복원하려면 구글 계정을 연결해 주세요.
             </Text>
             <TouchableOpacity style={styles.connectButton} onPress={handleSignIn} disabled={loading}>
-              <Feather name="log-in" size={18} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
+              <Feather name="log-in" size={18} color={theme.colors.onPrimary} style={styles.btnIcon} />
               <Text style={styles.connectButtonText}>구글 계정 연결하기</Text>
             </TouchableOpacity>
           </View>
@@ -178,7 +178,7 @@ export default function SettingsScreen({ navigation }) {
       {/* 2. 데이터 백업 및 복원 카드 */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Feather name="database" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Feather name="database" size={18} color={theme.colors.primary} style={styles.cardHeaderIcon} />
           <Text style={styles.cardTitle}>데이터 백업 및 복원</Text>
         </View>
         <Text style={styles.cardDescription}>
@@ -187,12 +187,12 @@ export default function SettingsScreen({ navigation }) {
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.backupButton} onPress={handleBackup} disabled={loading}>
-            <Feather name="upload-cloud" size={18} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
+            <Feather name="upload-cloud" size={18} color={theme.colors.onPrimary} style={styles.btnIcon} />
             <Text style={styles.buttonText}>구글 드라이브에 백업</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.restoreButton} onPress={handleRestore} disabled={loading}>
-            <Feather name="download-cloud" size={18} color={theme.colors.onPrimary} style={{ marginRight: 8 }} />
+            <Feather name="download-cloud" size={18} color={theme.colors.onPrimary} style={styles.btnIcon} />
             <Text style={styles.buttonText}>구글 드라이브에서 복원</Text>
           </TouchableOpacity>
         </View>
@@ -201,7 +201,7 @@ export default function SettingsScreen({ navigation }) {
       {/* 3. 도움말 및 앱 정보 카드 */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Feather name="info" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Feather name="info" size={18} color={theme.colors.primary} style={styles.cardHeaderIcon} />
           <Text style={styles.cardTitle}>도움말 및 앱 정보</Text>
         </View>
         <Text style={styles.cardDescription}>
@@ -213,7 +213,7 @@ export default function SettingsScreen({ navigation }) {
           onPress={() => navigation.navigate('Help')}
           disabled={loading}
         >
-          <Feather name="book-open" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+          <Feather name="book-open" size={18} color={theme.colors.primary} style={styles.cardHeaderIcon} />
           <Text style={styles.helpButtonText}>사용법 및 만든 사람 보기</Text>
           <Feather name="chevron-right" size={18} color={theme.colors.primary} />
         </TouchableOpacity>
@@ -404,5 +404,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 15,
     color: theme.colors.textPrimary,
+  },
+  cardHeaderIcon: {
+    marginRight: 8,
+  },
+  btnIcon: {
+    marginRight: 8,
+  },
+  btnIconSmall: {
+    marginRight: 4,
   },
 });
