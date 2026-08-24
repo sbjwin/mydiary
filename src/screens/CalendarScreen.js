@@ -88,6 +88,26 @@ export default function CalendarScreen() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const calendarAnim = useRef(new Animated.Value(1)).current; // 1: 펼침, 0: 접힘
 
+  // 헤더 우측 주간 시간표 바로가기 버튼 설정
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      // eslint-disable-next-line react/no-unstable-nested-components
+      headerRight: () => (
+        <View style={styles.headerRightContainer}>
+          <TouchableOpacity
+            style={styles.headerRightWeeklyBtn}
+            onPress={() => navigation.navigate('WeeklyPlan')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="주간 시간표로 이동"
+          >
+            <Feather name="calendar" size={18} color={theme.colors.primary} />
+            <Text style={styles.headerRightWeeklyBtnText}>주간시간표</Text>
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation]);
+
   // 달력 접기 애니메이션 처리 함수
   const collapseCalendar = useCallback(() => {
     setIsCollapsed(true);
@@ -854,5 +874,25 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: 'bold',
     color: theme.colors.onSecondaryContainer,
+  },
+  headerRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+    gap: 8,
+  },
+  headerRightWeeklyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceVariant,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    gap: 4,
+  },
+  headerRightWeeklyBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
 });

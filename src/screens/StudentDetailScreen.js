@@ -42,6 +42,9 @@ export default function StudentDetailScreen() {
   const [parentName, setParentName] = useState('');
   const [parentMobilePhone, setParentMobilePhone] = useState('');
 
+  // 정규 기본 수업 일정 상태 (배열: [{ id, dayOfWeek: 1~7, startTime: '10:00', duration: 60, subject: '' }])
+  const [defaultSchedules, setDefaultSchedules] = useState([]);
+
   // 기타 데이터 상태
   const [notes, setNotes] = useState('');
 
@@ -60,6 +63,7 @@ export default function StudentDetailScreen() {
     study_method: studyMethod.trim() || null,
     parent_name: parentName.trim() || null,
     parent_mobile_phone: parentMobilePhone.trim() || null,
+    default_schedules: defaultSchedules,
     notes: notes.trim() || null,
   });
 
@@ -125,6 +129,8 @@ export default function StudentDetailScreen() {
             setParentName(student.parent_name || '');
             setParentMobilePhone(student.parent_mobile_phone || '');
 
+            setDefaultSchedules(Array.isArray(student.default_schedules) ? student.default_schedules : []);
+
             setNotes(student.notes || '');
           }
         } catch (e) {
@@ -135,6 +141,28 @@ export default function StudentDetailScreen() {
       fetchStudent();
     }
   }, [studentId, isEditMode]);
+
+  // 기본 수업 일정 추가/삭제 헬퍼
+  const handleAddDefaultSchedule = () => {
+    const newSchedule = {
+      id: Date.now().toString(),
+      dayOfWeek: 1, // 월요일 기본
+      startTime: '10:00',
+      duration: 60,
+      subject: schoolGrade ? `${schoolGrade} 과정` : '',
+    };
+    setDefaultSchedules([...defaultSchedules, newSchedule]);
+  };
+
+  const handleRemoveDefaultSchedule = (id) => {
+    setDefaultSchedules(defaultSchedules.filter((s) => s.id !== id));
+  };
+
+  const handleUpdateDefaultSchedule = (id, field, value) => {
+    setDefaultSchedules(
+      defaultSchedules.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+    );
+  };
 
   // 저장 처리
   const handleSave = async () => {
@@ -154,7 +182,7 @@ export default function StudentDetailScreen() {
       study_method: studyMethod.trim() || null,
       parent_name: parentName.trim() || null,
       parent_mobile_phone: parentMobilePhone.trim() || null,
-
+      default_schedules: defaultSchedules,
       notes: notes.trim() || null,
     };
 
@@ -367,6 +395,95 @@ export default function StudentDetailScreen() {
                 keyboardType="phone-pad"
               />
             </View>
+          </View>
+
+          {/* 정규 기본 수업 일정 (주간 시간표 자동 배치용) */}
+          <View style={[styles.sectionHeaderRow, styles.sectionHeaderMargin]}>
+            <View style={styles.sectionHeaderLeft}>
+              <Feather name="calendar" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
+              <Text style={styles.sectionTitle}>정규 수업 일정 (주간 시간표)</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.addSchedBtn}
+              onPress={handleAddDefaultSchedule}
+            >
+              <Feather name="plus" size={14} color={theme.colors.primary} />
+              <Text style={styles.addSchedBtnText}>시간 추가</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.schedListContainer}>
+            {defaultSchedules.length === 0 ? (
+              <View style={styles.emptySchedBox}>
+                <Text style={styles.emptySchedText}>등록된 기본 수업 일정이 없습니다.</Text>
+                <Text style={styles.emptySchedSubText}>위 '+ 시간 추가' 버튼을 눌러 정규 수업 요일/시간을 등록하시면 매주 주간 시간표가 자동 완성됩니다.</Text>
+              </View>
+            ) : (
+              defaultSchedules.map((sched, idx) => (
+                <View key={sched.id || idx} style={styles.schedCard}>
+                  {/* 요일 선택 바 */}
+                  <View style={styles.schedDayRow}>
+                    {[
+                      { label: '월', val: 1 },
+                      { label: '화', val: 2 },
+                      { label: '수', val: 3 },
+                      { label: '목', val: 4 },
+                      { label: '금', val: 5 },
+                      { label: '토', val: 6 },
+                      { label: '일', val: 7 },
+                    ].map((d) => (
+                      <TouchableOpacity
+                        key={d.val}
+                        style={[
+                          styles.dayPill,
+                          sched.dayOfWeek === d.val && styles.dayPillActive,
+                        ]}
+                        onPress={() => handleUpdateDefaultSchedule(sched.id, 'dayOfWeek', d.val)}
+                      >
+                        <Text
+                          style={[
+                            styles.dayPillText,
+                            sched.dayOfWeek === d.val && styles.dayPillTextActive,
+                          ]}
+                        >
+                          {d.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      style={styles.schedDeleteBtn}
+                      onPress={() => handleRemoveDefaultSchedule(sched.id)}
+                    >
+                      <Feather name="trash-2" size={15} color={theme.colors.error} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 시간 및 과목 입력 */}
+                  <View style={styles.schedInputRow}>
+                    <View style={styles.schedInputColSmall}>
+                      <Text style={styles.schedInputLabel}>시작 시간</Text>
+                      <TextInput
+                        style={styles.schedInput}
+                        value={sched.startTime || '10:00'}
+                        onChangeText={(val) => handleUpdateDefaultSchedule(sched.id, 'startTime', val)}
+                        placeholder="10:00"
+                        placeholderTextColor={theme.colors.outline}
+                      />
+                    </View>
+                    <View style={styles.schedInputColLarge}>
+                      <Text style={styles.schedInputLabel}>수업 과목/내용</Text>
+                      <TextInput
+                        style={styles.schedInput}
+                        value={sched.subject || ''}
+                        onChangeText={(val) => handleUpdateDefaultSchedule(sched.id, 'subject', val)}
+                        placeholder="예: 파이썬, C언어, 자바"
+                        placeholderTextColor={theme.colors.outline}
+                      />
+                    </View>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
 
           {/* 기타 사항 */}
@@ -810,13 +927,113 @@ const styles = StyleSheet.create({
   bannerImageBorder: {
     borderRadius: 20,
   },
-  saveBtnIcon: {
-    marginRight: 8,
-  },
-  deleteBtnIcon: {
-    marginRight: 6,
-  },
   pdfShareIconBadge: {
     backgroundColor: '#E0F2FE',
+  },
+  addSchedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceVariant,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  addSchedBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  schedListContainer: {
+    marginTop: 10,
+    gap: 10,
+  },
+  emptySchedBox: {
+    backgroundColor: theme.colors.white,
+    padding: 16,
+    borderRadius: theme.roundness,
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '40',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+  },
+  emptySchedText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+  },
+  emptySchedSubText: {
+    fontSize: 11,
+    color: theme.colors.outline,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  schedCard: {
+    backgroundColor: theme.colors.white,
+    padding: 14,
+    borderRadius: theme.roundness,
+    borderWidth: 1,
+    borderColor: theme.colors.surfaceVariant,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  schedDayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  dayPill: {
+    width: 34,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: theme.colors.surfaceVariant + '70',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayPillActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  dayPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  dayPillTextActive: {
+    color: theme.colors.onPrimary,
+    fontWeight: 'bold',
+  },
+  schedDeleteBtn: {
+    padding: 6,
+  },
+  schedInputRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  schedInputColSmall: {
+    width: 90,
+  },
+  schedInputColLarge: {
+    flex: 1,
+  },
+  schedInputLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+  },
+  schedInput: {
+    backgroundColor: theme.colors.surfaceVariant + '40',
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '40',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 13,
+    color: theme.colors.textPrimary,
   },
 });

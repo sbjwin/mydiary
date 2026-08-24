@@ -7,6 +7,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import CalendarScreen from './src/screens/CalendarScreen';
+import WeeklyPlanScreen from './src/screens/WeeklyPlanScreen';
 import StudentListScreen from './src/screens/StudentListScreen';
 import StudentDetailScreen from './src/screens/StudentDetailScreen';
 import ClassRecordScreen from './src/screens/ClassRecordScreen';
@@ -28,8 +29,10 @@ function MainTabs({ navigation }) {
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'WeeklyPlan') {
+            iconName = focused ? 'calendar-clock' : 'calendar-clock-outline';
           } else if (route.name === 'Calendar') {
-            iconName = focused ? 'calendar' : 'calendar-outline';
+            iconName = focused ? 'calendar-month' : 'calendar-month-outline';
           } else if (route.name === 'StudentList') {
             iconName = focused ? 'account-group' : 'account-group-outline';
           } else if (route.name === 'Settings') {
@@ -75,7 +78,8 @@ function MainTabs({ navigation }) {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: '홈' }} />
-      <Tab.Screen name="Calendar" component={CalendarScreen} options={{ title: '달력' }} />
+      <Tab.Screen name="WeeklyPlan" component={WeeklyPlanScreen} options={{ title: '주간시간표' }} />
+      <Tab.Screen name="Calendar" component={CalendarScreen} options={{ title: '달력일지' }} />
       <Tab.Screen name="StudentList" component={StudentListScreen} options={{ title: '학생' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: '설정' }} />
     </Tab.Navigator>
@@ -108,6 +112,11 @@ export default function App() {
           name="MainTabs"
           component={MainTabs}
           options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="WeeklyPlan"
+          component={WeeklyPlanScreen}
+          options={{ title: '주간 시간표 및 계획' }}
         />
         <Stack.Screen
           name="StudentDetail"

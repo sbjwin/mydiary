@@ -1,0 +1,2036 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+  ActivityIndicator,
+  Modal,
+  Alert,
+  Linking
+} from 'react-native';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { Database, getMondayOfWeek, getDateFromMondayOffset } from '../database/Database';
+import { printWeeklyReport, shareWeeklyReport } from '../services/PrintService';
+import { theme } from '../theme';
+
+const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+
+const TIME_SLOTS = [
+  { label: '오전', hour: 9 },
+  { label: '10시', hour: 10 },
+  { label: '11시', hour: 11 },
+  { label: '12시', hour: 12, isLunch: true },
+  { label: '1시', hour: 13 },
+  { label: '2시', hour: 14 },
+  { label: '3시', hour: 15 },
+  { label: '4시', hour: 16 },
+  { label: '5시', hour: 17 },
+  { label: '6시', hour: 18 },
+  { label: '7시', hour: 19 },
+  { label: '8시', hour: 20 },
+];
+
+export default function WeeklyPlanScreen() {
+  const navigation = useNavigation();
+  const isFocused = useIsFocused();
+
+  // 현재 선택된 주의 월요일 날짜 (YYYY-MM-DD)
+  const [currentMonday, setCurrentMonday] = useState(() => getMondayOfWeek(new Date()));
+  const [weeklyPlan, setWeeklyPlan] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 뷰 모드: 'table' (주간 전체 타임테이블) | 'timeline' (요일별 상세 타임라인)
+  const [viewMode, setViewMode] = useState('table');
+  const [selectedDayOffset, setSelectedDayOffset] = useState(0); // 0(월) ~ 6(일)
+
+  // 하단 부가 업무 섹션 접기/펼치기
+  const [bottomNotesExpanded, setBottomNotesExpanded] = useState(false);
+
+  // 모달 제어 상태
+  const [pdfModalVisible, setPdfModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null); // 편집 중인 수업 항목
+
+  // 수업 추가/편집 폼 상태
+  const [formStudentId, setFormStudentId] = useState('');
+  const [formStudentName, setFormStudentName] = useState('');
+  const [formPaymentType, setFormPaymentType] = useState('지사입금');
+  const [formSubject, setFormSubject] = useState('');
+  const [formAddress, setFormAddress] = useState('');
+  const [formPhoneInfo, setFormPhoneInfo] = useState('');
+  const [formDayOfWeek, setFormDayOfWeek] = useState(1);
+  const [formStartTime, setFormStartTime] = useState('10:00');
+  const [formStatusNote, setFormStatusNote] = useState('');
+  const [studentPickerVisible, setStudentPickerVisible] = useState(false);
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+
+  // 전화관리 추가 폼
+  const [callModalVisible, setCallModalVisible] = useState(false);
+  const [callName, setCallName] = useState('');
+  const [callContent, setCallContent] = useState('');
+
+  // 주간 데이터 로드
+  const loadWeeklyData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const allStudents = await Database.getAllStudents();
+      setStudents(allStudents);
+
+      const plan = await Database.getWeeklyPlan(currentMonday);
+      setWeeklyPlan(plan);
+    } catch (error) {
+      console.error('Failed to load weekly plan:', error);
+      Alert.alert('오류', '주간 계획 데이터를 불러오는 데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentMonday]);
+
+  useEffect(() => {
+    if (isFocused) {
+      loadWeeklyData();
+    }
+  }, [isFocused, loadWeeklyData]);
+
+  // 주차 이동 헬퍼
+  const handlePrevWeek = () => {
+    setCurrentMonday((prev) => getDateFromMondayOffset(prev, -7));
+  };
+
+  const handleNextWeek = () => {
+    setCurrentMonday((prev) => getDateFromMondayOffset(prev, 7));
+  };
+
+  const handleThisWeek = () => {
+    setCurrentMonday(getMondayOfWeek(new Date()));
+  };
+
+  // 주차 타이틀 포맷팅 (예: 2026년 8월 3주차 (8/17 ~ 8/23))
+  const weekTitleInfo = useMemo(() => {
+    if (!currentMonday) return { title: '', range: '' };
+    const [y, m, d] = currentMonday.split('-').map(Number);
+    const endObj = new Date(y, m - 1, d + 6);
+
+    const weekNum = Math.ceil(d / 7);
+    const title = `${y}년 ${m}월 ${weekNum}주차`;
+    const range = `${m}/${d} ~ ${endObj.getMonth() + 1}/${endObj.getDate()}`;
+    return { title, range };
+  }, [currentMonday]);
+
+  // 특정 요일(1~7)의 날짜 구하기
+  const getDayDateString = (dayOfWeek) => {
+    return getDateFromMondayOffset(currentMonday, dayOfWeek - 1);
+  };
+
+  // 수업 추가/편집 모달 열기
+  const openAddModal = (dayOfWeek = 1, defaultHour = 10) => {
+    const formattedHour = String(defaultHour).padStart(2, '0') + ':00';
+    setSelectedItem(null);
+    setFormStudentId('');
+    setFormStudentName('');
+    setFormPaymentType('지사입금');
+    setFormSubject('');
+    setFormAddress('');
+    setFormPhoneInfo('');
+    setFormDayOfWeek(dayOfWeek);
+    setFormStartTime(formattedHour);
+    setFormStatusNote('');
+    setEditModalVisible(true);
+  };
+
+  const openEditModal = (item) => {
+    setSelectedItem(item);
+    setFormStudentId(item.studentId || '');
+    setFormStudentName(item.studentName || '');
+    setFormPaymentType(item.paymentType || '지사입금');
+    setFormSubject(item.subject || '');
+    setFormAddress(item.address || '');
+    setFormPhoneInfo(item.phoneInfo || '');
+    setFormDayOfWeek(Number(item.dayOfWeek) || 1);
+    setFormStartTime(item.startTime || '10:00');
+    setFormStatusNote(item.statusNote || '');
+    setEditModalVisible(true);
+  };
+
+  // 학생 선택 시 기본 정보 자동 완성
+  const handleSelectStudent = (student) => {
+    setFormStudentId(student.id);
+    setFormStudentName(student.name || '');
+    setFormPaymentType(student.study_method || '지사입금');
+    setFormSubject(student.school_grade ? `${student.school_grade} 과정` : '');
+    setFormAddress(student.address || '');
+
+    const phoneList = [];
+    if (student.parent_mobile_phone) phoneList.push(`(모)${student.parent_mobile_phone}`);
+    if (student.mobile_phone) phoneList.push(`(본)${student.mobile_phone}`);
+    if (student.phone_number) phoneList.push(`(부)${student.phone_number}`);
+    setFormPhoneInfo(phoneList.join('\n'));
+
+    setStudentPickerVisible(false);
+  };
+
+  // 수업 항목 저장
+  const handleSaveScheduleItem = async () => {
+    if (!formStudentName.trim()) {
+      Alert.alert('알림', '학생 이름을 입력하거나 선택해 주세요.');
+      return;
+    }
+
+    const targetDate = getDayDateString(formDayOfWeek);
+    const newItem = {
+      id: selectedItem ? selectedItem.id : Date.now().toString(),
+      studentId: formStudentId || null,
+      studentName: formStudentName.trim(),
+      paymentType: formPaymentType.trim(),
+      subject: formSubject.trim(),
+      address: formAddress.trim(),
+      phoneInfo: formPhoneInfo.trim(),
+      dayOfWeek: Number(formDayOfWeek),
+      date: targetDate,
+      startTime: formStartTime.trim() || '10:00',
+      duration: 60,
+      statusTag: formStatusNote ? '변동' : '정규',
+      statusNote: formStatusNote.trim(),
+      isDefault: false,
+    };
+
+    let updatedItems = [];
+    const currentItems = weeklyPlan?.scheduleItems || [];
+
+    if (selectedItem) {
+      updatedItems = currentItems.map((it) => (it.id === selectedItem.id ? newItem : it));
+    } else {
+      updatedItems = [...currentItems, newItem];
+    }
+
+    // 시간 순서대로 정렬
+    updatedItems.sort((a, b) => {
+      if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+      return (a.startTime || '00:00').localeCompare(b.startTime || '00:00');
+    });
+
+    const updatedPlan = {
+      ...weeklyPlan,
+      scheduleItems: updatedItems,
+    };
+
+    try {
+      await Database.saveWeeklyPlan(currentMonday, updatedPlan);
+      setWeeklyPlan(updatedPlan);
+      setEditModalVisible(false);
+    } catch (e) {
+      console.error('Failed to save schedule item:', e);
+      Alert.alert('오류', '일정을 저장하는 도중 오류가 발생했습니다.');
+    }
+  };
+
+  // 수업 항목 삭제
+  const handleDeleteScheduleItem = async (itemId) => {
+    Alert.alert('수업 일정 삭제', '이번 주 시간표에서 해당 수업을 제외하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          const currentItems = weeklyPlan?.scheduleItems || [];
+          const updatedItems = currentItems.filter((it) => it.id !== itemId);
+          const updatedPlan = { ...weeklyPlan, scheduleItems: updatedItems };
+
+          try {
+            await Database.saveWeeklyPlan(currentMonday, updatedPlan);
+            setWeeklyPlan(updatedPlan);
+            setEditModalVisible(false);
+          } catch (e) {
+            console.error('Failed to delete schedule item:', e);
+            Alert.alert('오류', '삭제 도중 오류가 발생했습니다.');
+          }
+        },
+      },
+    ]);
+  };
+
+  // 하단 메모(주요사항, 전주결석, 특이사항) 저장
+  const handleSaveNotes = async (field, value) => {
+    const updatedPlan = {
+      ...weeklyPlan,
+      [field]: value,
+    };
+    setWeeklyPlan(updatedPlan);
+    try {
+      await Database.saveWeeklyPlan(currentMonday, updatedPlan);
+    } catch (e) {
+      console.error('Failed to auto-save notes:', e);
+    }
+  };
+
+  // 전화 관리 항목 추가
+  const handleAddCallItem = async () => {
+    if (!callName.trim()) {
+      Alert.alert('알림', '회원 이름을 입력해 주세요.');
+      return;
+    }
+
+    const newCall = {
+      id: Date.now().toString(),
+      name: callName.trim(),
+      content: callContent.trim(),
+    };
+
+    const currentCalls = weeklyPlan?.callItems || [];
+    const updatedPlan = {
+      ...weeklyPlan,
+      callItems: [...currentCalls, newCall],
+    };
+
+    try {
+      await Database.saveWeeklyPlan(currentMonday, updatedPlan);
+      setWeeklyPlan(updatedPlan);
+      setCallName('');
+      setCallContent('');
+      setCallModalVisible(false);
+    } catch (e) {
+      console.error('Failed to add call item:', e);
+      Alert.alert('오류', '전화 관리 항목을 저장하지 못했습니다.');
+    }
+  };
+
+  // 전화 관리 항목 삭제
+  const handleDeleteCallItem = async (callId) => {
+    const currentCalls = weeklyPlan?.callItems || [];
+    const updatedCalls = currentCalls.filter((c) => c.id !== callId);
+    const updatedPlan = { ...weeklyPlan, callItems: updatedCalls };
+
+    try {
+      await Database.saveWeeklyPlan(currentMonday, updatedPlan);
+      setWeeklyPlan(updatedPlan);
+    } catch (e) {
+      console.error('Failed to delete call item:', e);
+    }
+  };
+
+  // 수업 일지 바로 작성으로 이동
+  const handleGoToClassRecord = (item) => {
+    setEditModalVisible(false);
+    navigation.navigate('ClassRecord', {
+      studentId: item.studentId,
+      initialDate: item.date,
+      initialTime: item.startTime,
+      initialCourse: item.subject,
+    });
+  };
+
+  // 전화 걸기 헬퍼
+  const handleMakeCall = (phoneStr) => {
+    if (!phoneStr) return;
+    const match = phoneStr.match(/\d{2,3}-\d{3,4}-\d{4}/);
+    if (match) {
+      Linking.openURL(`tel:${match[0]}`);
+    }
+  };
+
+  // 필터링된 학생 목록 (학생 선택 모달용)
+  const filteredStudents = useMemo(() => {
+    if (!studentSearchQuery.trim()) return students;
+    return students.filter((s) =>
+      (s.name || '').toLowerCase().includes(studentSearchQuery.toLowerCase())
+    );
+  }, [students, studentSearchQuery]);
+
+  // 특정 요일/시간 슬롯의 수업 찾기
+  const getSlotItems = (dayOfWeek, hour) => {
+    const items = weeklyPlan?.scheduleItems || [];
+    return items.filter((it) => {
+      if (Number(it.dayOfWeek) !== dayOfWeek) return false;
+      const h = parseInt((it.startTime || '00:00').split(':')[0], 10);
+      return h === hour;
+    });
+  };
+
+  // 선택된 요일의 수업 목록 (타임라인 뷰용)
+  const selectedDayItems = useMemo(() => {
+    const targetDay = selectedDayOffset + 1; // 1:월 ~ 7:일
+    const items = weeklyPlan?.scheduleItems || [];
+    return items.filter((it) => Number(it.dayOfWeek) === targetDay);
+  }, [weeklyPlan, selectedDayOffset]);
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* 1. 상단 주차 네비게이션 및 액션 바 */}
+      <View style={styles.topControlBar}>
+        <View style={styles.weekNavContainer}>
+          <TouchableOpacity style={styles.navArrowBtn} onPress={handlePrevWeek}>
+            <Feather name="chevron-left" size={20} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.weekTitleBox} onPress={handleThisWeek}>
+            <Text style={styles.weekMainTitle}>{weekTitleInfo.title}</Text>
+            <Text style={styles.weekSubRange}>{weekTitleInfo.range} (이번 주)</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.navArrowBtn} onPress={handleNextWeek}>
+            <Feather name="chevron-right" size={20} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.pdfReportBtn}
+          onPress={() => setPdfModalVisible(true)}
+        >
+          <Feather name="printer" size={16} color={theme.colors.onPrimary} />
+          <Text style={styles.pdfReportBtnText}>보고서 PDF</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 2. 뷰 모드 전환 탭 (타임테이블 vs 요일별 타임라인) */}
+      <View style={styles.viewModeToggleRow}>
+        <TouchableOpacity
+          style={[styles.modeTab, viewMode === 'table' && styles.modeTabActive]}
+          onPress={() => setViewMode('table')}
+        >
+          <MaterialCommunityIcons
+            name="table"
+            size={16}
+            color={viewMode === 'table' ? theme.colors.primary : theme.colors.textSecondary}
+          />
+          <Text style={[styles.modeTabText, viewMode === 'table' && styles.modeTabTextActive]}>
+            주간 전체 표 (PDF 서식)
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.modeTab, viewMode === 'timeline' && styles.modeTabActive]}
+          onPress={() => setViewMode('timeline')}
+        >
+          <Feather
+            name="list"
+            size={16}
+            color={viewMode === 'timeline' ? theme.colors.primary : theme.colors.textSecondary}
+          />
+          <Text style={[styles.modeTabText, viewMode === 'timeline' && styles.modeTabTextActive]}>
+            요일별 상세 보기
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {loading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loaderText}>주간 시간표를 불러오는 중입니다...</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.mainScrollView} contentContainerStyle={styles.mainScrollContent}>
+          {/* ======================= 보기 1: 주간 전체 타임테이블 (PDF 서식) ======================= */}
+          {viewMode === 'table' && (
+            <View style={styles.tableCard}>
+              <ScrollView horizontal={true} showsHorizontalScrollIndicator={true}>
+                <View style={styles.tableInner}>
+                  {/* 헤더 행 (월~토) */}
+                  <View style={styles.tableHeaderRow}>
+                    <View style={styles.timeHeaderCell}>
+                      <Text style={styles.timeHeaderLabel}>시간</Text>
+                    </View>
+                    {[1, 2, 3, 4, 5, 6].map((dayVal) => {
+                      const dStr = getDayDateString(dayVal);
+                      const [, m, d] = dStr.split('-');
+                      return (
+                        <View key={dayVal} style={styles.dayHeaderCell}>
+                          <Text style={styles.dayHeaderLabel}>
+                            {DAY_LABELS[dayVal - 1]}({parseInt(m, 10)}/{parseInt(d, 10)})
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+
+                  {/* 시간대별 행 */}
+                  {TIME_SLOTS.map((slot) => {
+                    if (slot.isLunch) {
+                      return (
+                        <View key={slot.label} style={styles.lunchRow}>
+                          <View style={styles.timeCell}>
+                            <Text style={styles.timeCellText}>{slot.label}</Text>
+                          </View>
+                          <View style={styles.lunchContentCell}>
+                            <Text style={styles.lunchText}>즐거운 점심 시간</Text>
+                          </View>
+                        </View>
+                      );
+                    }
+
+                    return (
+                      <View key={slot.label} style={styles.tableBodyRow}>
+                        <View style={styles.timeCell}>
+                          <Text style={styles.timeCellText}>{slot.label}</Text>
+                        </View>
+                        {[1, 2, 3, 4, 5, 6].map((dayVal) => {
+                          const items = getSlotItems(dayVal, slot.hour);
+                          return (
+                            <TouchableOpacity
+                              key={dayVal}
+                              style={styles.scheduleCell}
+                              activeOpacity={0.7}
+                              onPress={() => {
+                                if (items.length > 0) {
+                                  openEditModal(items[0]);
+                                } else {
+                                  openAddModal(dayVal, slot.hour);
+                                }
+                              }}
+                            >
+                              {items.map((item) => (
+                                <View key={item.id} style={styles.cellItemBox}>
+                                  <Text style={styles.cellItemTitle} numberOfLines={1}>
+                                    {item.startTime} {item.studentName}
+                                  </Text>
+                                  {item.subject ? (
+                                    <Text style={styles.cellItemSubject} numberOfLines={1}>
+                                      {item.subject}
+                                    </Text>
+                                  ) : null}
+                                  {item.statusNote ? (
+                                    <Text style={styles.cellItemNote} numberOfLines={1}>
+                                      {item.statusNote}
+                                    </Text>
+                                  ) : null}
+                                </View>
+                              ))}
+                              {items.length === 0 && (
+                                <View style={styles.cellEmptyPlaceholder}>
+                                  <Feather name="plus" size={12} color={theme.colors.outline + '60'} />
+                                </View>
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+
+              {/* 하단 일요일 시간표 분리 블록 (PDF 서식 일치) */}
+              <View style={styles.sundayBlock}>
+                <View style={styles.sundayHeaderRow}>
+                  <View style={styles.sundayBadge}>
+                    <Text style={styles.sundayBadgeText}>
+                      일요일 시간표 ({getDayDateString(7).slice(5).replace('-', '/')})
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.sunAddBtn}
+                    onPress={() => openAddModal(7, 10)}
+                  >
+                    <Feather name="plus" size={13} color={theme.colors.primary} />
+                    <Text style={styles.sunAddBtnText}>일요일 수업 추가</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {weeklyPlan?.scheduleItems?.filter((it) => Number(it.dayOfWeek) === 7).length === 0 ? (
+                  <Text style={styles.emptySundayText}>일요일에 등록된 수업 일정이 없습니다.</Text>
+                ) : (
+                  <View style={styles.sundayGrid}>
+                    {weeklyPlan?.scheduleItems
+                      ?.filter((it) => Number(it.dayOfWeek) === 7)
+                      .map((item) => (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={styles.sundayCard}
+                          onPress={() => openEditModal(item)}
+                        >
+                          <View style={styles.sundayCardHeader}>
+                            <Text style={styles.sundayTimeText}>{item.startTime}</Text>
+                            <Text style={styles.sundayNameText}>{item.studentName}</Text>
+                            <Text style={styles.sundayPayTag}>({item.paymentType || '지사입금'})</Text>
+                          </View>
+                          {item.subject ? <Text style={styles.sundaySubjectText}>{item.subject}</Text> : null}
+                          {item.address ? <Text style={styles.sundayAddrText} numberOfLines={1}>{item.address}</Text> : null}
+                          {item.statusNote ? <Text style={styles.sundayNoteText}>{item.statusNote}</Text> : null}
+                        </TouchableOpacity>
+                      ))}
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* ======================= 보기 2: 요일별 상세 타임라인 ======================= */}
+          {viewMode === 'timeline' && (
+            <View style={styles.timelineContainer}>
+              {/* 요일 선택 탭바 */}
+              <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.dayTabBar}>
+                {DAY_LABELS.map((label, idx) => {
+                  const dStr = getDayDateString(idx + 1);
+                  const [, , d] = dStr.split('-');
+                  const isSelected = selectedDayOffset === idx;
+                  return (
+                    <TouchableOpacity
+                      key={label}
+                      style={[styles.dayTabPill, isSelected && styles.dayTabPillActive]}
+                      onPress={() => setSelectedDayOffset(idx)}
+                    >
+                      <Text style={[styles.dayTabLabel, isSelected && styles.dayTabLabelActive]}>
+                        {label}
+                      </Text>
+                      <Text style={[styles.dayTabDate, isSelected && styles.dayTabDateActive]}>
+                        {parseInt(d, 10)}일
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* 선택된 요일 수업 목록 */}
+              <View style={styles.timelineHeaderRow}>
+                <Text style={styles.timelineSectionTitle}>
+                  {DAY_LABELS[selectedDayOffset]}요일 수업 목록 ({getDayDateString(selectedDayOffset + 1)})
+                </Text>
+                <TouchableOpacity
+                  style={styles.addTimelineBtn}
+                  onPress={() => openAddModal(selectedDayOffset + 1, 10)}
+                >
+                  <Feather name="plus" size={14} color={theme.colors.primary} />
+                  <Text style={styles.addTimelineBtnText}>수업 추가</Text>
+                </TouchableOpacity>
+              </View>
+
+              {selectedDayItems.length === 0 ? (
+                <View style={styles.emptyTimelineBox}>
+                  <Feather name="calendar" size={32} color={theme.colors.outline} />
+                  <Text style={styles.emptyTimelineTitle}>예정된 수업이 없습니다.</Text>
+                  <Text style={styles.emptyTimelineSub}>
+                    '+ 수업 추가' 버튼을 눌러 새로운 수업 일정을 등록할 수 있습니다.
+                  </Text>
+                </View>
+              ) : (
+                selectedDayItems.map((item) => (
+                  <View key={item.id} style={styles.timelineCard}>
+                    <View style={styles.timelineCardTop}>
+                      <View style={styles.timeBadge}>
+                        <Feather name="clock" size={13} color={theme.colors.primary} />
+                        <Text style={styles.timeBadgeText}>{item.startTime}</Text>
+                      </View>
+                      <Text style={styles.timelineStudentName}>{item.studentName}</Text>
+                      <View style={styles.payBadge}>
+                        <Text style={styles.payBadgeText}>{item.paymentType || '지사입금'}</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.cardEditBtn}
+                        onPress={() => openEditModal(item)}
+                      >
+                        <Feather name="edit-2" size={15} color={theme.colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+
+                    {item.subject ? (
+                      <View style={styles.timelineInfoRow}>
+                        <Text style={styles.timelineInfoLabel}>과목:</Text>
+                        <Text style={styles.timelineSubjectText}>{item.subject}</Text>
+                      </View>
+                    ) : null}
+
+                    {item.address ? (
+                      <View style={styles.timelineInfoRow}>
+                        <Feather name="map-pin" size={13} color={theme.colors.textSecondary} style={styles.mapPinIcon} />
+                        <Text style={styles.timelineAddressText}>{item.address}</Text>
+                      </View>
+                    ) : null}
+
+                    {item.phoneInfo ? (
+                      <View style={styles.timelinePhoneRow}>
+                        <Feather name="phone" size={13} color={theme.colors.primary} />
+                        <Text style={styles.timelinePhoneText}>{item.phoneInfo.replace(/\n/g, '  |  ')}</Text>
+                        <TouchableOpacity
+                          style={styles.callSmallBtn}
+                          onPress={() => handleMakeCall(item.phoneInfo)}
+                        >
+                          <Text style={styles.callSmallBtnText}>전화</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
+
+                    {item.statusNote ? (
+                      <View style={styles.timelineNoteBox}>
+                        <Text style={styles.timelineNoteText}>📌 {item.statusNote}</Text>
+                      </View>
+                    ) : null}
+
+                    {/* 액션 버튼 */}
+                    <View style={styles.timelineActionRow}>
+                      <TouchableOpacity
+                        style={styles.writeRecordBtn}
+                        onPress={() => handleGoToClassRecord(item)}
+                      >
+                        <Feather name="book-open" size={14} color={theme.colors.onPrimary} />
+                        <Text style={styles.writeRecordBtnText}>수업 일지 작성</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+
+          {/* ======================= 3. 하단 부가 업무 (주요사항, 전주결석, 전화관리) ======================= */}
+          <View style={styles.bottomSectionCard}>
+            <TouchableOpacity
+              style={styles.bottomSectionHeader}
+              onPress={() => setBottomNotesExpanded(!bottomNotesExpanded)}
+            >
+              <View style={styles.bottomHeaderTitleRow}>
+                <MaterialCommunityIcons name="clipboard-text-outline" size={20} color={theme.colors.primary} />
+                <Text style={styles.bottomHeaderTitle}>기타 업무 및 전화 관리 (보고서 하단)</Text>
+              </View>
+              <Feather
+                name={bottomNotesExpanded ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            {bottomNotesExpanded && (
+              <View style={styles.bottomSectionContent}>
+                {/* 금주 주요사항 */}
+                <View style={styles.noteInputGroup}>
+                  <Text style={styles.noteInputLabel}>&lt;금주 주요사항&gt;</Text>
+                  <TextInput
+                    style={styles.noteTextInput}
+                    value={weeklyPlan?.mainNotes || ''}
+                    onChangeText={(val) => handleSaveNotes('mainNotes', val)}
+                    placeholder="#개학후 시간변동 체크&#10;#마감보고서 제출"
+                    placeholderTextColor={theme.colors.outline}
+                    multiline={true}
+                    numberOfLines={2}
+                  />
+                </View>
+
+                {/* 전주 결석 */}
+                <View style={styles.noteInputGroup}>
+                  <Text style={styles.noteInputLabel}>&lt;전주 결석&gt;</Text>
+                  <TextInput
+                    style={styles.noteTextInput}
+                    value={weeklyPlan?.prevAbsentNotes || ''}
+                    onChangeText={(val) => handleSaveNotes('prevAbsentNotes', val)}
+                    placeholder="#유귀일: 개인사정"
+                    placeholderTextColor={theme.colors.outline}
+                    multiline={true}
+                    numberOfLines={2}
+                  />
+                </View>
+
+                {/* 특이사항 */}
+                <View style={styles.noteInputGroup}>
+                  <Text style={styles.noteInputLabel}>&lt;특이사항 / 공지사항&gt;</Text>
+                  <TextInput
+                    style={styles.noteTextInput}
+                    value={weeklyPlan?.specialNotes || ''}
+                    onChangeText={(val) => handleSaveNotes('specialNotes', val)}
+                    placeholder="공지사항이나 전달사항을 입력하세요"
+                    placeholderTextColor={theme.colors.outline}
+                    multiline={true}
+                    numberOfLines={2}
+                  />
+                </View>
+
+                {/* 전화 관리 테이블 */}
+                <View style={styles.callSection}>
+                  <View style={styles.callHeaderRow}>
+                    <Text style={styles.callHeaderTitle}>전화 관리 (3개월 미만 회원 2회)</Text>
+                    <TouchableOpacity
+                      style={styles.addCallBtn}
+                      onPress={() => setCallModalVisible(true)}
+                    >
+                      <Feather name="plus" size={13} color={theme.colors.primary} />
+                      <Text style={styles.addCallBtnText}>통화 추가</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {(weeklyPlan?.callItems || []).length === 0 ? (
+                    <Text style={styles.emptyCallText}>등록된 전화 상담 기록이 없습니다.</Text>
+                  ) : (
+                    (weeklyPlan?.callItems || []).map((call) => (
+                      <View key={call.id} style={styles.callItemRow}>
+                        <Text style={styles.callItemName}>{call.name}</Text>
+                        <Text style={styles.callItemContent}>{call.content}</Text>
+                        <TouchableOpacity
+                          style={styles.callDeleteBtn}
+                          onPress={() => handleDeleteCallItem(call.id)}
+                        >
+                          <Feather name="x" size={16} color={theme.colors.error} />
+                        </TouchableOpacity>
+                      </View>
+                    ))
+                  )}
+                </View>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      )}
+
+      {/* ======================= 모달 1: 수업 추가 / 편집 모달 ======================= */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={editModalVisible}
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setEditModalVisible(false)}
+        >
+          <View style={styles.editModalContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {selectedItem ? '수업 일정 변경 / 메모' : '새 주간 수업 등록'}
+              </Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <Feather name="x" size={22} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll}>
+              {/* 학생 선택 버튼 */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>학생 선택 <Text style={styles.reqStar}>*</Text></Text>
+                <TouchableOpacity
+                  style={styles.studentPickerBtn}
+                  onPress={() => setStudentPickerVisible(true)}
+                >
+                  <Text style={formStudentName ? styles.studentPickerText : styles.studentPickerPlaceholder}>
+                    {formStudentName ? `${formStudentName} (${formPaymentType})` : '학생 주소록에서 선택하기'}
+                  </Text>
+                  <Feather name="search" size={16} color={theme.colors.primary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* 요일 및 시간 선택 */}
+              <View style={styles.formRow}>
+                <View style={styles.formCol}>
+                  <Text style={styles.formLabel}>요일</Text>
+                  <View style={styles.daySelectRow}>
+                    {DAY_LABELS.map((d, idx) => (
+                      <TouchableOpacity
+                        key={d}
+                        style={[
+                          styles.daySelectPill,
+                          formDayOfWeek === idx + 1 && styles.daySelectPillActive,
+                        ]}
+                        onPress={() => setFormDayOfWeek(idx + 1)}
+                      >
+                        <Text
+                          style={[
+                            styles.daySelectPillText,
+                            formDayOfWeek === idx + 1 && styles.daySelectPillTextActive,
+                          ]}
+                        >
+                          {d}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.formRow}>
+                <View style={[styles.formCol, styles.flex1]}>
+                  <Text style={styles.formLabel}>시작 시간</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={formStartTime}
+                    onChangeText={setFormStartTime}
+                    placeholder="10:00"
+                    placeholderTextColor={theme.colors.outline}
+                  />
+                </View>
+                <View style={[styles.formCol, styles.flex1Half]}>
+                  <Text style={styles.formLabel}>입금 형태</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={formPaymentType}
+                    onChangeText={setFormPaymentType}
+                    placeholder="지사입금"
+                    placeholderTextColor={theme.colors.outline}
+                  />
+                </View>
+              </View>
+
+              {/* 과목 */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>수업 과목 / 과정</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={formSubject}
+                  onChangeText={setFormSubject}
+                  placeholder="예: 파이썬, sketchup, C언어, 자바"
+                  placeholderTextColor={theme.colors.outline}
+                />
+              </View>
+
+              {/* 주소 및 연락처 */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>방문 주소</Text>
+                <TextInput
+                  style={[styles.formInput, styles.multilineInput]}
+                  value={formAddress}
+                  onChangeText={setFormAddress}
+                  placeholder="거주지 주소"
+                  placeholderTextColor={theme.colors.outline}
+                  multiline={true}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>연락처 정보</Text>
+                <TextInput
+                  style={[styles.formInput, styles.multilineInput]}
+                  value={formPhoneInfo}
+                  onChangeText={setFormPhoneInfo}
+                  placeholder="(모)010-0000-0000&#10;(본)010-0000-0000"
+                  placeholderTextColor={theme.colors.outline}
+                  multiline={true}
+                />
+              </View>
+
+              {/* 변동 메모 및 프리셋 */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>이번 주 특이사항 / 변동 메모 (PDF에 인쇄됨)</Text>
+                <View style={styles.presetChipRow}>
+                  {['=> 이번주만', '=> 8/15일 수업함', '=> 휴일', '=> 아픔', '(30분 수업)'].map((chip) => (
+                    <TouchableOpacity
+                      key={chip}
+                      style={styles.presetChip}
+                      onPress={() => setFormStatusNote(chip)}
+                    >
+                      <Text style={styles.presetChipText}>{chip}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={styles.formInput}
+                  value={formStatusNote}
+                  onChangeText={setFormStatusNote}
+                  placeholder="예: => 이번주만, => 보강"
+                  placeholderTextColor={theme.colors.outline}
+                />
+              </View>
+
+              {/* 하단 액션 버튼 */}
+              <View style={styles.modalBtnRow}>
+                {selectedItem && (
+                  <TouchableOpacity
+                    style={styles.modalDeleteBtn}
+                    onPress={() => handleDeleteScheduleItem(selectedItem.id)}
+                  >
+                    <Feather name="trash-2" size={16} color={theme.colors.error} />
+                    <Text style={styles.modalDeleteBtnText}>이번주 제외</Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedItem && (
+                  <TouchableOpacity
+                    style={styles.modalRecordBtn}
+                    onPress={() => handleGoToClassRecord(selectedItem)}
+                  >
+                    <Feather name="book-open" size={16} color={theme.colors.primary} />
+                    <Text style={styles.modalRecordBtnText}>일지 작성</Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={styles.modalSaveBtn}
+                  onPress={handleSaveScheduleItem}
+                >
+                  <Feather name="check" size={16} color={theme.colors.onPrimary} />
+                  <Text style={styles.modalSaveBtnText}>저장하기</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ======================= 모달 2: 학생 선택 팝업 ======================= */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={studentPickerVisible}
+        onRequestClose={() => setStudentPickerVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setStudentPickerVisible(false)}
+        >
+          <View style={styles.pickerModalContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>학생 선택</Text>
+              <TouchableOpacity onPress={() => setStudentPickerVisible(false)}>
+                <Feather name="x" size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.searchBar}>
+              <Feather name="search" size={16} color={theme.colors.outline} />
+              <TextInput
+                style={styles.searchInput}
+                value={studentSearchQuery}
+                onChangeText={setStudentSearchQuery}
+                placeholder="학생 이름 검색"
+                placeholderTextColor={theme.colors.outline}
+              />
+            </View>
+
+            <ScrollView style={styles.studentListScroll}>
+              {filteredStudents.map((s) => (
+                <TouchableOpacity
+                  key={s.id}
+                  style={styles.studentItemRow}
+                  onPress={() => handleSelectStudent(s)}
+                >
+                  <View>
+                    <Text style={styles.studentItemName}>{s.name}</Text>
+                    <Text style={styles.studentItemSub}>{s.school_grade || '학년 미지정'} | {s.study_method || '지사입금'}</Text>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={theme.colors.outline} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ======================= 모달 3: 전화관리 추가 모달 ======================= */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={callModalVisible}
+        onRequestClose={() => setCallModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setCallModalVisible(false)}
+        >
+          <View style={styles.callModalContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>전화 관리 상담 추가</Text>
+              <TouchableOpacity onPress={() => setCallModalVisible(false)}>
+                <Feather name="x" size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>회원 이름</Text>
+              <TextInput
+                style={styles.formInput}
+                value={callName}
+                onChangeText={setCallName}
+                placeholder="예: 홍길동"
+                placeholderTextColor={theme.colors.outline}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>통화 요일 및 내용</Text>
+              <TextInput
+                style={styles.formInput}
+                value={callContent}
+                onChangeText={setCallContent}
+                placeholder="예: 화요일 통화, 교재 변경 안내"
+                placeholderTextColor={theme.colors.outline}
+              />
+            </View>
+
+            <TouchableOpacity style={styles.modalSaveBtn} onPress={handleAddCallItem}>
+              <Text style={styles.modalSaveBtnText}>추가하기</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ======================= 모달 4: PDF 출력 / 공유 선택 모달 ======================= */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={pdfModalVisible}
+        onRequestClose={() => setPdfModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setPdfModalVisible(false)}
+        >
+          <View style={styles.pdfModalContent}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>주간 업무 보고서 출력</Text>
+                <Text style={styles.modalSubtitle}>{weekTitleInfo.title} ({weekTitleInfo.range})</Text>
+              </View>
+              <TouchableOpacity onPress={() => setPdfModalVisible(false)}>
+                <Feather name="x" size={22} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={async () => {
+                setPdfModalVisible(false);
+                await printWeeklyReport(weeklyPlan);
+              }}
+            >
+              <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
+                <Feather name="printer" size={22} color={theme.colors.primary} />
+              </View>
+              <View style={styles.actionMenuTextContainer}>
+                <Text style={styles.actionMenuTitle}>프린터로 인쇄 (A4 세로 양식)</Text>
+                <Text style={styles.actionMenuSub}>Wi-Fi 프린터 또는 시스템 인쇄 화면을 엽니다</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={async () => {
+                setPdfModalVisible(false);
+                await shareWeeklyReport(weeklyPlan);
+              }}
+            >
+              <View style={[styles.actionIconBadge, styles.pdfShareIconBadge]}>
+                <Feather name="share-2" size={22} color="#0284C7" />
+              </View>
+              <View style={styles.actionMenuTextContainer}>
+                <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡 / 이메일)</Text>
+                <Text style={styles.actionMenuSub}>카카오톡, 메신저 등으로 보고서 PDF를 전송합니다</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  topControlBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline + '20',
+  },
+  weekNavContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  navArrowBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surfaceVariant + '60',
+  },
+  weekTitleBox: {
+    alignItems: 'center',
+  },
+  weekMainTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+  },
+  weekSubRange: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  pdfReportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pdfReportBtnText: {
+    color: theme.colors.onPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  viewModeToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline + '20',
+    gap: 8,
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surfaceVariant + '50',
+    gap: 6,
+  },
+  modeTabActive: {
+    backgroundColor: theme.colors.primary + '15',
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  modeTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  modeTabTextActive: {
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loaderText: {
+    marginTop: 12,
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  mainScrollView: {
+    flex: 1,
+  },
+  mainScrollContent: {
+    padding: 12,
+    paddingBottom: 40,
+  },
+  tableCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '30',
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  tableInner: {
+    minWidth: 460,
+  },
+  tableHeaderRow: {
+    flexDirection: 'row',
+    backgroundColor: '#E2E8F0',
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginBottom: 2,
+  },
+  timeHeaderCell: {
+    width: 44,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#CBD5E1',
+  },
+  timeHeaderLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#334155',
+  },
+  dayHeaderCell: {
+    width: 68,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: '#CBD5E1',
+  },
+  dayHeaderLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  tableBodyRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    minHeight: 46,
+  },
+  timeCell: {
+    width: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRightWidth: 1,
+    borderRightColor: '#E2E8F0',
+  },
+  timeCellText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  scheduleCell: {
+    width: 68,
+    borderRightWidth: 1,
+    borderRightColor: '#E2E8F0',
+    padding: 3,
+    justifyContent: 'center',
+  },
+  lunchRow: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF3C7',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+    height: 28,
+  },
+  lunchContentCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lunchText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  cellItemBox: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 4,
+    padding: 3,
+    borderLeftWidth: 2,
+    borderLeftColor: theme.colors.primary,
+    marginBottom: 2,
+  },
+  cellItemTitle: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#1E3A8A',
+  },
+  cellItemSubject: {
+    fontSize: 8,
+    color: '#2563EB',
+  },
+  cellItemNote: {
+    fontSize: 7.5,
+    color: '#DC2626',
+    fontWeight: '700',
+  },
+  cellEmptyPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+  },
+  sundayBlock: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  sundayHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sundayBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  sundayBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#B91C1C',
+  },
+  sunAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 6,
+  },
+  sunAddBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  emptySundayText: {
+    fontSize: 11,
+    color: theme.colors.outline,
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+  sundayGrid: {
+    gap: 6,
+  },
+  sundayCard: {
+    backgroundColor: '#FFF1F2',
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+  },
+  sundayCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  sundayTimeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#9F1239',
+  },
+  sundayNameText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  sundayPayTag: {
+    fontSize: 10,
+    color: '#4B5563',
+  },
+  sundaySubjectText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  sundayAddrText: {
+    fontSize: 9.5,
+    color: '#4B5563',
+  },
+  sundayNoteText: {
+    fontSize: 9.5,
+    color: '#DC2626',
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  timelineContainer: {
+    marginBottom: 14,
+  },
+  dayTabBar: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  dayTabPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    marginRight: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '30',
+  },
+  dayTabPillActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  dayTabLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+  },
+  dayTabLabelActive: {
+    color: theme.colors.onPrimary,
+  },
+  dayTabDate: {
+    fontSize: 11,
+    color: theme.colors.outline,
+    marginTop: 2,
+  },
+  dayTabDateActive: {
+    color: theme.colors.onPrimary,
+  },
+  timelineHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  timelineSectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+  },
+  addTimelineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.surfaceVariant,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  addTimelineBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  emptyTimelineBox: {
+    backgroundColor: theme.colors.surface,
+    padding: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '30',
+  },
+  emptyTimelineTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+    marginTop: 10,
+  },
+  emptyTimelineSub: {
+    fontSize: 11,
+    color: theme.colors.outline,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  timelineCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '20',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  timelineCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  timeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  timeBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+  timelineStudentName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    marginRight: 6,
+  },
+  payBadge: {
+    backgroundColor: theme.colors.surfaceVariant,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  payBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  cardEditBtn: {
+    marginLeft: 'auto',
+    padding: 4,
+  },
+  timelineInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginBottom: 4,
+  },
+  timelineInfoLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  timelineSubjectText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2563EB',
+  },
+  timelineAddressText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    flex: 1,
+  },
+  timelinePhoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+    backgroundColor: '#F1F5F9',
+    padding: 6,
+    borderRadius: 6,
+  },
+  timelinePhoneText: {
+    fontSize: 11,
+    color: '#334155',
+    flex: 1,
+  },
+  callSmallBtn: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  callSmallBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.onPrimary,
+  },
+  timelineNoteBox: {
+    marginTop: 6,
+    backgroundColor: '#FEF2F2',
+    padding: 6,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: '#EF4444',
+  },
+  timelineNoteText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  timelineActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.outline + '15',
+  },
+  writeRecordBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  writeRecordBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.onPrimary,
+  },
+  bottomSectionCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '30',
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  bottomSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    backgroundColor: theme.colors.surfaceVariant + '40',
+  },
+  bottomHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bottomHeaderTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+  },
+  bottomSectionContent: {
+    padding: 14,
+    gap: 12,
+  },
+  noteInputGroup: {
+    gap: 4,
+  },
+  noteInputLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+  },
+  noteTextInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '30',
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 12,
+    color: theme.colors.textPrimary,
+  },
+  callSection: {
+    marginTop: 6,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.outline + '20',
+  },
+  callHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  callHeaderTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+  },
+  addCallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 6,
+  },
+  addCallBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  emptyCallText: {
+    fontSize: 11,
+    color: theme.colors.outline,
+    textAlign: 'center',
+    paddingVertical: 6,
+  },
+  callItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  callItemName: {
+    width: 60,
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  callItemContent: {
+    flex: 1,
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+  },
+  callDeleteBtn: {
+    padding: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  editModalContent: {
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceVariant,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  modalScroll: {
+    maxHeight: 480,
+  },
+  formGroup: {
+    marginBottom: 12,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  formCol: {
+    gap: 4,
+  },
+  formLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+  },
+  reqStar: {
+    color: theme.colors.error,
+  },
+  studentPickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.surfaceVariant + '50',
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '40',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  studentPickerText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  studentPickerPlaceholder: {
+    fontSize: 13,
+    color: theme.colors.outline,
+  },
+  daySelectRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  daySelectPill: {
+    width: 38,
+    height: 34,
+    borderRadius: 6,
+    backgroundColor: theme.colors.surfaceVariant + '70',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  daySelectPillActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  daySelectPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+  },
+  daySelectPillTextActive: {
+    color: theme.colors.onPrimary,
+  },
+  formInput: {
+    backgroundColor: theme.colors.surfaceVariant + '40',
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '40',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: theme.colors.textPrimary,
+  },
+  presetChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 6,
+  },
+  presetChip: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  presetChipText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#B91C1C',
+  },
+  modalBtnRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+    paddingBottom: 20,
+  },
+  modalDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+  },
+  modalDeleteBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.error,
+  },
+  modalRecordBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  modalRecordBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  modalSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+  },
+  modalSaveBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.onPrimary,
+  },
+  pickerModalContent: {
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceVariant + '60',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    fontSize: 13,
+    color: theme.colors.textPrimary,
+  },
+  studentListScroll: {
+    maxHeight: 300,
+  },
+  studentItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.surfaceVariant,
+  },
+  studentItemName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  studentItemSub: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  callModalContent: {
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+  },
+  pdfModalContent: {
+    backgroundColor: theme.colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 36,
+  },
+  actionMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: theme.roundness,
+    backgroundColor: theme.colors.surfaceVariant + '80',
+    marginBottom: 12,
+  },
+  actionIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  actionMenuTextContainer: {
+    flex: 1,
+  },
+  actionMenuTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  actionMenuSub: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  mapPinIcon: {
+    marginTop: 2,
+  },
+  flex1: {
+    flex: 1,
+  },
+  flex1Half: {
+    flex: 1.5,
+  },
+  multilineInput: {
+    height: 50,
+  },
+  pdfShareIconBadge: {
+    backgroundColor: '#E0F2FE',
+  },
+});

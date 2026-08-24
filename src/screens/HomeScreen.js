@@ -132,6 +132,14 @@ export default function HomeScreen() {
           <View style={styles.quickActionGrid}>
             <TouchableOpacity
               style={styles.quickActionBtn}
+              onPress={() => navigation.navigate('WeeklyPlan')}
+            >
+              <Feather name="calendar" size={20} color={theme.colors.primary} />
+              <Text style={styles.quickActionText}>주간 시간표</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickActionBtn}
               onPress={() => navigation.navigate('StudentList')}
             >
               <Feather name="user-plus" size={20} color={theme.colors.onSecondaryContainer} />

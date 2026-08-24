@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STUDENTS_KEY = '@mydiary:students';
 const RECORDS_KEY = '@mydiary:records';
+const WEEKLY_PLANS_KEY = '@mydiary:weekly_plans';
 
 // 간단한 UUID 생성 헬퍼
 const generateUUID = () => {
@@ -10,6 +11,28 @@ const generateUUID = () => {
     const v = c === 'x' ? r : (r % 4) + 8;
     return v.toString(16);
   });
+};
+
+// 특정 날짜가 속한 주의 월요일 날짜 구하기 (YYYY-MM-DD)
+export const getMondayOfWeek = (dateInput = new Date()) => {
+  const d = typeof dateInput === 'string' ? new Date(dateInput) : new Date(dateInput);
+  const day = d.getDay(); // 0(일), 1(월), ... 6(토)
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // 월요일 기준 계산
+  const monday = new Date(d.setDate(diff));
+  const year = monday.getFullYear();
+  const month = String(monday.getMonth() + 1).padStart(2, '0');
+  const date = String(monday.getDate()).padStart(2, '0');
+  return `${year}-${month}-${date}`;
+};
+
+// 월요일 기준 N일 후 날짜 구하기 (0: 월, 1: 화, ... 6: 일)
+export const getDateFromMondayOffset = (mondayString, offsetDays) => {
+  const [y, m, d] = mondayString.split('-').map(Number);
+  const targetDate = new Date(y, m - 1, d + offsetDays);
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const date = String(targetDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${date}`;
 };
 
 export const Database = {
@@ -218,6 +241,114 @@ export const Database = {
     }
   },
 
+  // --- 주간 계획 (Weekly Plans) CRUD ---
+  
+  // 모든 주간 계획 맵 조회
+  getAllWeeklyPlansMap: async () => {
+    try {
+      const data = await AsyncStorage.getItem(WEEKLY_PLANS_KEY);
+      return data ? JSON.parse(data) : {};
+    } catch (e) {
+      console.error('Failed to get all weekly plans:', e);
+      return {};
+    }
+  },
+
+  // 특정 주차(weekKey: 월요일 YYYY-MM-DD) 계획 조회 (없으면 학생 기본 시간표로 자동 생성)
+  getWeeklyPlan: async (weekKey) => {
+    try {
+      const plansMap = await Database.getAllWeeklyPlansMap();
+      if (plansMap[weekKey]) {
+        return plansMap[weekKey];
+      }
+
+      // 저장된 주간 계획이 없다면 학생들의 기본 일정(default_schedules)을 바탕으로 초기 데이터 생성
+      const students = await Database.getAllStudents();
+      const defaultScheduleItems = [];
+
+      students.forEach((student) => {
+        if (Array.isArray(student.default_schedules)) {
+          student.default_schedules.forEach((sched) => {
+            const dayOfWeek = sched.dayOfWeek || 1; // 1:월 ~ 7:일
+            const offset = dayOfWeek - 1;
+            const dateStr = getDateFromMondayOffset(weekKey, offset);
+
+            const phoneList = [];
+            if (student.parent_mobile_phone) phoneList.push(`(모)${student.parent_mobile_phone}`);
+            if (student.mobile_phone) phoneList.push(`(본)${student.mobile_phone}`);
+            if (student.phone_number) phoneList.push(`(부)${student.phone_number}`);
+
+            defaultScheduleItems.push({
+              id: generateUUID(),
+              studentId: student.id,
+              studentName: student.name || '무명',
+              paymentType: student.study_method || '지사입금',
+              subject: sched.subject || student.school_grade || '',
+              address: student.address || '',
+              phoneInfo: phoneList.join('\n'),
+              dayOfWeek: dayOfWeek,
+              date: dateStr,
+              startTime: sched.startTime || '10:00',
+              duration: sched.duration || 60,
+              statusTag: '정규',
+              statusNote: '',
+              isDefault: true,
+            });
+          });
+        }
+      });
+
+      // 시간 순서대로 정렬
+      defaultScheduleItems.sort((a, b) => {
+        if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+        return (a.startTime || '00:00').localeCompare(b.startTime || '00:00');
+      });
+
+      const initialPlan = {
+        weekKey: weekKey,
+        startDate: weekKey,
+        endDate: getDateFromMondayOffset(weekKey, 6),
+        mainNotes: '',
+        prevAbsentNotes: '',
+        specialNotes: '',
+        scheduleItems: defaultScheduleItems,
+        callItems: [],
+        updatedAt: new Date().toISOString(),
+      };
+
+      return initialPlan;
+    } catch (e) {
+      console.error(`Failed to get weekly plan for ${weekKey}:`, e);
+      return {
+        weekKey: weekKey,
+        startDate: weekKey,
+        endDate: getDateFromMondayOffset(weekKey, 6),
+        mainNotes: '',
+        prevAbsentNotes: '',
+        specialNotes: '',
+        scheduleItems: [],
+        callItems: [],
+      };
+    }
+  },
+
+  // 특정 주차 계획 전체 저장
+  saveWeeklyPlan: async (weekKey, planData) => {
+    try {
+      const plansMap = await Database.getAllWeeklyPlansMap();
+      plansMap[weekKey] = {
+        ...planData,
+        weekKey,
+        updatedAt: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(WEEKLY_PLANS_KEY, JSON.stringify(plansMap));
+      return plansMap[weekKey];
+    } catch (e) {
+      console.error(`Failed to save weekly plan for ${weekKey}:`, e);
+      throw e;
+    }
+  },
+
   // --- 백업 / 복원 (Export / Import) ---
 
   // 모든 데이터를 하나의 JSON 문자열로 내보내기
@@ -225,10 +356,12 @@ export const Database = {
     try {
       const students = await Database.getAllStudents();
       const records = await Database.getAllRecords();
+      const weeklyPlans = await Database.getAllWeeklyPlansMap();
 
       const backupData = {
         students,
         records,
+        weeklyPlans,
         timestamp: new Date().toISOString(),
       };
 
@@ -246,15 +379,16 @@ export const Database = {
         throw new Error('No data provided for import');
       }
 
-      // students와 records 필드가 배열인지 확인
       const students = Array.isArray(parsedData.students) ? parsedData.students : [];
       const records = Array.isArray(parsedData.records) ? parsedData.records : [];
+      const weeklyPlans = parsedData.weeklyPlans && typeof parsedData.weeklyPlans === 'object' ? parsedData.weeklyPlans : {};
 
       // 로컬 스토리지에 덮어쓰기
       await AsyncStorage.setItem(STUDENTS_KEY, JSON.stringify(students));
       await AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+      await AsyncStorage.setItem(WEEKLY_PLANS_KEY, JSON.stringify(weeklyPlans));
 
-      console.log('Successfully imported data');
+      console.log('Successfully imported data (students, records, weeklyPlans)');
     } catch (e) {
       console.error('Failed to import all data:', e);
       throw e;
