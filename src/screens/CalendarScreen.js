@@ -440,6 +440,7 @@ export default function CalendarScreen() {
         transparent={true}
         visible={studentSelectVisible}
         onRequestClose={() => setStudentSelectVisible(false)}
+        statusBarTranslucent
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -508,6 +509,8 @@ export default function CalendarScreen() {
               <FlatList
                 data={filteredStudents}
                 keyExtractor={(item) => item.id}
+                style={styles.modalList}
+                contentContainerStyle={styles.modalListContent}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                   <TouchableOpacity
@@ -723,7 +726,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '75%',
+    height: '75%',
     padding: 20,
   },
   modalHeader: {
@@ -761,14 +764,23 @@ const styles = StyleSheet.create({
   clearSearchBtn: {
     padding: 4,
   },
+  modalList: {
+    flex: 1,
+  },
+  modalListContent: {
+    paddingBottom: 16,
+  },
   modalEmpty: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 40,
   },
   modalEmptyText: {
     fontSize: 15,
     color: theme.colors.textSecondary,
     marginBottom: 16,
+    textAlign: 'center',
   },
   modalAddStudentBtn: {
     backgroundColor: theme.colors.primary,
