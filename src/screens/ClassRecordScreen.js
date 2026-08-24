@@ -25,7 +25,7 @@ const PAGE_SIZE = 15;
 export default function ClassRecordScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { studentId, recordId, selectedDate } = route.params || {};
+  const { studentId, recordId, selectedDate, initialDate, initialTime, initialCourse } = route.params || {};
 
   const [student, setStudent] = useState(null);
 
@@ -145,13 +145,13 @@ export default function ClassRecordScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // 기록 추가 모달 열기
-  const openAddModal = useCallback((dateStr = '') => {
+  const openAddModal = useCallback((dateStr = '', timeStr = '', courseStr = '') => {
     const today = dateStr || getTodayFormatted();
     setEditingRecord(null);
     setEditingDate(today);
-    setEditingTime('');
+    setEditingTime(timeStr || '');
     setEditingContent('');
-    setEditingCourse('');
+    setEditingCourse(courseStr || '');
     setModalVisible(true);
   }, []);
 
@@ -186,19 +186,19 @@ export default function ClassRecordScreen() {
         if (rec) {
           openEditModal(rec);
         }
-      } else if (selectedDate) {
-        // 특정 날짜가 전달되었고 기존 기록이 없다면 새 기록 작성창을 연다
-        const existing = sortedRecs.find(r => r.class_date === selectedDate);
+      } else if (initialDate || selectedDate) {
+        const targetDate = initialDate || selectedDate;
+        const existing = sortedRecs.find(r => r.class_date === targetDate);
         if (existing) {
           openEditModal(existing);
         } else {
-          openAddModal(selectedDate);
+          openAddModal(targetDate, initialTime, initialCourse || (stud?.school_grade ? `${stud.school_grade} 과정` : ''));
         }
       }
     } catch (e) {
       console.error('Failed to load class record screen data:', e);
     }
-  }, [studentId, recordId, selectedDate, openEditModal, openAddModal]);
+  }, [studentId, recordId, selectedDate, initialDate, initialTime, initialCourse, openEditModal, openAddModal]);
 
   useEffect(() => {
     loadData();

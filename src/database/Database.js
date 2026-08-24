@@ -187,6 +187,100 @@ export const Database = {
     }
   },
 
+  // 특정 날짜의 시간표 계획 + 실제 수업 기록 통합 조회 (달력 및 홈 연동용)
+  getDailyScheduleAndRecords: async (dateString) => {
+    try {
+      const monday = getMondayOfWeek(dateString);
+      const weeklyPlan = await Database.getWeeklyPlan(monday);
+      const dateRecords = await Database.getRecordsByDate(dateString);
+
+      const scheduledForDay = (weeklyPlan?.scheduleItems || []).filter(
+        (item) => item.date === dateString
+      );
+
+      const mappedList = [];
+      const matchedRecordIds = new Set();
+
+      // 1. 계획된 수업들을 기준으로 일지 작성 여부 매핑
+      scheduledForDay.forEach((planItem) => {
+        // 학생 ID 또는 이름 일치 확인
+        const matchedRecord = dateRecords.find(
+          (r) =>
+            (planItem.studentId && r.student_id === planItem.studentId) ||
+            r.studentName === planItem.studentName
+        );
+
+        if (matchedRecord) {
+          matchedRecordIds.add(matchedRecord.id);
+          mappedList.push({
+            id: planItem.id,
+            planItem: planItem,
+            record: matchedRecord,
+            studentId: planItem.studentId || matchedRecord.student_id,
+            studentName: planItem.studentName,
+            classTime: planItem.startTime || matchedRecord.class_time,
+            course: planItem.subject || matchedRecord.course,
+            status: 'completed', // 일지 작성 완료
+            statusNote: planItem.statusNote,
+            paymentType: planItem.paymentType,
+            address: planItem.address,
+            phoneInfo: planItem.phoneInfo,
+            isRecurring: planItem.isRecurring !== false,
+          });
+        } else {
+          mappedList.push({
+            id: planItem.id,
+            planItem: planItem,
+            record: null,
+            studentId: planItem.studentId,
+            studentName: planItem.studentName,
+            classTime: planItem.startTime,
+            course: planItem.subject,
+            status: 'planned', // 예정 (일지 미작성)
+            statusNote: planItem.statusNote,
+            paymentType: planItem.paymentType,
+            address: planItem.address,
+            phoneInfo: planItem.phoneInfo,
+            isRecurring: planItem.isRecurring !== false,
+          });
+        }
+      });
+
+      // 2. 계획에는 없지만 직접 추가 작성된 일지 레코드 매핑
+      dateRecords.forEach((rec) => {
+        if (!matchedRecordIds.has(rec.id)) {
+          mappedList.push({
+            id: rec.id,
+            planItem: null,
+            record: rec,
+            studentId: rec.student_id,
+            studentName: rec.studentName,
+            classTime: rec.class_time,
+            course: rec.course,
+            status: 'completed_extra', // 계획 외 추가 수업 일지
+            statusNote: '',
+            paymentType: rec.studyMethod || '지사입금',
+            address: '',
+            phoneInfo: '',
+            isRecurring: false,
+          });
+        }
+      });
+
+      // 시간 순서대로 정렬
+      mappedList.sort((a, b) => {
+        const timeA = a.classTime || '00:00';
+        const timeB = b.classTime || '00:00';
+        return timeA.localeCompare(timeB);
+      });
+
+      return mappedList;
+    } catch (e) {
+      console.error(`Failed to get daily schedule and records for ${dateString}:`, e);
+      return [];
+    }
+  },
+
   // 수업 기록 추가
   addClassRecord: async (recordData) => {
     const newRecord = {
@@ -293,6 +387,7 @@ export const Database = {
               statusTag: '정규',
               statusNote: '',
               isDefault: true,
+              isRecurring: true,
             });
           });
         }

@@ -67,8 +67,12 @@ export default function WeeklyPlanScreen() {
   const [formDayOfWeek, setFormDayOfWeek] = useState(1);
   const [formStartTime, setFormStartTime] = useState('10:00');
   const [formStatusNote, setFormStatusNote] = useState('');
+  const [formIsRecurring, setFormIsRecurring] = useState(true); // 매주 계속 반복 vs 이번주만
   const [studentPickerVisible, setStudentPickerVisible] = useState(false);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
+
+  // 작성된 수업 일지 목록 (실시간 완료 매핑용)
+  const [allRecords, setAllRecords] = useState([]);
 
   // 전화관리 추가 폼
   const [callModalVisible, setCallModalVisible] = useState(false);
@@ -81,6 +85,9 @@ export default function WeeklyPlanScreen() {
     try {
       const allStudents = await Database.getAllStudents();
       setStudents(allStudents);
+
+      const records = await Database.getAllRecords();
+      setAllRecords(records);
 
       const plan = await Database.getWeeklyPlan(currentMonday);
       setWeeklyPlan(plan);
@@ -141,6 +148,7 @@ export default function WeeklyPlanScreen() {
     setFormDayOfWeek(dayOfWeek);
     setFormStartTime(formattedHour);
     setFormStatusNote('');
+    setFormIsRecurring(true);
     setEditModalVisible(true);
   };
 
@@ -155,6 +163,7 @@ export default function WeeklyPlanScreen() {
     setFormDayOfWeek(Number(item.dayOfWeek) || 1);
     setFormStartTime(item.startTime || '10:00');
     setFormStatusNote(item.statusNote || '');
+    setFormIsRecurring(item.isRecurring !== false);
     setEditModalVisible(true);
   };
 
@@ -174,6 +183,20 @@ export default function WeeklyPlanScreen() {
 
     setStudentPickerVisible(false);
   };
+
+  // 특정 수업에 매칭되는 실제 수업 일지 찾기 (완료 여부 판별)
+  const getMatchedRecord = useCallback(
+    (item) => {
+      if (!item) return null;
+      return allRecords.find(
+        (r) =>
+          r.class_date === item.date &&
+          ((item.studentId && r.student_id === item.studentId) ||
+            r.studentName === item.studentName)
+      );
+    },
+    [allRecords]
+  );
 
   // 수업 항목 저장
   const handleSaveScheduleItem = async () => {
@@ -198,6 +221,7 @@ export default function WeeklyPlanScreen() {
       statusTag: formStatusNote ? '변동' : '정규',
       statusNote: formStatusNote.trim(),
       isDefault: false,
+      isRecurring: formIsRecurring,
     };
 
     let updatedItems = [];
@@ -222,6 +246,30 @@ export default function WeeklyPlanScreen() {
 
     try {
       await Database.saveWeeklyPlan(currentMonday, updatedPlan);
+
+      // 매주 계속 반복으로 설정되고 학생 ID가 있으면 학생 기본 시간표(default_schedules)에도 동기화
+      if (formIsRecurring && formStudentId) {
+        const student = await Database.getStudentById(formStudentId);
+        if (student) {
+          const currentScheds = Array.isArray(student.default_schedules)
+            ? [...student.default_schedules]
+            : [];
+          const exists = currentScheds.some(
+            (s) => Number(s.dayOfWeek) === Number(formDayOfWeek) && s.startTime === formStartTime
+          );
+          if (!exists) {
+            currentScheds.push({
+              id: Date.now().toString(),
+              dayOfWeek: Number(formDayOfWeek),
+              startTime: formStartTime,
+              duration: 60,
+              subject: formSubject,
+            });
+            await Database.updateStudent(formStudentId, { default_schedules: currentScheds });
+          }
+        }
+      }
+
       setWeeklyPlan(updatedPlan);
       setEditModalVisible(false);
     } catch (e) {
@@ -314,11 +362,13 @@ export default function WeeklyPlanScreen() {
     }
   };
 
-  // 수업 일지 바로 작성으로 이동
+  // 수업 일지 바로 작성/수정으로 이동
   const handleGoToClassRecord = (item) => {
     setEditModalVisible(false);
+    const matchedRec = getMatchedRecord(item);
     navigation.navigate('ClassRecord', {
       studentId: item.studentId,
+      recordId: matchedRec ? matchedRec.id : null,
       initialDate: item.date,
       initialTime: item.startTime,
       initialCourse: item.subject,
@@ -483,23 +533,30 @@ export default function WeeklyPlanScreen() {
                                 }
                               }}
                             >
-                              {items.map((item) => (
-                                <View key={item.id} style={styles.cellItemBox}>
-                                  <Text style={styles.cellItemTitle} numberOfLines={1}>
-                                    {item.startTime} {item.studentName}
-                                  </Text>
-                                  {item.subject ? (
-                                    <Text style={styles.cellItemSubject} numberOfLines={1}>
-                                      {item.subject}
-                                    </Text>
-                                  ) : null}
-                                  {item.statusNote ? (
-                                    <Text style={styles.cellItemNote} numberOfLines={1}>
-                                      {item.statusNote}
-                                    </Text>
-                                  ) : null}
-                                </View>
-                              ))}
+                              {items.map((item) => {
+                                const matchedRec = getMatchedRecord(item);
+                                const isDone = Boolean(matchedRec);
+                                return (
+                                  <View key={item.id} style={[styles.cellItemBox, isDone && styles.cellItemBoxDone]}>
+                                    <View style={styles.cellItemHeaderRow}>
+                                      <Text style={[styles.cellItemTitle, isDone && styles.cellItemTitleDone]} numberOfLines={1}>
+                                        {item.startTime} {item.studentName}
+                                      </Text>
+                                      {isDone && <Text style={styles.doneCheckMark}>✅</Text>}
+                                    </View>
+                                    {item.subject ? (
+                                      <Text style={styles.cellItemSubject} numberOfLines={1}>
+                                        {item.subject}
+                                      </Text>
+                                    ) : null}
+                                    {item.statusNote ? (
+                                      <Text style={styles.cellItemNote} numberOfLines={1}>
+                                        {item.statusNote}
+                                      </Text>
+                                    ) : null}
+                                  </View>
+                                );
+                              })}
                               {items.length === 0 && (
                                 <View style={styles.cellEmptyPlaceholder}>
                                   <Feather name="plus" size={12} color={theme.colors.outline + '60'} />
@@ -537,22 +594,27 @@ export default function WeeklyPlanScreen() {
                   <View style={styles.sundayGrid}>
                     {weeklyPlan?.scheduleItems
                       ?.filter((it) => Number(it.dayOfWeek) === 7)
-                      .map((item) => (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={styles.sundayCard}
-                          onPress={() => openEditModal(item)}
-                        >
-                          <View style={styles.sundayCardHeader}>
-                            <Text style={styles.sundayTimeText}>{item.startTime}</Text>
-                            <Text style={styles.sundayNameText}>{item.studentName}</Text>
-                            <Text style={styles.sundayPayTag}>({item.paymentType || '지사입금'})</Text>
-                          </View>
-                          {item.subject ? <Text style={styles.sundaySubjectText}>{item.subject}</Text> : null}
-                          {item.address ? <Text style={styles.sundayAddrText} numberOfLines={1}>{item.address}</Text> : null}
-                          {item.statusNote ? <Text style={styles.sundayNoteText}>{item.statusNote}</Text> : null}
-                        </TouchableOpacity>
-                      ))}
+                      .map((item) => {
+                        const matchedRec = getMatchedRecord(item);
+                        const isDone = Boolean(matchedRec);
+                        return (
+                          <TouchableOpacity
+                            key={item.id}
+                            style={[styles.sundayCard, isDone && styles.sundayCardDone]}
+                            onPress={() => openEditModal(item)}
+                          >
+                            <View style={styles.sundayCardHeader}>
+                              <Text style={styles.sundayTimeText}>{item.startTime}</Text>
+                              <Text style={styles.sundayNameText}>{item.studentName}</Text>
+                              <Text style={styles.sundayPayTag}>({item.paymentType || '지사입금'})</Text>
+                              {isDone && <Text style={styles.doneCheckMark}>✅ 완료</Text>}
+                            </View>
+                            {item.subject ? <Text style={styles.sundaySubjectText}>{item.subject}</Text> : null}
+                            {item.address ? <Text style={styles.sundayAddrText} numberOfLines={1}>{item.address}</Text> : null}
+                            {item.statusNote ? <Text style={styles.sundayNoteText}>{item.statusNote}</Text> : null}
+                          </TouchableOpacity>
+                        );
+                      })}
                   </View>
                 )}
               </View>
@@ -608,70 +670,98 @@ export default function WeeklyPlanScreen() {
                   </Text>
                 </View>
               ) : (
-                selectedDayItems.map((item) => (
-                  <View key={item.id} style={styles.timelineCard}>
-                    <View style={styles.timelineCardTop}>
-                      <View style={styles.timeBadge}>
-                        <Feather name="clock" size={13} color={theme.colors.primary} />
-                        <Text style={styles.timeBadgeText}>{item.startTime}</Text>
-                      </View>
-                      <Text style={styles.timelineStudentName}>{item.studentName}</Text>
-                      <View style={styles.payBadge}>
-                        <Text style={styles.payBadgeText}>{item.paymentType || '지사입금'}</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.cardEditBtn}
-                        onPress={() => openEditModal(item)}
-                      >
-                        <Feather name="edit-2" size={15} color={theme.colors.textSecondary} />
-                      </TouchableOpacity>
-                    </View>
-
-                    {item.subject ? (
-                      <View style={styles.timelineInfoRow}>
-                        <Text style={styles.timelineInfoLabel}>과목:</Text>
-                        <Text style={styles.timelineSubjectText}>{item.subject}</Text>
-                      </View>
-                    ) : null}
-
-                    {item.address ? (
-                      <View style={styles.timelineInfoRow}>
-                        <Feather name="map-pin" size={13} color={theme.colors.textSecondary} style={styles.mapPinIcon} />
-                        <Text style={styles.timelineAddressText}>{item.address}</Text>
-                      </View>
-                    ) : null}
-
-                    {item.phoneInfo ? (
-                      <View style={styles.timelinePhoneRow}>
-                        <Feather name="phone" size={13} color={theme.colors.primary} />
-                        <Text style={styles.timelinePhoneText}>{item.phoneInfo.replace(/\n/g, '  |  ')}</Text>
+                selectedDayItems.map((item) => {
+                  const matchedRec = getMatchedRecord(item);
+                  const isDone = Boolean(matchedRec);
+                  return (
+                    <View key={item.id} style={[styles.timelineCard, isDone && styles.timelineCardDone]}>
+                      <View style={styles.timelineCardTop}>
+                        <View style={[styles.timeBadge, isDone && styles.timeBadgeDone]}>
+                          <Feather name="clock" size={13} color={isDone ? '#15803D' : theme.colors.primary} />
+                          <Text style={[styles.timeBadgeText, isDone && styles.timeBadgeTextDone]}>
+                            {item.startTime}
+                          </Text>
+                        </View>
+                        <Text style={styles.timelineStudentName}>{item.studentName}</Text>
+                        <View style={styles.payBadge}>
+                          <Text style={styles.payBadgeText}>{item.paymentType || '지사입금'}</Text>
+                        </View>
+                        <View style={[styles.recurringBadge, item.isRecurring === false && styles.recurringBadgeTemp]}>
+                          <Text style={[styles.recurringBadgeText, item.isRecurring === false && styles.recurringBadgeTextTemp]}>
+                            {item.isRecurring === false ? '이번주만 ⏱️' : '매주 반복 🔄'}
+                          </Text>
+                        </View>
+                        <View style={[styles.statusBadge, isDone ? styles.statusBadgeDone : styles.statusBadgePlanned]}>
+                          <Text style={[styles.statusBadgeText, isDone ? styles.statusBadgeTextDone : styles.statusBadgeTextPlanned]}>
+                            {isDone ? '작성 완료 ✅' : '수업 예정 ⏳'}
+                          </Text>
+                        </View>
                         <TouchableOpacity
-                          style={styles.callSmallBtn}
-                          onPress={() => handleMakeCall(item.phoneInfo)}
+                          style={styles.cardEditBtn}
+                          onPress={() => openEditModal(item)}
                         >
-                          <Text style={styles.callSmallBtnText}>전화</Text>
+                          <Feather name="edit-2" size={15} color={theme.colors.textSecondary} />
                         </TouchableOpacity>
                       </View>
-                    ) : null}
 
-                    {item.statusNote ? (
-                      <View style={styles.timelineNoteBox}>
-                        <Text style={styles.timelineNoteText}>📌 {item.statusNote}</Text>
+                      {item.subject ? (
+                        <View style={styles.timelineInfoRow}>
+                          <Text style={styles.timelineInfoLabel}>과목:</Text>
+                          <Text style={styles.timelineSubjectText}>{item.subject}</Text>
+                        </View>
+                      ) : null}
+
+                      {item.address ? (
+                        <View style={styles.timelineInfoRow}>
+                          <Feather name="map-pin" size={13} color={theme.colors.textSecondary} style={styles.mapPinIcon} />
+                          <Text style={styles.timelineAddressText}>{item.address}</Text>
+                        </View>
+                      ) : null}
+
+                      {item.phoneInfo ? (
+                        <View style={styles.timelinePhoneRow}>
+                          <Feather name="phone" size={13} color={theme.colors.primary} />
+                          <Text style={styles.timelinePhoneText}>{item.phoneInfo.replace(/\n/g, '  |  ')}</Text>
+                          <TouchableOpacity
+                            style={styles.callSmallBtn}
+                            onPress={() => handleMakeCall(item.phoneInfo)}
+                          >
+                            <Text style={styles.callSmallBtnText}>전화</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
+
+                      {item.statusNote ? (
+                        <View style={styles.timelineNoteBox}>
+                          <Text style={styles.timelineNoteText}>📌 {item.statusNote}</Text>
+                        </View>
+                      ) : null}
+
+                      {/* 실제 작성 완료된 진도 내용 요약 */}
+                      {isDone && matchedRec?.content ? (
+                        <View style={styles.timelineDoneContentBox}>
+                          <Text style={styles.timelineDoneContentLabel}>진행된 수업 일지 내용:</Text>
+                          <Text style={styles.timelineDoneContentText} numberOfLines={2}>
+                            {matchedRec.content}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {/* 액션 버튼 */}
+                      <View style={styles.timelineActionRow}>
+                        <TouchableOpacity
+                          style={[styles.writeRecordBtn, isDone && styles.writeRecordBtnDone]}
+                          onPress={() => handleGoToClassRecord(item)}
+                        >
+                          <Feather name="book-open" size={14} color={theme.colors.onPrimary} />
+                          <Text style={styles.writeRecordBtnText}>
+                            {isDone ? '수업 일지 수정' : '수업 일지 작성'}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
-                    ) : null}
-
-                    {/* 액션 버튼 */}
-                    <View style={styles.timelineActionRow}>
-                      <TouchableOpacity
-                        style={styles.writeRecordBtn}
-                        onPress={() => handleGoToClassRecord(item)}
-                      >
-                        <Feather name="book-open" size={14} color={theme.colors.onPrimary} />
-                        <Text style={styles.writeRecordBtnText}>수업 일지 작성</Text>
-                      </TouchableOpacity>
                     </View>
-                  </View>
-                ))
+                  );
+                })
               )}
             </View>
           )}
@@ -796,6 +886,45 @@ export default function WeeklyPlanScreen() {
             </View>
 
             <ScrollView style={styles.modalScroll}>
+              {/* 일정 주기 구분 (매주 계속 vs 이번주만) */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>일정 주기 구분</Text>
+                <View style={styles.recurringToggleRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.recurringToggleBtn,
+                      formIsRecurring && styles.recurringToggleBtnActive,
+                    ]}
+                    onPress={() => setFormIsRecurring(true)}
+                  >
+                    <Text
+                      style={[
+                        styles.recurringToggleText,
+                        formIsRecurring && styles.recurringToggleTextActive,
+                      ]}
+                    >
+                      🔄 매주 계속 반복 (정규)
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.recurringToggleBtn,
+                      !formIsRecurring && styles.recurringToggleBtnActiveTemp,
+                    ]}
+                    onPress={() => setFormIsRecurring(false)}
+                  >
+                    <Text
+                      style={[
+                        styles.recurringToggleText,
+                        !formIsRecurring && styles.recurringToggleTextActiveTemp,
+                      ]}
+                    >
+                      ⏱️ 이번주만 적용 (임시/변동)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
               {/* 학생 선택 버튼 */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>학생 선택 <Text style={styles.reqStar}>*</Text></Text>
@@ -938,8 +1067,19 @@ export default function WeeklyPlanScreen() {
                     style={styles.modalRecordBtn}
                     onPress={() => handleGoToClassRecord(selectedItem)}
                   >
-                    <Feather name="book-open" size={16} color={theme.colors.primary} />
-                    <Text style={styles.modalRecordBtnText}>일지 작성</Text>
+                    <Feather
+                      name="book-open"
+                      size={16}
+                      color={getMatchedRecord(selectedItem) ? '#16A34A' : theme.colors.primary}
+                    />
+                    <Text
+                      style={[
+                        styles.modalRecordBtnText,
+                        getMatchedRecord(selectedItem) && styles.modalRecordBtnTextDone,
+                      ]}
+                    >
+                      {getMatchedRecord(selectedItem) ? '일지 수정' : '일지 작성'}
+                    </Text>
                   </TouchableOpacity>
                 )}
 
@@ -1918,6 +2058,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.primary,
   },
+  modalRecordBtnTextDone: {
+    color: '#16A34A',
+  },
   modalSaveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2032,5 +2175,133 @@ const styles = StyleSheet.create({
   },
   pdfShareIconBadge: {
     backgroundColor: '#E0F2FE',
+  },
+  cellItemBoxDone: {
+    backgroundColor: '#DCFCE7',
+    borderLeftColor: '#16A34A',
+  },
+  cellItemTitleDone: {
+    color: '#15803D',
+  },
+  cellItemHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  doneCheckMark: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#16A34A',
+  },
+  sundayCardDone: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  timelineCardDone: {
+    borderColor: '#86EFAC',
+    backgroundColor: '#F0FDF4',
+  },
+  timeBadgeDone: {
+    backgroundColor: '#DCFCE7',
+  },
+  timeBadgeTextDone: {
+    color: '#15803D',
+  },
+  recurringBadge: {
+    backgroundColor: '#E0E7FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 4,
+  },
+  recurringBadgeTemp: {
+    backgroundColor: '#FEF3C7',
+  },
+  recurringBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#4338CA',
+  },
+  recurringBadgeTextTemp: {
+    color: '#B45309',
+  },
+  statusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 4,
+  },
+  statusBadgeDone: {
+    backgroundColor: '#DCFCE7',
+  },
+  statusBadgePlanned: {
+    backgroundColor: '#FEF3C7',
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  statusBadgeTextDone: {
+    color: '#15803D',
+  },
+  statusBadgeTextPlanned: {
+    color: '#D97706',
+  },
+  timelineDoneContentBox: {
+    marginTop: 6,
+    backgroundColor: '#FFFFFF',
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  timelineDoneContentLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#15803D',
+    marginBottom: 2,
+  },
+  timelineDoneContentText: {
+    fontSize: 12,
+    color: '#166534',
+  },
+  writeRecordBtnDone: {
+    backgroundColor: '#16A34A',
+  },
+  recurringToggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  recurringToggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '40',
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recurringToggleBtnActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#6366F1',
+  },
+  recurringToggleBtnActiveTemp: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#F59E0B',
+  },
+  recurringToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  recurringToggleTextActive: {
+    color: '#4F46E5',
+    fontWeight: '700',
+  },
+  recurringToggleTextActiveTemp: {
+    color: '#D97706',
+    fontWeight: '700',
   },
 });

@@ -193,8 +193,9 @@ export default function CalendarScreen() {
 
       setMarkedDates(newMarkedDates);
 
-      const dateRecords = await Database.getRecordsByDate(selectedDate);
-      setRecords(dateRecords);
+      // 시간표 계획 + 실제 작성된 수업 일지 통합 조회
+      const dailyItems = await Database.getDailyScheduleAndRecords(selectedDate);
+      setRecords(dailyItems);
     } catch (e) {
       console.error('Failed to load calendar data:', e);
     } finally {
@@ -242,22 +243,24 @@ export default function CalendarScreen() {
     });
   };
 
+  // 수업 아이템 렌더링 (작성 완료 일지 vs 주간시간표 예정 수업)
   const renderRecordItem = ({ item, index }) => {
+    const isPlannedOnly = item.status === 'planned';
+
     // 달력의 점 색상과 동일한 규칙으로 카드 왼쪽 띠(Border) 색상 결정
     const dotColors = [theme.colors.primary, '#8D6E63', '#78909C', '#5C6BC0', '#4DB6AC'];
-    const cardColor = dotColors[index % dotColors.length];
+    const cardColor = isPlannedOnly ? '#F59E0B' : dotColors[index % dotColors.length];
 
     // 시간 포맷팅 (항상 2줄로 일관되게 표시: 예: 오전 / 10:00, 오후 / 05:30)
-    let periodText = '미지정';
-    let timeText = '--:--';
+    let periodText = '수업';
+    let timeText = item.classTime || '--:--';
 
-    if (item.class_time) {
-      const raw = item.class_time.trim();
+    if (item.classTime) {
+      const raw = item.classTime.trim();
       const startPart = raw.split(/~|-/)[0].trim();
       const isExplicitAm = startPart.includes('오전');
       const isExplicitPm = startPart.includes('오후');
 
-      // 1) "14:30" 또는 "2:30" 등 콜론(:) 형태
       const colonMatch = startPart.match(/(\d{1,2})\s*:\s*(\d{1,2})/);
       if (colonMatch) {
         let hour = parseInt(colonMatch[1], 10);
@@ -268,7 +271,6 @@ export default function CalendarScreen() {
           period = '오후';
           if (hour > 12) hour -= 12;
         } else if (isExplicitPm || (hour >= 1 && hour <= 6 && !isExplicitAm)) {
-          // 1시~6시 범위이면서 오전 명시가 없는 경우 오후로 처리
           period = '오후';
         } else if (hour === 0) {
           hour = 12;
@@ -278,79 +280,104 @@ export default function CalendarScreen() {
         const formattedMinute = String(minute).padStart(2, '0');
         periodText = period;
         timeText = `${formattedHour}:${formattedMinute}`;
-      } else {
-        // 2) "5시 30분", "10시", "17시" 등 한글(시/분) 형태
-        const koreanMatch = startPart.match(/(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분?)?/);
-        if (koreanMatch) {
-          let hour = parseInt(koreanMatch[1], 10);
-          const minute = koreanMatch[2] ? parseInt(koreanMatch[2], 10) : 0;
-          let period = '오전';
-
-          if (hour >= 12) {
-            period = '오후';
-            if (hour > 12) hour -= 12;
-          } else if (isExplicitPm || (hour >= 1 && hour <= 6 && !isExplicitAm)) {
-            period = '오후';
-          } else if (hour === 0) {
-            hour = 12;
-          }
-
-          const formattedHour = String(hour).padStart(2, '0');
-          const formattedMinute = String(minute).padStart(2, '0');
-          periodText = period;
-          timeText = `${formattedHour}:${formattedMinute}`;
-        } else if (isExplicitPm) {
-          periodText = '오후';
-          timeText = startPart.replace(/오후/g, '').trim() || '--:--';
-        } else if (isExplicitAm) {
-          periodText = '오전';
-          timeText = startPart.replace(/오전/g, '').trim() || '--:--';
-        } else {
-          periodText = '수업';
-          timeText = raw;
-        }
       }
     }
 
-    // DB에 저장된 학생의 학습 방법 (방문 / 센터), 미지정 시 기본값 '방문'
-    const tagLabel = item.studyMethod || item.study_method || '방문';
+    const tagLabel = item.paymentType || '지사입금';
 
+    // 1) 아직 일지가 작성되지 않은 주간시간표 예정 수업인 경우
+    if (isPlannedOnly) {
+      return (
+        <TouchableOpacity
+          style={[styles.agendaCard, styles.plannedAgendaCard]}
+          onPress={() =>
+            navigation.navigate('ClassRecord', {
+              studentId: item.studentId,
+              initialDate: selectedDate,
+              initialTime: item.classTime,
+              initialCourse: item.course,
+            })
+          }
+        >
+          <View style={styles.cardMainRow}>
+            <View style={styles.timeColumn}>
+              <Text style={styles.timeAmPmPlanned}>{periodText}</Text>
+              <Text style={styles.timeTextLargePlanned}>{timeText}</Text>
+            </View>
+
+            <View style={styles.infoColumn}>
+              <View style={styles.nameWithStatusRow}>
+                <Text style={styles.studentNameText}>{item.studentName}</Text>
+                <View style={styles.plannedBadge}>
+                  <Text style={styles.plannedBadgeText}>시간표 예정 ⏳</Text>
+                </View>
+              </View>
+              <View style={styles.subjectRow}>
+                <Text style={styles.subjectText}>{item.course || '과정 미입력'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.writeActionBtn}>
+              <Text style={styles.writeActionBtnText}>일지 작성 ➔</Text>
+            </View>
+          </View>
+
+          {item.statusNote ? (
+            <View style={styles.plannedNoteBox}>
+              <Text style={styles.plannedNoteText}>📌 {item.statusNote}</Text>
+            </View>
+          ) : (
+            <View style={styles.previewContainer}>
+              <Text style={styles.plannedPromptText}>
+                수업 후 터치하여 오늘 진행한 진도와 내용을 기록하세요.
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      );
+    }
+
+    // 2) 실제 수업 일지가 작성 완료된 항목인 경우
+    const recordObj = item.record || item;
     return (
       <TouchableOpacity
         style={[styles.agendaCard, { borderLeftColor: cardColor }]}
-        onPress={() => navigation.navigate('ClassRecord', {
-          studentId: item.student_id,
-          recordId: item.id
-        })}
+        onPress={() =>
+          navigation.navigate('ClassRecord', {
+            studentId: item.studentId || recordObj.student_id,
+            recordId: recordObj.id,
+          })
+        }
       >
         <View style={styles.cardMainRow}>
-          {/* 시간 영역 (항상 2줄 일관 구성: [오전/오후] + [05:30]) */}
           <View style={styles.timeColumn}>
             <Text style={styles.timeAmPm}>{periodText}</Text>
             <Text style={styles.timeTextLarge}>{timeText}</Text>
           </View>
 
-          {/* 정보 영역 */}
           <View style={styles.infoColumn}>
-            <Text style={styles.studentNameText}>{item.studentName}</Text>
+            <View style={styles.nameWithStatusRow}>
+              <Text style={styles.studentNameText}>{item.studentName}</Text>
+              <View style={styles.completedBadge}>
+                <Text style={styles.completedBadgeText}>작성 완료 ✅</Text>
+              </View>
+            </View>
             <View style={styles.subjectRow}>
-              <Text style={styles.subjectText}>{item.course || '과정 미입력'}</Text>
+              <Text style={styles.subjectText}>{item.course || recordObj.course || '과정 미입력'}</Text>
             </View>
           </View>
 
-          {/* 태그 및 메뉴 영역 */}
           <View style={styles.actionColumn}>
             <View style={[styles.badgeContainer, { backgroundColor: cardColor + '1A' }]}>
               <Text style={[styles.badgeText, { color: cardColor }]}>{tagLabel}</Text>
             </View>
-            <Feather name="more-vertical" size={20} color={theme.colors.textSecondary} style={styles.moreIcon} />
           </View>
         </View>
 
-        {/* 기존 앱 장점: 하단 내용 미리보기 */}
+        {/* 작성된 실제 진도 및 내용 미리보기 */}
         <View style={styles.previewContainer}>
-          <Text style={styles.recordContentText} numberOfLines={1}>
-            {item.content || '기록된 수업 내용이 없습니다.'}
+          <Text style={styles.recordContentText} numberOfLines={2}>
+            {recordObj.content || '기록된 수업 내용이 없습니다.'}
           </Text>
         </View>
       </TouchableOpacity>
@@ -894,5 +921,79 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: theme.colors.primary,
+  },
+  plannedAgendaCard: {
+    borderLeftColor: '#F59E0B',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+  },
+  timeAmPmPlanned: {
+    fontSize: 11,
+    color: '#D97706',
+    fontWeight: '600',
+  },
+  timeTextLargePlanned: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#B45309',
+    marginTop: 1,
+  },
+  nameWithStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  plannedBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  plannedBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  completedBadge: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  completedBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  writeActionBtn: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  writeActionBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.onPrimary,
+  },
+  plannedNoteBox: {
+    marginTop: 6,
+    backgroundColor: '#FEF2F2',
+    padding: 6,
+    borderRadius: 6,
+  },
+  plannedNoteText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  plannedPromptText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontStyle: 'italic',
   },
 });
