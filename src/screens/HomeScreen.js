@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,17 +8,19 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Database } from '../database/Database';
 import { theme } from '../theme';
+
+const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 
   const [loading, setLoading] = useState(true);
-  const [todayRecords, setTodayRecords] = useState([]);
+  const [dailyItems, setDailyItems] = useState([]);
   const [studentCount, setStudentCount] = useState(0);
 
   const getTodayFormatted = () => {
@@ -33,11 +35,12 @@ export default function HomeScreen() {
     setLoading(true);
     try {
       const today = getTodayFormatted();
-      const records = await Database.getRecordsByDate(today);
+      // 주간시간표에 계획된 수업 + 실제 작성된 수업 일지 통합 조회
+      const items = await Database.getDailyScheduleAndRecords(today);
       const students = await Database.getAllStudents();
 
-      setTodayRecords(records);
-      setStudentCount(students.length);
+      setDailyItems(items || []);
+      setStudentCount(students?.length || 0);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -51,107 +54,324 @@ export default function HomeScreen() {
     }
   }, [isFocused, loadData]);
 
-  const getTodayDateString = () => {
-    const date = new Date();
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
-  };
+  // 오늘 날짜 및 요일 문자열
+  const todayInfo = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const date = d.getDate();
+    const dayName = DAY_NAMES[d.getDay()];
+    return {
+      dateText: `${year}년 ${month}월 ${date}일`,
+      dayBadge: `${dayName}요일`,
+    };
+  }, []);
+
+  // 오늘 수업 통계 (총 수업 수, 완료 수, 진행률)
+  const stats = useMemo(() => {
+    const total = dailyItems.length;
+    const completed = dailyItems.filter(
+      (it) => it.status === 'completed' || it.status === 'completed_extra'
+    ).length;
+    const remaining = total - completed;
+    const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    return { total, completed, remaining, progressPercent };
+  }, [dailyItems]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* Header Section */}
+        {/* 1. 상단 환영 & 브리핑 헤더 */}
         <View style={styles.headerSection}>
-          <Text style={styles.greetingText}>안녕하세요, 선생님</Text>
-          <Text style={styles.dateText}>{getTodayDateString()}</Text>
-        </View>
-
-        {/* Summary Cards */}
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryCard}>
-            <View style={styles.iconCircle}>
-              <Feather name="calendar" size={24} color={theme.colors.primary} />
+          <View style={styles.headerTopRow}>
+            <View>
+              <Text style={styles.greetingTitle}>안녕하세요, 선생님 👋</Text>
+              <View style={styles.dateBadgeRow}>
+                <Text style={styles.dateText}>{todayInfo.dateText}</Text>
+                <View style={styles.dayBadge}>
+                  <Text style={styles.dayBadgeText}>{todayInfo.dayBadge}</Text>
+                </View>
+              </View>
             </View>
-            <Text style={styles.summaryValue}>{todayRecords.length}</Text>
-            <Text style={styles.summaryLabel}>오늘 수업</Text>
+            <TouchableOpacity
+              style={styles.helpHeaderBtn}
+              onPress={() => navigation.navigate('Help')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Feather name="help-circle" size={22} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.summaryCard}>
-            <View style={styles.iconCircle}>
-              <Feather name="users" size={24} color={theme.colors.primary} />
+          {/* 실시간 수업 진행 상태 알림 바 */}
+          <View style={styles.briefingBanner}>
+            <View style={styles.briefingIconBox}>
+              <Feather
+                name={stats.total > 0 && stats.completed === stats.total ? 'check-circle' : 'activity'}
+                size={18}
+                color={theme.colors.primary}
+              />
             </View>
-            <Text style={styles.summaryValue}>{studentCount}</Text>
-            <Text style={styles.summaryLabel}>총 수강생</Text>
+            <View style={styles.briefingTextBox}>
+              {stats.total === 0 ? (
+                <Text style={styles.briefingMainText}>오늘은 예정된 수업 일정이 없습니다.</Text>
+              ) : (
+                <Text style={styles.briefingMainText}>
+                  오늘 수업 <Text style={styles.highlightText}>{stats.total}개</Text> 중{' '}
+                  <Text style={styles.highlightGreen}>{stats.completed}개 완료</Text> ({stats.progressPercent}%)
+                </Text>
+              )}
+              <Text style={styles.briefingSubText}>
+                {stats.total === 0
+                  ? '여유로운 하루 보내세요 ☕'
+                  : stats.remaining > 0
+                  ? `앞으로 ${stats.remaining}개의 수업 일지가 대기 중입니다.`
+                  : '오늘의 모든 수업 일지를 완벽히 작성하셨습니다! 🎉'}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Today's Schedule */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>오늘의 일정</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Calendar')}>
-              <Text style={styles.seeAllText}>전체 보기</Text>
+        {/* 2. 3단 통계 & 숏컷 메트릭 카드 */}
+        <View style={styles.metricCardRow}>
+          {/* 카드 1: 오늘 수업 현황 */}
+          <View style={[styles.metricCard, styles.metricCardPrimary]}>
+            <View style={styles.metricTop}>
+              <View style={[styles.metricIconWrap, styles.bgIndigoLight]}>
+                <Feather name="calendar" size={18} color="#4F46E5" />
+              </View>
+              <Text style={styles.metricBadgeLabel}>오늘 수업</Text>
+            </View>
+            <View style={styles.metricValueRow}>
+              <Text style={styles.metricBigValue}>{stats.total}</Text>
+              <Text style={styles.metricSubCount}>({stats.completed} 완료)</Text>
+            </View>
+            {/* 미니 프로그레스 게이지 */}
+            <View style={styles.progressBg}>
+              <View style={[styles.progressBar, { width: `${stats.progressPercent}%` }]} />
+            </View>
+          </View>
+
+          {/* 카드 2: 총 수강생 */}
+          <TouchableOpacity
+            style={styles.metricCard}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('StudentList')}
+          >
+            <View style={styles.metricTop}>
+              <View style={[styles.metricIconWrap, styles.bgEmeraldLight]}>
+                <Feather name="users" size={18} color="#059669" />
+              </View>
+              <Text style={styles.metricBadgeLabel}>총 수강생</Text>
+            </View>
+            <View style={styles.metricValueRow}>
+              <Text style={styles.metricBigValue}>{studentCount}</Text>
+              <Text style={styles.metricSubCount}>명</Text>
+            </View>
+            <Text style={styles.metricBottomHint}>학생 주소록 관리 ➔</Text>
+          </TouchableOpacity>
+
+          {/* 카드 3: 주간 보고서 PDF */}
+          <TouchableOpacity
+            style={styles.metricCard}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('WeeklyPlan')}
+          >
+            <View style={styles.metricTop}>
+              <View style={[styles.metricIconWrap, styles.bgAmberLight]}>
+                <MaterialCommunityIcons name="file-document-outline" size={19} color="#D97706" />
+              </View>
+              <Text style={styles.metricBadgeLabel}>주간 보고서</Text>
+            </View>
+            <View style={styles.metricValueRow}>
+              <Text style={styles.pdfMetricValue}>PDF</Text>
+            </View>
+            <Text style={styles.metricBottomHint}>A4 서식 출력 ➔</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 3. 오늘의 수업 타임라인 (주간시간표 연동) */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionTitleRow}>
+              <Feather name="clock" size={18} color={theme.colors.primary} />
+              <Text style={styles.sectionTitle}>오늘의 수업 일정</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.seeAllBtn}
+              onPress={() => navigation.navigate('Calendar')}
+            >
+              <Text style={styles.seeAllText}>달력 전체보기 ➔</Text>
             </TouchableOpacity>
           </View>
 
           {loading ? (
             <ActivityIndicator size="small" color={theme.colors.primary} style={styles.loader} />
-          ) : todayRecords.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Feather name="coffee" size={32} color={theme.colors.outline} />
-              <Text style={styles.emptyText}>오늘은 예정된 수업이 없습니다.</Text>
+          ) : dailyItems.length === 0 ? (
+            <View style={styles.emptyScheduleBox}>
+              <View style={styles.emptyIconCircle}>
+                <Feather name="coffee" size={28} color={theme.colors.outline} />
+              </View>
+              <Text style={styles.emptyTitle}>오늘 예정된 수업 일정이 없습니다.</Text>
+              <Text style={styles.emptySub}>
+                [주간 시간표]에서 수업 일정을 등록하거나, 아래 버튼으로 즉시 작성할 수 있습니다.
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyAddBtn}
+                onPress={() => navigation.navigate('WeeklyPlan')}
+              >
+                <Feather name="calendar" size={14} color={theme.colors.primary} />
+                <Text style={styles.emptyAddBtnText}>주간 시간표로 이동</Text>
+              </TouchableOpacity>
             </View>
           ) : (
-            todayRecords.map((record, index) => (
-              <TouchableOpacity
-                key={record.id || index}
-                style={styles.agendaCard}
-                onPress={() => navigation.navigate('ClassRecord', {
-                  studentId: record.student_id,
-                  recordId: record.id
-                })}
-              >
-                <View style={styles.agendaInfo}>
-                  <Text style={styles.studentName}>
-                    {record.studentName} {record.class_time ? `(${record.class_time})` : ''}
-                  </Text>
-                  <Text style={styles.processText}>{record.course || '과정 미입력'}</Text>
-                  <Text style={styles.agendaContent} numberOfLines={1}>
-                    {record.content || '기록된 내용이 없습니다.'}
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-              </TouchableOpacity>
-            ))
+            dailyItems.map((item, index) => {
+              const isDone = item.status === 'completed' || item.status === 'completed_extra';
+              const recordObj = item.record || item;
+
+              return (
+                <TouchableOpacity
+                  key={item.id || index}
+                  style={[styles.scheduleCard, isDone ? styles.scheduleCardDone : styles.scheduleCardPlanned]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (isDone) {
+                      navigation.navigate('ClassRecord', {
+                        studentId: item.studentId || recordObj.student_id,
+                        recordId: recordObj.id,
+                      });
+                    } else {
+                      navigation.navigate('ClassRecord', {
+                        studentId: item.studentId,
+                        initialDate: getTodayFormatted(),
+                        initialTime: item.classTime,
+                        initialCourse: item.course,
+                      });
+                    }
+                  }}
+                >
+                  <View style={styles.scheduleCardMain}>
+                    {/* 시간 컬럼 */}
+                    <View style={[styles.timePill, isDone && styles.timePillDone]}>
+                      <Feather
+                        name="clock"
+                        size={12}
+                        color={isDone ? '#15803D' : '#B45309'}
+                      />
+                      <Text style={[styles.timePillText, isDone && styles.timePillTextDone]}>
+                        {item.classTime || '10:00'}
+                      </Text>
+                    </View>
+
+                    {/* 정보 컬럼 */}
+                    <View style={styles.scheduleInfo}>
+                      <View style={styles.studentNameRow}>
+                        <Text style={styles.scheduleStudentName}>{item.studentName}</Text>
+                        <View style={[styles.statusBadge, isDone ? styles.statusBadgeDone : styles.statusBadgePlanned]}>
+                          <Text style={[styles.statusBadgeText, isDone ? styles.statusBadgeTextDone : styles.statusBadgeTextPlanned]}>
+                            {isDone ? '작성 완료 ✅' : '수업 예정 ⏳'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.courseTagRow}>
+                        <Text style={styles.courseTagText}>{item.course || '과정 미지정'}</Text>
+                        {item.paymentType ? (
+                          <Text style={styles.payTagText}>• {item.paymentType}</Text>
+                        ) : null}
+                      </View>
+                    </View>
+
+                    {/* 액션 버튼 */}
+                    <View style={styles.actionBtnContainer}>
+                      {isDone ? (
+                        <View style={styles.editIconBadge}>
+                          <Feather name="edit-2" size={14} color="#15803D" />
+                        </View>
+                      ) : (
+                        <View style={styles.writePromptBtn}>
+                          <Text style={styles.writePromptBtnText}>일지 작성</Text>
+                          <Feather name="chevron-right" size={14} color={theme.colors.onPrimary} />
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* 하단 진도 내용 or 주소/메모 미리보기 */}
+                  {isDone ? (
+                    <View style={styles.recordPreviewBox}>
+                      <Text style={styles.recordPreviewText} numberOfLines={1}>
+                        📝 {recordObj.content || '기록된 수업 일지 내용이 있습니다.'}
+                      </Text>
+                    </View>
+                  ) : item.statusNote ? (
+                    <View style={styles.notePreviewBox}>
+                      <Text style={styles.notePreviewText} numberOfLines={1}>
+                        📌 {item.statusNote}
+                      </Text>
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })
           )}
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>빠른 메뉴</Text>
-          <View style={styles.quickActionGrid}>
+        {/* 4. 모던 빠른 메뉴 (2x2 그리드 타일) */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>주요 바로가기</Text>
+          <View style={styles.quickGrid}>
+            {/* 1) 주간 시간표 */}
             <TouchableOpacity
-              style={styles.quickActionBtn}
+              style={[styles.quickTile, styles.quickTileIndigo]}
+              activeOpacity={0.8}
               onPress={() => navigation.navigate('WeeklyPlan')}
             >
-              <Feather name="calendar" size={20} color={theme.colors.primary} />
-              <Text style={styles.quickActionText}>주간 시간표</Text>
+              <View style={[styles.tileIconCircle, styles.tileIconIndigo]}>
+                <Feather name="calendar" size={20} color="#FFFFFF" />
+              </View>
+              <Text style={styles.tileTitle}>주간 시간표</Text>
+              <Text style={styles.tileSub}>방문 스케줄 & PDF 보고서</Text>
             </TouchableOpacity>
 
+            {/* 2) 달력 일지 */}
             <TouchableOpacity
-              style={styles.quickActionBtn}
+              style={[styles.quickTile, styles.quickTileEmerald]}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Calendar')}
+            >
+              <View style={[styles.tileIconCircle, styles.tileIconEmerald]}>
+                <Feather name="book-open" size={20} color="#FFFFFF" />
+              </View>
+              <Text style={styles.tileTitle}>달력 수업일지</Text>
+              <Text style={styles.tileSub}>날짜별 수업 진도 기록</Text>
+            </TouchableOpacity>
+
+            {/* 3) 학생 관리 */}
+            <TouchableOpacity
+              style={[styles.quickTile, styles.quickTileGreen]}
+              activeOpacity={0.8}
               onPress={() => navigation.navigate('StudentList')}
             >
-              <Feather name="user-plus" size={20} color={theme.colors.onSecondaryContainer} />
-              <Text style={styles.quickActionText}>학생 관리</Text>
+              <View style={[styles.tileIconCircle, styles.tileIconGreen]}>
+                <Feather name="users" size={20} color="#FFFFFF" />
+              </View>
+              <Text style={styles.tileTitle}>학생 주소록</Text>
+              <Text style={styles.tileSub}>수강생 정보 & 기본일정</Text>
             </TouchableOpacity>
 
+            {/* 4) 클라우드 백업 & 설정 */}
             <TouchableOpacity
-              style={styles.quickActionBtn}
+              style={[styles.quickTile, styles.quickTileAmber]}
+              activeOpacity={0.8}
               onPress={() => navigation.navigate('Settings')}
             >
-              <Feather name="settings" size={20} color={theme.colors.onSecondaryContainer} />
-              <Text style={styles.quickActionText}>설정</Text>
+              <View style={[styles.tileIconCircle, styles.tileIconAmber]}>
+                <Feather name="cloud" size={20} color="#FFFFFF" />
+              </View>
+              <Text style={styles.tileTitle}>백업 및 설정</Text>
+              <Text style={styles.tileSub}>구글 드라이브 동기화</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -164,139 +384,454 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceVariant,
+    backgroundColor: '#F8FAFC',
   },
   scrollContent: {
-    padding: theme.spacing.lg,
+    padding: 16,
+    paddingBottom: 32,
   },
   headerSection: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
   },
-  greetingText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  dateText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  summaryRow: {
+  headerTopRow: {
     flexDirection: 'row',
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing.lg * 1.5,
-  },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.roundness,
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  iconCircle: {
-    backgroundColor: theme.colors.secondaryContainer,
-    padding: 8,
-    borderRadius: 20,
     marginBottom: 12,
   },
-  summaryValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
+  greetingTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
   },
-  summaryLabel: {
+  dateBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dateText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  dayBadge: {
+    backgroundColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  dayBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  helpHeaderBtn: {
+    padding: 4,
+  },
+  briefingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    gap: 12,
+  },
+  briefingIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  briefingTextBox: {
+    flex: 1,
+  },
+  briefingMainText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 2,
   },
-  section: {
-    marginBottom: theme.spacing.lg * 1.5,
+  highlightText: {
+    color: '#2563EB',
+    fontWeight: '800',
   },
-  sectionHeader: {
+  highlightGreen: {
+    color: '#16A34A',
+    fontWeight: '800',
+  },
+  briefingSubText: {
+    fontSize: 11.5,
+    color: '#64748B',
+  },
+  metricCardRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    justifyContent: 'space-between',
+  },
+  metricCardPrimary: {
+    borderColor: '#C7D2FE',
+  },
+  metricTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  metricIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metricBadgeLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  metricValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    marginBottom: 8,
+  },
+  metricBigValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  metricSubCount: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  progressBg: {
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#4F46E5',
+    borderRadius: 2,
+  },
+  metricBottomHint: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#4F46E5',
+    marginTop: 2,
+  },
+  sectionContainer: {
+    marginBottom: 22,
+  },
+  sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: 12,
+    paddingHorizontal: 2,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  seeAllBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
   seeAllText: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    fontWeight: '600',
+    fontSize: 12,
+    color: '#4F46E5',
+    fontWeight: '700',
   },
   loader: {
     marginVertical: 20,
   },
-  emptyState: {
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.lg * 1.5,
-    borderRadius: theme.roundness,
+  emptyScheduleBox: {
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    borderStyle: 'dashed',
     borderWidth: 1,
-    borderColor: theme.colors.outline,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
   },
-  emptyText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  agendaCard: {
-    backgroundColor: theme.colors.white,
-    padding: theme.spacing.md,
-    borderRadius: theme.roundness,
-    marginBottom: theme.spacing.sm,
-    flexDirection: 'row',
+  emptyIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
-  agendaInfo: {
-    flex: 1,
-    marginRight: theme.spacing.md,
-  },
-  studentName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#334155',
     marginBottom: 4,
   },
-  processText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginBottom: 6,
+  emptySub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 14,
+    lineHeight: 16,
   },
-  agendaContent: {
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-  },
-  quickActionGrid: {
-    flexDirection: 'row',
-    gap: theme.spacing.md,
-  },
-  quickActionBtn: {
-    flex: 1,
+  emptyAddBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.secondaryContainer,
-    padding: theme.spacing.md,
-    borderRadius: theme.roundness,
-    gap: 8,
+    gap: 6,
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
-  quickActionText: {
-    fontSize: 14,
+  emptyAddBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  scheduleCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  scheduleCardPlanned: {
+    borderColor: '#FED7AA',
+    backgroundColor: '#FFFDF9',
+  },
+  scheduleCardDone: {
+    borderColor: '#BBF7D0',
+    backgroundColor: '#FAFCFA',
+  },
+  scheduleCardMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  timePillDone: {
+    backgroundColor: '#DCFCE7',
+  },
+  timePillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+  timePillTextDone: {
+    color: '#15803D',
+  },
+  scheduleInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  studentNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 3,
+  },
+  scheduleStudentName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  statusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  statusBadgePlanned: {
+    backgroundColor: '#FEF3C7',
+  },
+  statusBadgeDone: {
+    backgroundColor: '#DCFCE7',
+  },
+  statusBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  statusBadgeTextPlanned: {
+    color: '#D97706',
+  },
+  statusBadgeTextDone: {
+    color: '#15803D',
+  },
+  courseTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  courseTagText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.onSecondaryContainer,
+    color: '#2563EB',
+  },
+  payTagText: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  actionBtnContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  writePromptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  writePromptBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  editIconBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordPreviewBox: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  recordPreviewText: {
+    fontSize: 12,
+    color: '#166534',
+  },
+  notePreviewBox: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  notePreviewText: {
+    fontSize: 11.5,
+    color: '#DC2626',
+    fontWeight: '600',
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  quickTile: {
+    width: '48%',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  tileIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  tileTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  tileSub: {
+    fontSize: 10.5,
+    color: '#64748B',
+  },
+  bgIndigoLight: {
+    backgroundColor: '#EEF2FF',
+  },
+  bgEmeraldLight: {
+    backgroundColor: '#ECFDF5',
+  },
+  bgAmberLight: {
+    backgroundColor: '#FFFBEB',
+  },
+  pdfMetricValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+  quickTileIndigo: {
+    backgroundColor: '#EEF2FF',
+  },
+  tileIconIndigo: {
+    backgroundColor: '#4F46E5',
+  },
+  quickTileEmerald: {
+    backgroundColor: '#ECFDF5',
+  },
+  tileIconEmerald: {
+    backgroundColor: '#059669',
+  },
+  quickTileGreen: {
+    backgroundColor: '#F0FDF4',
+  },
+  tileIconGreen: {
+    backgroundColor: '#16A34A',
+  },
+  quickTileAmber: {
+    backgroundColor: '#FFFBEB',
+  },
+  tileIconAmber: {
+    backgroundColor: '#D97706',
   },
 });
