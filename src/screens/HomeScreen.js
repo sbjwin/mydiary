@@ -95,13 +95,6 @@ export default function HomeScreen() {
                 </View>
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.helpHeaderBtn}
-              onPress={() => navigation.navigate('Help')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Feather name="help-circle" size={22} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
           </View>
 
           {/* 실시간 수업 진행 상태 알림 바 */}
@@ -425,9 +418,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#475569',
-  },
-  helpHeaderBtn: {
-    padding: 4,
   },
   briefingBanner: {
     flexDirection: 'row',
