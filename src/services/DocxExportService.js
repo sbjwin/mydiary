@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystemNext from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
 
@@ -473,10 +474,23 @@ export const shareWeeklyReportDocx = async (weeklyPlan) => {
       compressionOptions: { level: 6 },
     });
 
-    const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-    await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    let fileUri = '';
+    if (FileSystem && FileSystem.cacheDirectory && FileSystem.writeAsStringAsync) {
+      fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+      await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+        encoding: FileSystem.EncodingType?.Base64 || 'base64',
+      });
+    } else if (FileSystemNext && FileSystemNext.Paths && FileSystemNext.File) {
+      const file = new FileSystemNext.File(FileSystemNext.Paths.cache, fileName);
+      if (file.exists) {
+        file.delete();
+      }
+      file.create();
+      file.write(base64Data);
+      fileUri = file.uri;
+    } else {
+      throw new Error('파일 시스템 모듈을 초기화할 수 없습니다. 앱을 다시 빌드해 주세요.');
+    }
 
     await Sharing.shareAsync(fileUri, {
       UTI: 'com.microsoft.word.doc',
@@ -485,6 +499,6 @@ export const shareWeeklyReportDocx = async (weeklyPlan) => {
     });
   } catch (error) {
     console.error('Failed to export DOCX:', error);
-    Alert.alert('문서 생성 오류', '구글 문서(.docx) 파일을 생성하거나 공유하는 중 오류가 발생했습니다.');
+    Alert.alert('문서 생성 오류', `구글 문서(.docx) 생성 중 오류가 발생했습니다.\n(${error?.message || error})`);
   }
 };
