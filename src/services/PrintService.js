@@ -476,7 +476,11 @@ export const generateWeeklyReportHtml = (weeklyPlan) => {
   const getItemsForSlot = (dayOfWeek, hour) => {
     return scheduleItems.filter((item) => {
       if (Number(item.dayOfWeek) !== dayOfWeek) return false;
-      const startH = parseInt((item.startTime || '00:00').split(':')[0], 10);
+      const rawHour = (item.startTime || '').match(/\d{1,2}/);
+      if (!rawHour) return false;
+      const startH = parseInt(rawHour[0], 10);
+      if (hour === 9) return startH <= 9;
+      if (hour === 20) return startH >= 20;
       return startH === hour;
     });
   };

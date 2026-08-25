@@ -397,7 +397,11 @@ export default function WeeklyPlanScreen() {
     const items = weeklyPlan?.scheduleItems || [];
     return items.filter((it) => {
       if (Number(it.dayOfWeek) !== dayOfWeek) return false;
-      const h = parseInt((it.startTime || '00:00').split(':')[0], 10);
+      const rawHour = (it.startTime || '').match(/\d{1,2}/);
+      if (!rawHour) return false;
+      const h = parseInt(rawHour[0], 10);
+      if (hour === 9) return h <= 9;
+      if (hour === 20) return h >= 20;
       return h === hour;
     });
   };
@@ -1421,6 +1425,7 @@ const styles = StyleSheet.create({
   },
   timeCell: {
     width: 44,
+    minHeight: 46,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F1F5F9',
@@ -1434,6 +1439,7 @@ const styles = StyleSheet.create({
   },
   scheduleCell: {
     width: 68,
+    minHeight: 46,
     borderRightWidth: 1,
     borderRightColor: '#E2E8F0',
     padding: 3,
@@ -1481,7 +1487,7 @@ const styles = StyleSheet.create({
   cellEmptyPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100%',
+    paddingVertical: 10,
   },
   sundayBlock: {
     marginTop: 14,
