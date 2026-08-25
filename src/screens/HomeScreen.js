@@ -119,8 +119,8 @@ export default function HomeScreen() {
                 {stats.total === 0
                   ? '여유로운 하루 보내세요 ☕'
                   : stats.remaining > 0
-                  ? `앞으로 ${stats.remaining}개의 수업 일지가 대기 중입니다.`
-                  : '오늘의 모든 수업 일지를 완벽히 작성하셨습니다! 🎉'}
+                    ? `앞으로 ${stats.remaining}개의 수업 일지가 대기 중입니다.`
+                    : '오늘의 모든 수업 일지를 완벽히 작성하셨습니다! 🎉'}
               </Text>
             </View>
           </View>
