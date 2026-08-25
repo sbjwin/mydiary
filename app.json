@@ -3,14 +3,15 @@
     "name": "mydiary",
     "slug": "mydiary",
     "icon": "./assets/mydiary_blue.png",
-    "version": "1.1.0",
+    "version": "2.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.sbjwin.mydiary"
+      "package": "com.sbjwin.mydiary",
+      "versionCode": 2
     },
     "plugins": [
       "expo-font",
