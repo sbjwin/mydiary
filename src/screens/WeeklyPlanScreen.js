@@ -15,7 +15,7 @@ import {
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Database, getMondayOfWeek, getDateFromMondayOffset } from '../database/Database';
-import { printWeeklyReport, shareWeeklyReport } from '../services/PrintService';
+import { printWeeklyReport, shareWeeklyReport, shareWeeklyReportDocx } from '../services/PrintService';
 import { theme } from '../theme';
 
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
@@ -436,8 +436,8 @@ export default function WeeklyPlanScreen() {
           style={styles.pdfReportBtn}
           onPress={() => setPdfModalVisible(true)}
         >
-          <Feather name="printer" size={16} color={theme.colors.onPrimary} />
-          <Text style={styles.pdfReportBtnText}>보고서 PDF</Text>
+          <Feather name="file-text" size={16} color={theme.colors.onPrimary} />
+          <Text style={styles.pdfReportBtnText}>보고서 내보내기</Text>
         </TouchableOpacity>
       </View>
 
@@ -1214,7 +1214,7 @@ export default function WeeklyPlanScreen() {
           <View style={styles.pdfModalContent}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>주간 업무 보고서 출력</Text>
+                <Text style={styles.modalTitle}>주간 업무 보고서 출력 및 내보내기</Text>
                 <Text style={styles.modalSubtitle}>{weekTitleInfo.title} ({weekTitleInfo.range})</Text>
               </View>
               <TouchableOpacity onPress={() => setPdfModalVisible(false)}>
@@ -1252,6 +1252,23 @@ export default function WeeklyPlanScreen() {
               <View style={styles.actionMenuTextContainer}>
                 <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡 / 이메일)</Text>
                 <Text style={styles.actionMenuSub}>카카오톡, 메신저 등으로 보고서 PDF를 전송합니다</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={async () => {
+                setPdfModalVisible(false);
+                await shareWeeklyReportDocx(weeklyPlan);
+              }}
+            >
+              <View style={[styles.actionIconBadge, styles.docxShareIconBadge]}>
+                <MaterialCommunityIcons name="file-word-box-outline" size={22} color="#2563EB" />
+              </View>
+              <View style={styles.actionMenuTextContainer}>
+                <Text style={styles.actionMenuTitle}>구글 문서 / 워드 (.docx) 파일 공유</Text>
+                <Text style={styles.actionMenuSub}>구글 드라이브, 카톡 등으로 전송하여 수정/편집</Text>
               </View>
               <Feather name="chevron-right" size={20} color={theme.colors.outline} />
             </TouchableOpacity>
@@ -2181,6 +2198,9 @@ const styles = StyleSheet.create({
   },
   pdfShareIconBadge: {
     backgroundColor: '#E0F2FE',
+  },
+  docxShareIconBadge: {
+    backgroundColor: '#EFF6FF',
   },
   cellItemBoxDone: {
     backgroundColor: '#DCFCE7',

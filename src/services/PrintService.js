@@ -891,3 +891,6 @@ export const shareWeeklyReport = async (weeklyPlan) => {
   }
 };
 
+export { shareWeeklyReportDocx } from './DocxExportService';
+
+
