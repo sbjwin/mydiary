@@ -84,7 +84,11 @@ export default function WeeklyPlanScreen() {
     setLoading(true);
     try {
       const allStudents = await Database.getAllStudents();
-      setStudents(allStudents);
+      // 학생 목록 가나다(이름)순 정렬
+      const sortedStudents = (allStudents || []).sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', 'ko')
+      );
+      setStudents(sortedStudents);
 
       const records = await Database.getAllRecords();
       setAllRecords(records);
@@ -384,10 +388,13 @@ export default function WeeklyPlanScreen() {
     }
   };
 
-  // 필터링된 학생 목록 (학생 선택 모달용)
+  // 필터링된 학생 목록 (학생 선택 모달용 - 가나다 오름차순 정렬)
   const filteredStudents = useMemo(() => {
-    if (!studentSearchQuery.trim()) return students;
-    return students.filter((s) =>
+    const list = [...students].sort((a, b) =>
+      (a.name || '').localeCompare(b.name || '', 'ko')
+    );
+    if (!studentSearchQuery.trim()) return list;
+    return list.filter((s) =>
       (s.name || '').toLowerCase().includes(studentSearchQuery.toLowerCase())
     );
   }, [students, studentSearchQuery]);
