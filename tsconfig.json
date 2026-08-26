@@ -1,5 +1,7 @@
 {
-  "compilerOptions": {},
+  "compilerOptions": {
+    "types": ["jest"]
+  },
   "extends": "expo/tsconfig.base",
-  "exclude": ["node_modules", ".expo", "android", "ios"]
+  "exclude": ["node_modules", ".expo", "android", "android-sdk", "ios"]
 }
