@@ -63,6 +63,44 @@ const QUICK_TIME_PRESETS = [
   '20:00',
 ];
 
+/**
+ * 다양한 형태의 시간 문자열을 'HH:mm' 24시간 디지털 형식으로 정규화
+ * 예: '오전 11시' -> '11:00', '오후 2시 30분' -> '14:30', '11:00' -> '11:00'
+ */
+export const formatDisplayTime = (timeStr) => {
+  if (!timeStr || !timeStr.trim()) return '(미지정)';
+  const str = timeStr.trim();
+
+  // 1. 이미 HH:mm 또는 H:mm 형식인 경우 (예: 11:00, 9:00)
+  const digitalMatch = str.match(/^(\d{1,2}):(\d{2})$/);
+  if (digitalMatch) {
+    const h = String(parseInt(digitalMatch[1], 10)).padStart(2, '0');
+    return `${h}:${digitalMatch[2]}`;
+  }
+
+  // 2. 한글 오전/오후 및 시/분이 포함된 경우
+  const isPM = str.includes('오후') || str.includes('PM') || str.includes('pm');
+  const isAM = str.includes('오전') || str.includes('AM') || str.includes('am');
+
+  const hourMatch = str.match(/(\d{1,2})\s*시/) || str.match(/(\d{1,2}):/) || str.match(/\b(\d{1,2})\b/);
+  const minMatch = str.match(/(\d{1,2})\s*분/) || str.match(/:(\d{2})/);
+
+  if (hourMatch) {
+    let hour = parseInt(hourMatch[1], 10);
+    const minute = minMatch ? String(parseInt(minMatch[1], 10)).padStart(2, '0') : '00';
+
+    if (isPM && hour < 12) {
+      hour += 12;
+    } else if (isAM && hour === 12) {
+      hour = 0;
+    }
+
+    return `${String(hour).padStart(2, '0')}:${minute}`;
+  }
+
+  return str;
+};
+
 export default function ClassRecordScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -234,7 +272,8 @@ export default function ClassRecordScreen() {
     const today = dateStr || getTodayFormatted();
     setEditingRecord(null);
     setEditingDate(today);
-    setEditingTime(timeStr || '');
+    const formattedTime = timeStr ? (formatDisplayTime(timeStr) === '(미지정)' ? '' : formatDisplayTime(timeStr)) : '';
+    setEditingTime(formattedTime);
     setEditingContent('');
     setEditingCourse(courseStr || '');
     setShowDatePicker(false);
@@ -246,7 +285,8 @@ export default function ClassRecordScreen() {
   const openEditModal = useCallback((record) => {
     setEditingRecord(record);
     setEditingDate(record.class_date);
-    setEditingTime(record.class_time || '');
+    const formattedTime = record.class_time ? (formatDisplayTime(record.class_time) === '(미지정)' ? '' : formatDisplayTime(record.class_time)) : '';
+    setEditingTime(formattedTime);
     setEditingContent(record.content || '');
     setEditingCourse(record.course || '');
     setShowDatePicker(false);
@@ -366,7 +406,7 @@ export default function ClassRecordScreen() {
             <Text style={styles.dateBadgeText}>{month}월 {day}일</Text>
           </View>
           <View style={styles.timeCourseWrapper}>
-            <Text style={styles.timeText}>{item.class_time || '(미지정)'}</Text>
+            <Text style={styles.timeText}>{formatDisplayTime(item.class_time)}</Text>
             <View style={styles.dotSeparator} />
             <Text style={styles.courseText} numberOfLines={1}>{item.course || '과정 미입력'}</Text>
           </View>

@@ -24,6 +24,29 @@ const getFormattedToday = () => {
   return `${year}. ${month}. ${day}`;
 };
 
+// 시간 정규화 (24시간 디지털 형식)
+const formatDisplayTime = (timeStr) => {
+  if (!timeStr || !timeStr.trim()) return '-';
+  const str = timeStr.trim();
+  const digitalMatch = str.match(/^(\d{1,2}):(\d{2})$/);
+  if (digitalMatch) {
+    const h = String(parseInt(digitalMatch[1], 10)).padStart(2, '0');
+    return `${h}:${digitalMatch[2]}`;
+  }
+  const isPM = str.includes('오후') || str.includes('PM') || str.includes('pm');
+  const isAM = str.includes('오전') || str.includes('AM') || str.includes('am');
+  const hourMatch = str.match(/(\d{1,2})\s*시/) || str.match(/(\d{1,2}):/) || str.match(/\b(\d{1,2})\b/);
+  const minMatch = str.match(/(\d{1,2})\s*분/) || str.match(/:(\d{2})/);
+  if (hourMatch) {
+    let hour = parseInt(hourMatch[1], 10);
+    const minute = minMatch ? String(parseInt(minMatch[1], 10)).padStart(2, '0') : '00';
+    if (isPM && hour < 12) hour += 12;
+    else if (isAM && hour === 12) hour = 0;
+    return `${String(hour).padStart(2, '0')}:${minute}`;
+  }
+  return str;
+};
+
 // 공통 인쇄용 CSS 스타일
 const getCommonStyle = () => `
   @page {
@@ -283,7 +306,7 @@ export const generateClassRecordsHtml = (student, records = [], periodTitle = '�
   const tableRows = sortedRecords.length > 0 ? sortedRecords.map((r, index) => {
     const roundNumber = totalCount - index; // 최신순일 때 역순 번호 (1부터 시작하도록)
     const date = escapeHtml(r.class_date || '-');
-    const time = escapeHtml(r.class_time || '-');
+    const time = escapeHtml(formatDisplayTime(r.class_time));
     const course = escapeHtml(r.course || '-');
     const content = escapeHtml(r.content || '-').replace(/\n/g, '<br/>');
 
