@@ -3,7 +3,7 @@
     "name": "mydiary",
     "slug": "mydiary",
     "icon": "./assets/mydiary_blue.png",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "ios": {

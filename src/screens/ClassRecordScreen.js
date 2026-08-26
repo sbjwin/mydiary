@@ -22,6 +22,47 @@ import { theme } from '../theme';
 
 const PAGE_SIZE = 15;
 
+// 수업 시간 선택 GUI용 상수
+const MORNING_HOURS = [
+  { hour24: 6, label: '06시' },
+  { hour24: 7, label: '07시' },
+  { hour24: 8, label: '08시' },
+  { hour24: 9, label: '09시' },
+  { hour24: 10, label: '10시' },
+  { hour24: 11, label: '11시' },
+  { hour24: 12, label: '12시' },
+];
+
+const AFTERNOON_HOURS = [
+  { hour24: 13, label: '13시 (1시)' },
+  { hour24: 14, label: '14시 (2시)' },
+  { hour24: 15, label: '15시 (3시)' },
+  { hour24: 16, label: '16시 (4시)' },
+  { hour24: 17, label: '17시 (5시)' },
+  { hour24: 18, label: '18시 (6시)' },
+  { hour24: 19, label: '19시 (7시)' },
+  { hour24: 20, label: '20시 (8시)' },
+  { hour24: 21, label: '21시 (9시)' },
+  { hour24: 22, label: '22시 (10시)' },
+  { hour24: 23, label: '23시 (11시)' },
+];
+
+const MINUTE_OPTIONS = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
+
+const QUICK_TIME_PRESETS = [
+  '09:00',
+  '10:00',
+  '11:00',
+  '13:00',
+  '14:00',
+  '15:00',
+  '16:00',
+  '17:00',
+  '18:00',
+  '19:00',
+  '20:00',
+];
+
 export default function ClassRecordScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -143,6 +184,50 @@ export default function ClassRecordScreen() {
   const [editingContent, setEditingContent] = useState('');
   const [editingCourse, setEditingCourse] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // 시간 파싱 헬퍼 (HH:mm 포맷)
+  const parsedTime = useMemo(() => {
+    if (!editingTime) {
+      return { ampm: '오전', hour24: 10, minute: '00', isEmpty: true };
+    }
+    const match = editingTime.match(/^(\d{1,2}):(\d{2})/);
+    if (match) {
+      const h = parseInt(match[1], 10);
+      const m = match[2];
+      return {
+        ampm: h >= 12 ? '오후' : '오전',
+        hour24: h,
+        minute: m,
+        isEmpty: false,
+      };
+    }
+    return { ampm: '오후', hour24: 14, minute: '00', isEmpty: false };
+  }, [editingTime]);
+
+  // 오전/오후 변경 핸들러
+  const handleTimeAmpmChange = (newAmpm) => {
+    let targetHour = parsedTime.hour24;
+    if (newAmpm === '오전' && targetHour >= 12) {
+      targetHour = targetHour === 12 ? 0 : targetHour - 12;
+    } else if (newAmpm === '오후' && targetHour < 12) {
+      targetHour = targetHour === 0 ? 12 : targetHour + 12;
+    }
+    const m = parsedTime.minute || '00';
+    setEditingTime(`${String(targetHour).padStart(2, '0')}:${m}`);
+  };
+
+  // 시(Hour) 선택 핸들러
+  const handleTimeHourChange = (h24) => {
+    const m = parsedTime.minute || '00';
+    setEditingTime(`${String(h24).padStart(2, '0')}:${m}`);
+  };
+
+  // 분(Minute) 선택 핸들러
+  const handleTimeMinuteChange = (mStr) => {
+    const h24 = parsedTime.hour24;
+    setEditingTime(`${String(h24).padStart(2, '0')}:${mStr}`);
+  };
 
   // 기록 추가 모달 열기
   const openAddModal = useCallback((dateStr = '', timeStr = '', courseStr = '') => {
@@ -152,6 +237,8 @@ export default function ClassRecordScreen() {
     setEditingTime(timeStr || '');
     setEditingContent('');
     setEditingCourse(courseStr || '');
+    setShowDatePicker(false);
+    setShowTimePicker(false);
     setModalVisible(true);
   }, []);
 
@@ -162,6 +249,8 @@ export default function ClassRecordScreen() {
     setEditingTime(record.class_time || '');
     setEditingContent(record.content || '');
     setEditingCourse(record.course || '');
+    setShowDatePicker(false);
+    setShowTimePicker(false);
     setModalVisible(true);
   }, []);
 
@@ -396,12 +485,22 @@ export default function ClassRecordScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.fieldLabel}>수업 날짜 *</Text>
                 <TouchableOpacity
-                  style={styles.dateSelector}
-                  onPress={() => setShowDatePicker(!showDatePicker)}
+                  style={[styles.dateSelector, showDatePicker && styles.dateSelectorActive]}
+                  onPress={() => {
+                    setShowDatePicker(!showDatePicker);
+                    if (!showDatePicker) setShowTimePicker(false);
+                  }}
                 >
-                  <Text style={styles.dateSelectorText}>
-                    📅 {editingDate || '날짜 선택'}
-                  </Text>
+                  <View style={styles.selectorContentRow}>
+                    <Text style={styles.dateSelectorText}>
+                      📅 {editingDate || '날짜 선택'}
+                    </Text>
+                    <Feather
+                      name={showDatePicker ? 'chevron-up' : 'chevron-down'}
+                      size={18}
+                      color={theme.colors.outline}
+                    />
+                  </View>
                 </TouchableOpacity>
 
                 {showDatePicker && (
@@ -422,15 +521,176 @@ export default function ClassRecordScreen() {
                 )}
               </View>
 
+              {/* 수업 시간 선택 필드 (GUI 피커) */}
               <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>수업 시간</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={editingTime}
-                  onChangeText={setEditingTime}
-                  placeholder="예: 14:00 또는 14시~15시"
-                  placeholderTextColor={theme.colors.outline}
-                />
+                <View style={styles.fieldLabelRow}>
+                  <Text style={styles.fieldLabel}>수업 시간</Text>
+                  {editingTime ? (
+                    <TouchableOpacity
+                      onPress={() => setEditingTime('')}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.clearBtnText}>시간 비우기</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                <TouchableOpacity
+                  style={[styles.dateSelector, showTimePicker && styles.dateSelectorActive]}
+                  onPress={() => {
+                    setShowTimePicker(!showTimePicker);
+                    if (!showTimePicker) setShowDatePicker(false);
+                  }}
+                >
+                  <View style={styles.selectorContentRow}>
+                    <Text style={[styles.dateSelectorText, !editingTime && styles.placeholderText]}>
+                      ⏰ {editingTime || '수업 시간 선택'}
+                    </Text>
+                    <Feather
+                      name={showTimePicker ? 'chevron-up' : 'chevron-down'}
+                      size={18}
+                      color={theme.colors.outline}
+                    />
+                  </View>
+                </TouchableOpacity>
+
+                {showTimePicker && (
+                  <View style={styles.inlineTimePicker}>
+                    {/* 1. 빠른 프리셋 */}
+                    <Text style={styles.timePickerSectionTitle}>⚡ 빠른 선택</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.quickPresetScroll}
+                    >
+                      {QUICK_TIME_PRESETS.map((preset) => {
+                        const isSelected = editingTime === preset;
+                        return (
+                          <TouchableOpacity
+                            key={preset}
+                            style={[
+                              styles.quickPresetChip,
+                              isSelected && styles.quickPresetChipActive,
+                            ]}
+                            onPress={() => {
+                              setEditingTime(preset);
+                            }}
+                          >
+                            <Text
+                              style={[
+                                styles.quickPresetText,
+                                isSelected && styles.quickPresetTextActive,
+                              ]}
+                            >
+                              {preset}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+
+                    {/* 2. 오전/오후 탭 */}
+                    <View style={styles.timeAmpmRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.timeAmpmTab,
+                          parsedTime.ampm === '오전' && styles.timeAmpmTabActive,
+                        ]}
+                        onPress={() => handleTimeAmpmChange('오전')}
+                      >
+                        <Text
+                          style={[
+                            styles.timeAmpmTabText,
+                            parsedTime.ampm === '오전' && styles.timeAmpmTabTextActive,
+                          ]}
+                        >
+                          오전 (AM)
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.timeAmpmTab,
+                          parsedTime.ampm === '오후' && styles.timeAmpmTabActive,
+                        ]}
+                        onPress={() => handleTimeAmpmChange('오후')}
+                      >
+                        <Text
+                          style={[
+                            styles.timeAmpmTabText,
+                            parsedTime.ampm === '오후' && styles.timeAmpmTabTextActive,
+                          ]}
+                        >
+                          오후 (PM)
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* 3. 시간(시) 선택 그리드 */}
+                    <Text style={styles.timePickerSectionTitle}>
+                      {parsedTime.ampm === '오전' ? '오전 시간 (시)' : '오후 시간 (시)'}
+                    </Text>
+                    <View style={styles.timeGridRow}>
+                      {(parsedTime.ampm === '오전' ? MORNING_HOURS : AFTERNOON_HOURS).map((h) => {
+                        const isSelected = parsedTime.hour24 === h.hour24 && !parsedTime.isEmpty;
+                        return (
+                          <TouchableOpacity
+                            key={h.hour24}
+                            style={[
+                              styles.timeGridBtn,
+                              isSelected && styles.timeGridBtnActive,
+                            ]}
+                            onPress={() => handleTimeHourChange(h.hour24)}
+                          >
+                            <Text
+                              style={[
+                                styles.timeGridBtnText,
+                                isSelected && styles.timeGridBtnTextActive,
+                              ]}
+                            >
+                              {h.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* 4. 분(Minute) 선택 그리드 */}
+                    <Text style={styles.timePickerSectionTitle}>분 (Min)</Text>
+                    <View style={styles.timeGridRow}>
+                      {MINUTE_OPTIONS.map((minStr) => {
+                        const isSelected = parsedTime.minute === minStr && !parsedTime.isEmpty;
+                        return (
+                          <TouchableOpacity
+                            key={minStr}
+                            style={[
+                              styles.timeGridBtn,
+                              isSelected && styles.timeGridBtnActive,
+                            ]}
+                            onPress={() => handleTimeMinuteChange(minStr)}
+                          >
+                            <Text
+                              style={[
+                                styles.timeGridBtnText,
+                                isSelected && styles.timeGridBtnTextActive,
+                              ]}
+                            >
+                              {minStr}분
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* 선택 완료 버튼 */}
+                    <TouchableOpacity
+                      style={styles.timeConfirmBtn}
+                      onPress={() => setShowTimePicker(false)}
+                    >
+                      <Text style={styles.timeConfirmBtnText}>
+                        {editingTime ? `${editingTime} 선택 완료` : '선택 완료'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
 
               <View style={styles.inputGroup}>
@@ -928,6 +1188,17 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
+  fieldLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  clearBtnText: {
+    fontSize: 12,
+    color: theme.colors.error,
+    fontWeight: '600',
+  },
   dateSelector: {
     borderWidth: 1,
     borderColor: theme.colors.outline,
@@ -935,9 +1206,21 @@ const styles = StyleSheet.create({
     padding: 14,
     backgroundColor: '#F9FAFB',
   },
+  dateSelectorActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: '#EFF6FF',
+  },
+  selectorContentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   dateSelectorText: {
     fontSize: 14,
     color: theme.colors.textPrimary,
+  },
+  placeholderText: {
+    color: theme.colors.outline,
   },
   inlineCalendar: {
     marginTop: 8,
@@ -945,6 +1228,118 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.secondaryContainer,
     borderRadius: theme.roundness,
     overflow: 'hidden',
+  },
+  inlineTimePicker: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.secondaryContainer,
+    borderRadius: theme.roundness,
+    backgroundColor: theme.colors.white,
+    padding: 12,
+  },
+  timePickerSectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+    marginBottom: 6,
+    marginTop: 6,
+  },
+  quickPresetScroll: {
+    paddingVertical: 2,
+    marginBottom: 8,
+  },
+  quickPresetChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surfaceVariant,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '40',
+  },
+  quickPresetChipActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  quickPresetText: {
+    fontSize: 12.5,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+  },
+  quickPresetTextActive: {
+    color: theme.colors.white,
+    fontWeight: 'bold',
+  },
+  timeAmpmRow: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 8,
+    padding: 3,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  timeAmpmTab: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  timeAmpmTabActive: {
+    backgroundColor: theme.colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    elevation: 2,
+  },
+  timeAmpmTabText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+  },
+  timeAmpmTabTextActive: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
+  },
+  timeGridRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+  },
+  timeGridBtn: {
+    flexBasis: '22.5%',
+    flexGrow: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceVariant + '80',
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '40',
+  },
+  timeGridBtnActive: {
+    backgroundColor: theme.colors.secondaryContainer,
+    borderColor: theme.colors.primary,
+  },
+  timeGridBtnText: {
+    fontSize: 12,
+    color: theme.colors.textPrimary,
+    fontWeight: '500',
+  },
+  timeGridBtnTextActive: {
+    color: theme.colors.onSecondaryContainer,
+    fontWeight: 'bold',
+  },
+  timeConfirmBtn: {
+    marginTop: 6,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 9,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  timeConfirmBtnText: {
+    color: theme.colors.white,
+    fontSize: 13,
+    fontWeight: 'bold',
   },
   modalInput: {
     borderWidth: 1,
