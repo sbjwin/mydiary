@@ -40,13 +40,13 @@ const createRun = ({ text, bold = false, size = 16, color = '000000', italic = f
 /**
  * 문단(Paragraph) 생성 헬퍼
  */
-const createParagraph = (runs = [], { align = 'left', spacingAfter = 40, spacingBefore = 0 } = {}) => {
+const createParagraph = (runs = [], { align = 'left', spacingAfter = 0, spacingBefore = 0, line = 180 } = {}) => {
   const runContent = Array.isArray(runs) ? runs.join('') : runs;
   return `
     <w:p>
       <w:pPr>
         <w:jc w:val="${align}"/>
-        <w:spacing w:before="${spacingBefore}" w:after="${spacingAfter}" w:line="240" w:lineRule="auto"/>
+        <w:spacing w:before="${spacingBefore}" w:after="${spacingAfter}" w:line="${line}" w:lineRule="auto"/>
       </w:pPr>
       ${runContent}
     </w:p>
@@ -74,10 +74,10 @@ const createCell = ({
         ${fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : ''}
         <w:vAlign w:val="${vAlign}"/>
         <w:tcMar>
-          <w:top w:w="60" w:type="dxa"/>
-          <w:bottom w:w="60" w:type="dxa"/>
-          <w:left w:w="80" w:type="dxa"/>
-          <w:right w:w="80" w:type="dxa"/>
+          <w:top w:w="30" w:type="dxa"/>
+          <w:bottom w:w="30" w:type="dxa"/>
+          <w:left w:w="50" w:type="dxa"/>
+          <w:right w:w="50" w:type="dxa"/>
         </w:tcMar>
         ${
           borderBottom || borderRight
@@ -172,21 +172,21 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
     const pars = [];
     // 1) 시간 + 이름 + 결제유형
     const titleRuns = [
-      createRun({ text: `${item.startTime || ''} ${item.studentName || ''} `, bold: true, size: 16, color: '111827' }),
+      createRun({ text: `${item.startTime || ''} ${item.studentName || ''}`, bold: true, size: 13, color: '111827' }),
     ];
     if (item.paymentType) {
-      titleRuns.push(createRun({ text: `(${item.paymentType})`, bold: false, size: 14, color: '4B5563' }));
+      titleRuns.push(createRun({ text: ` (${item.paymentType})`, bold: false, size: 11, color: '4B5563' }));
     }
-    pars.push(createParagraph(titleRuns, { spacingAfter: 20 }));
+    pars.push(createParagraph(titleRuns, { spacingAfter: 0, line: 180 }));
 
     // 2) 과목
     if (item.subject) {
-      pars.push(createParagraph([createRun({ text: item.subject, bold: true, size: 14, color: '1D4ED8' })], { spacingAfter: 20 }));
+      pars.push(createParagraph([createRun({ text: item.subject, bold: true, size: 12, color: '1D4ED8' })], { spacingAfter: 0, line: 180 }));
     }
 
     // 3) 주소
     if (item.address) {
-      pars.push(createParagraph([createRun({ text: item.address, size: 13, color: '374151' })], { spacingAfter: 20 }));
+      pars.push(createParagraph([createRun({ text: item.address, size: 11, color: '374151' })], { spacingAfter: 0, line: 180 }));
     }
 
     // 4) 전화번호
@@ -194,7 +194,7 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
       const phones = item.phoneInfo.split('\n');
       phones.forEach((p) => {
         if (p.trim()) {
-          pars.push(createParagraph([createRun({ text: p.trim(), size: 13, color: '1F2937' })], { spacingAfter: 20 }));
+          pars.push(createParagraph([createRun({ text: p.trim(), size: 11, color: '1F2937' })], { spacingAfter: 0, line: 180 }));
         }
       });
     }
@@ -202,7 +202,7 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
     // 5) 특이사항 / 메모
     if (item.statusNote) {
       const noteText = item.statusNote.startsWith('=>') ? item.statusNote : `=> ${item.statusNote}`;
-      pars.push(createParagraph([createRun({ text: noteText, bold: true, size: 13, color: 'DC2626' })], { spacingAfter: 20 }));
+      pars.push(createParagraph([createRun({ text: noteText, bold: true, size: 11, color: 'DC2626' })], { spacingAfter: 0, line: 180 }));
     }
 
     return pars;
@@ -211,47 +211,47 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
   // 1. 헤더 행 생성 (시간, 월~토)
   const headerCells = [
     createCell({
-      paragraphs: [createParagraph([createRun({ text: '시간', bold: true, size: 16, color: '1E293B' })], { align: 'center', spacingAfter: 0 })],
+      paragraphs: [createParagraph([createRun({ text: '시간', bold: true, size: 14, color: '1E293B' })], { align: 'center', spacingAfter: 0 })],
       width: 700,
       fill: 'CBD5E1',
       vAlign: 'center',
     }),
     ...dayHeaders.map((dh) =>
       createCell({
-        paragraphs: [createParagraph([createRun({ text: dh, bold: true, size: 16, color: '1E293B' })], { align: 'center', spacingAfter: 0 })],
+        paragraphs: [createParagraph([createRun({ text: dh, bold: true, size: 14, color: '1E293B' })], { align: 'center', spacingAfter: 0 })],
         width: 1630,
         fill: 'E2E8F0',
         vAlign: 'center',
       })
     ),
   ];
-  const tableRows = [createRow(headerCells, { isHeader: true, height: 360 })];
+  const tableRows = [createRow(headerCells, { isHeader: true, height: 300 })];
 
   // 2. 시간대별 데이터 행 생성
   timeSlots.forEach((slot) => {
     if (slot.isLunch) {
       const lunchCells = [
         createCell({
-          paragraphs: [createParagraph([createRun({ text: slot.label, bold: true, size: 15, color: '475569' })], { align: 'center', spacingAfter: 0 })],
+          paragraphs: [createParagraph([createRun({ text: slot.label, bold: true, size: 13, color: '475569' })], { align: 'center', spacingAfter: 0 })],
           width: 700,
           fill: 'F1F5F9',
           vAlign: 'center',
         }),
         createCell({
-          paragraphs: [createParagraph([createRun({ text: '즐거운 점심 시간 ☕', bold: true, size: 16, color: '92400E' })], { align: 'center', spacingAfter: 0 })],
+          paragraphs: [createParagraph([createRun({ text: '즐거운 점심 시간 ☕', bold: true, size: 14, color: '92400E' })], { align: 'center', spacingAfter: 0 })],
           width: 9780,
           gridSpan: 6,
           fill: 'FEF3C7',
           vAlign: 'center',
         }),
       ];
-      tableRows.push(createRow(lunchCells, { height: 320 }));
+      tableRows.push(createRow(lunchCells, { height: 240 }));
       return;
     }
 
     const rowCells = [
       createCell({
-        paragraphs: [createParagraph([createRun({ text: slot.label, bold: true, size: 15, color: '475569' })], { align: 'center', spacingAfter: 0 })],
+        paragraphs: [createParagraph([createRun({ text: slot.label, bold: true, size: 13, color: '475569' })], { align: 'center', spacingAfter: 0 })],
         width: 700,
         fill: 'F8FAFC',
         vAlign: 'center',
@@ -266,7 +266,7 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
         const cellPars = [];
         items.forEach((it, idx) => {
           if (idx > 0) {
-            cellPars.push(createParagraph([createRun({ text: '----------------', size: 10, color: 'CBD5E1' })], { align: 'center', spacingAfter: 20 }));
+            cellPars.push(createParagraph([createRun({ text: '----------------', size: 9, color: 'CBD5E1' })], { align: 'center', spacingAfter: 0, line: 160 }));
           }
           cellPars.push(...renderItemParagraphs(it));
         });
@@ -274,36 +274,36 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
       }
     });
 
-    tableRows.push(createRow(rowCells, { height: 620 }));
+    tableRows.push(createRow(rowCells, { height: 520 }));
   });
 
   // 3. 하단 3단 정보 테이블 (기타 업무, 전화 관리, 일요일 시간표)
   // 1) 기타 업무 내용
   const colLeftPars = [
-    createParagraph([createRun({ text: '기타 업무 (전달물 / 특이사항)', bold: true, size: 16, color: '1E3A8A' })], { align: 'center', spacingAfter: 60 }),
-    createParagraph([createRun({ text: '<금주 주요사항>', bold: true, size: 14, color: '1F2937' })], { spacingAfter: 20 }),
-    createParagraph([createRun({ text: weeklyPlan?.mainNotes || '#개학후 시간변동 체크\n#마감보고서 제출', size: 13, color: '374151' })], { spacingAfter: 60 }),
-    createParagraph([createRun({ text: '<전주 결석>', bold: true, size: 14, color: '1F2937' })], { spacingAfter: 20 }),
-    createParagraph([createRun({ text: weeklyPlan?.prevAbsentNotes || '#개인사정 결석', size: 13, color: '374151' })], { spacingAfter: 60 }),
-    createParagraph([createRun({ text: '<특이사항>', bold: true, size: 14, color: '1F2937' })], { spacingAfter: 20 }),
-    createParagraph([createRun({ text: weeklyPlan?.specialNotes || '공지사항 확인', size: 13, color: '374151' })], { spacingAfter: 40 }),
+    createParagraph([createRun({ text: '기타 업무 (전달물 / 특이사항)', bold: true, size: 13, color: '1E3A8A' })], { align: 'center', spacingAfter: 20 }),
+    createParagraph([createRun({ text: '<금주 주요사항>', bold: true, size: 12, color: '1F2937' })], { spacingAfter: 4 }),
+    createParagraph([createRun({ text: weeklyPlan?.mainNotes || '#개학후 시간변동 체크\n#마감보고서 제출', size: 11, color: '374151' })], { spacingAfter: 20, line: 180 }),
+    createParagraph([createRun({ text: '<전주 결석>', bold: true, size: 12, color: '1F2937' })], { spacingAfter: 4 }),
+    createParagraph([createRun({ text: weeklyPlan?.prevAbsentNotes || '#개인사정 결석', size: 11, color: '374151' })], { spacingAfter: 20, line: 180 }),
+    createParagraph([createRun({ text: '<특이사항>', bold: true, size: 12, color: '1F2937' })], { spacingAfter: 4 }),
+    createParagraph([createRun({ text: weeklyPlan?.specialNotes || '공지사항 확인', size: 11, color: '374151' })], { spacingAfter: 10, line: 180 }),
   ];
 
   // 2) 전화 관리 내용
   const colCenterPars = [
-    createParagraph([createRun({ text: '전화 관리 (3개월 미만 2회)', bold: true, size: 16, color: '1E3A8A' })], { align: 'center', spacingAfter: 60 }),
+    createParagraph([createRun({ text: '전화 관리 (3개월 미만 2회)', bold: true, size: 13, color: '1E3A8A' })], { align: 'center', spacingAfter: 20 }),
   ];
   if (callItems.length === 0) {
-    colCenterPars.push(createParagraph([createRun({ text: '등록된 전화 상담 내역이 없습니다.', size: 13, color: '9CA3AF' })], { align: 'center', spacingAfter: 40 }));
+    colCenterPars.push(createParagraph([createRun({ text: '등록된 전화 상담 내역이 없습니다.', size: 11, color: '9CA3AF' })], { align: 'center', spacingAfter: 10 }));
   } else {
     callItems.forEach((c) => {
       colCenterPars.push(
         createParagraph(
           [
-            createRun({ text: `• ${c.name || '회원'} : `, bold: true, size: 14, color: '111827' }),
-            createRun({ text: c.content || '', size: 13, color: '374151' }),
+            createRun({ text: `• ${c.name || '회원'} : `, bold: true, size: 12, color: '111827' }),
+            createRun({ text: c.content || '', size: 11, color: '374151' }),
           ],
-          { spacingAfter: 30 }
+          { spacingAfter: 10, line: 180 }
         )
       );
     });
@@ -311,14 +311,14 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
 
   // 3) 일요일 시간표 내용
   const colRightPars = [
-    createParagraph([createRun({ text: sundayHeader, bold: true, size: 16, color: '991B1B' })], { align: 'center', spacingAfter: 60 }),
+    createParagraph([createRun({ text: sundayHeader, bold: true, size: 13, color: '991B1B' })], { align: 'center', spacingAfter: 20 }),
   ];
   if (sundayItems.length === 0) {
-    colRightPars.push(createParagraph([createRun({ text: '일요일 예정된 수업이 없습니다.', size: 13, color: '9CA3AF' })], { align: 'center', spacingAfter: 40 }));
+    colRightPars.push(createParagraph([createRun({ text: '일요일 예정된 수업이 없습니다.', size: 11, color: '9CA3AF' })], { align: 'center', spacingAfter: 10 }));
   } else {
     sundayItems.forEach((it, idx) => {
       if (idx > 0) {
-        colRightPars.push(createParagraph([createRun({ text: '----------------', size: 10, color: 'FECDD3' })], { align: 'center', spacingAfter: 20 }));
+        colRightPars.push(createParagraph([createRun({ text: '----------------', size: 9, color: 'FECDD3' })], { align: 'center', spacingAfter: 0, line: 160 }));
       }
       colRightPars.push(...renderItemParagraphs(it));
     });
