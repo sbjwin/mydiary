@@ -376,7 +376,7 @@ export const Database = {
               id: generateUUID(),
               studentId: student.id,
               studentName: student.name || '무명',
-              paymentType: student.study_method || '지사입금',
+              paymentType: student.payment_type || '지사입금',
               subject: sched.subject || student.school_grade || '',
               address: student.address || '',
               phoneInfo: phoneList.join('\n'),

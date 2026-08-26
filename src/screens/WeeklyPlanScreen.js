@@ -266,7 +266,7 @@ export default function WeeklyPlanScreen() {
   const handleSelectStudent = (student) => {
     setFormStudentId(student.id);
     setFormStudentName(student.name || '');
-    setFormPaymentType(student.study_method || '지사입금');
+    setFormPaymentType(student.payment_type || '지사입금');
     setFormSubject(student.school_grade ? `${student.school_grade} 과정` : '');
     setFormAddress(student.address || '');
 
@@ -1240,7 +1240,7 @@ export default function WeeklyPlanScreen() {
                 >
                   <View>
                     <Text style={styles.studentItemName}>{s.name}</Text>
-                    <Text style={styles.studentItemSub}>{s.school_grade || '학년 미지정'} | {s.study_method || '지사입금'}</Text>
+                    <Text style={styles.studentItemSub}>{s.school_grade || '학년 미지정'} | {s.study_method || '방문'}</Text>
                   </View>
                   <Feather name="chevron-right" size={18} color={theme.colors.outline} />
                 </TouchableOpacity>
