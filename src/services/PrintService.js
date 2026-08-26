@@ -514,7 +514,6 @@ export const generateWeeklyReportHtml = (weeklyPlan) => {
   // 셀 내부 수업 카드 HTML 렌더링
   const renderCellCard = (item) => {
     const studentName = escapeHtml(item.studentName || '');
-    const payment = item.paymentType ? `(${escapeHtml(item.paymentType)})` : '';
     const subject = escapeHtml(item.subject || '');
     const address = escapeHtml(item.address || '');
     const phoneInfo = escapeHtml(item.phoneInfo || '').replace(/\n/g, '<br/>');
@@ -522,7 +521,7 @@ export const generateWeeklyReportHtml = (weeklyPlan) => {
 
     return `
       <div class="class-card">
-        <div class="card-title"><strong>${item.startTime || ''} ${studentName}</strong><span class="payment-tag">${payment}</span></div>
+        <div class="card-title"><strong>${item.startTime || ''} ${studentName}</strong></div>
         ${subject ? `<div class="card-subject">${subject}</div>` : ''}
         ${address ? `<div class="card-addr">${address}</div>` : ''}
         ${phoneInfo ? `<div class="card-phone">${phoneInfo}</div>` : ''}

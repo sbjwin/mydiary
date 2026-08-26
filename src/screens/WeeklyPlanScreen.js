@@ -708,7 +708,6 @@ export default function WeeklyPlanScreen() {
                             <View style={styles.sundayCardHeader}>
                               <Text style={styles.sundayTimeText}>{item.startTime}</Text>
                               <Text style={styles.sundayNameText}>{item.studentName}</Text>
-                              <Text style={styles.sundayPayTag}>({item.paymentType || '지사입금'})</Text>
                               {isDone && <Text style={styles.doneCheckMark}>✅ 완료</Text>}
                             </View>
                             {item.subject ? <Text style={styles.sundaySubjectText}>{item.subject}</Text> : null}
@@ -785,9 +784,6 @@ export default function WeeklyPlanScreen() {
                           </Text>
                         </View>
                         <Text style={styles.timelineStudentName}>{item.studentName}</Text>
-                        <View style={styles.payBadge}>
-                          <Text style={styles.payBadgeText}>{item.paymentType || '지사입금'}</Text>
-                        </View>
                         <View style={[styles.recurringBadge, item.isRecurring === false && styles.recurringBadgeTemp]}>
                           <Text style={[styles.recurringBadgeText, item.isRecurring === false && styles.recurringBadgeTextTemp]}>
                             {item.isRecurring === false ? '이번주만 ⏱️' : '매주 반복 🔄'}
@@ -1035,7 +1031,7 @@ export default function WeeklyPlanScreen() {
                   onPress={() => setStudentPickerVisible(true)}
                 >
                   <Text style={formStudentName ? styles.studentPickerText : styles.studentPickerPlaceholder}>
-                    {formStudentName ? `${formStudentName} (${formPaymentType})` : '학생 주소록에서 선택하기'}
+                    {formStudentName || '학생 주소록에서 선택하기'}
                   </Text>
                   <Feather name="search" size={16} color={theme.colors.primary} />
                 </TouchableOpacity>
@@ -1069,29 +1065,18 @@ export default function WeeklyPlanScreen() {
                 </View>
               </View>
 
-              <View style={styles.formRow}>
-                <View style={[styles.formCol, styles.flex1]}>
-                  <Text style={styles.formLabel}>시작 시간</Text>
-                  <TouchableOpacity
-                    style={styles.timeSelectorBtn}
-                    onPress={() => setTimePickerVisible(true)}
-                  >
-                    <Text style={styles.timeSelectorBtnText}>
-                      ⏰ {formStartTime || '10:00'}
-                    </Text>
-                    <Feather name="chevron-down" size={15} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                </View>
-                <View style={[styles.formCol, styles.flex1Half]}>
-                  <Text style={styles.formLabel}>입금 형태</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    value={formPaymentType}
-                    onChangeText={setFormPaymentType}
-                    placeholder="지사입금"
-                    placeholderTextColor={theme.colors.outline}
-                  />
-                </View>
+              {/* 시작 시간 */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>시작 시간 <Text style={styles.reqStar}>*</Text></Text>
+                <TouchableOpacity
+                  style={styles.timeSelectorBtn}
+                  onPress={() => setTimePickerVisible(true)}
+                >
+                  <Text style={styles.timeSelectorBtnText}>
+                    ⏰ {formStartTime || '10:00'}
+                  </Text>
+                  <Feather name="chevron-down" size={15} color={theme.colors.primary} />
+                </TouchableOpacity>
               </View>
 
               {/* 과목 */}

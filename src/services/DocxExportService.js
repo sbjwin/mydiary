@@ -170,13 +170,10 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
   // 셀 내 수업 카드 문단 생성
   const renderItemParagraphs = (item) => {
     const pars = [];
-    // 1) 시간 + 이름 + 결제유형
+    // 1) 시간 + 이름
     const titleRuns = [
-      createRun({ text: `${item.startTime || ''} ${item.studentName || ''}`, bold: true, size: 13, color: '111827' }),
+      createRun({ text: `${item.startTime || ''} ${item.studentName || ''}`.trim(), bold: true, size: 13, color: '111827' }),
     ];
-    if (item.paymentType) {
-      titleRuns.push(createRun({ text: ` (${item.paymentType})`, bold: false, size: 11, color: '4B5563' }));
-    }
     pars.push(createParagraph(titleRuns, { spacingAfter: 0, line: 180 }));
 
     // 2) 과목
