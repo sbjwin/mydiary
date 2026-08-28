@@ -149,7 +149,7 @@ export default function StudentDetailScreen() {
       dayOfWeek: 1, // 월요일 기본
       startTime: '10:00',
       duration: 60,
-      subject: schoolGrade ? `${schoolGrade} 과정` : '',
+      subject: '',
     };
     setDefaultSchedules([...defaultSchedules, newSchedule]);
   };

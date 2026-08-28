@@ -368,16 +368,23 @@ export const Database = {
             const dateStr = getDateFromMondayOffset(weekKey, offset);
 
             const phoneList = [];
-            if (student.parent_mobile_phone) phoneList.push(`(모)${student.parent_mobile_phone}`);
-            if (student.mobile_phone) phoneList.push(`(본)${student.mobile_phone}`);
-            if (student.phone_number) phoneList.push(`(부)${student.phone_number}`);
+            if (student.parent_mobile_phone) {
+              const parentLabel = student.parent_name ? `(학부모: ${student.parent_name})` : '(학부모)';
+              phoneList.push(`${parentLabel} ${student.parent_mobile_phone}`);
+            }
+            if (student.mobile_phone) {
+              phoneList.push(`(학생) ${student.mobile_phone}`);
+            }
+            if (student.phone_number) {
+              phoneList.push(`(전화) ${student.phone_number}`);
+            }
 
             defaultScheduleItems.push({
               id: generateUUID(),
               studentId: student.id,
               studentName: student.name || '무명',
               paymentType: student.payment_type || '지사입금',
-              subject: sched.subject || student.school_grade || '',
+              subject: sched.subject || '',
               address: student.address || '',
               phoneInfo: phoneList.join('\n'),
               dayOfWeek: dayOfWeek,

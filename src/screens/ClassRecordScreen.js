@@ -321,7 +321,25 @@ export default function ClassRecordScreen() {
         if (existing) {
           openEditModal(existing);
         } else {
-          openAddModal(targetDate, initialTime, initialCourse || (stud?.school_grade ? `${stud.school_grade} 과정` : ''));
+          let fallbackCourse = initialCourse || '';
+          if (!fallbackCourse && stud) {
+            // 학생 정규 일정 또는 최근 일지에서 과목 탐색
+            if (Array.isArray(stud.default_schedules) && stud.default_schedules.length > 0) {
+              const dObj = new Date(targetDate);
+              const dayVal = dObj.getDay() === 0 ? 7 : dObj.getDay(); // 1~7
+              const matchedSched = stud.default_schedules.find((s) => Number(s.dayOfWeek) === dayVal && s.subject);
+              if (matchedSched) {
+                fallbackCourse = matchedSched.subject;
+              } else {
+                const firstSched = stud.default_schedules.find((s) => s.subject);
+                if (firstSched) fallbackCourse = firstSched.subject;
+              }
+            }
+            if (!fallbackCourse && sortedRecs.length > 0 && sortedRecs[0]?.course) {
+              fallbackCourse = sortedRecs[0].course;
+            }
+          }
+          openAddModal(targetDate, initialTime, fallbackCourse);
         }
       }
     } catch (e) {

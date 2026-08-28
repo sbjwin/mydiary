@@ -267,16 +267,75 @@ export default function WeeklyPlanScreen() {
     setFormStudentId(student.id);
     setFormStudentName(student.name || '');
     setFormPaymentType(student.payment_type || '지사입금');
-    setFormSubject(student.school_grade ? `${student.school_grade} 과정` : '');
     setFormAddress(student.address || '');
 
+    // 1. 해당 요일 또는 학생 기본 일정에 등록된 과목/시간 확인
+    let matchedSubject = '';
+    let matchedTime = formStartTime;
+
+    if (Array.isArray(student.default_schedules) && student.default_schedules.length > 0) {
+      // 현재 선택된 요일(formDayOfWeek)과 일치하는 스케줄 우선 탐색
+      const daySchedule = student.default_schedules.find(
+        (s) => Number(s.dayOfWeek) === Number(formDayOfWeek)
+      );
+      if (daySchedule) {
+        if (daySchedule.subject) matchedSubject = daySchedule.subject;
+        if (daySchedule.startTime) matchedTime = daySchedule.startTime;
+      } else {
+        // 일치하는 요일이 없으면 첫 번째 유효 과목 탐색
+        const firstWithSubject = student.default_schedules.find((s) => s.subject && s.subject.trim());
+        if (firstWithSubject) {
+          matchedSubject = firstWithSubject.subject;
+        }
+      }
+    }
+
+    // 2. 기본 일정에 과목이 없다면 가장 최근 수업일지(allRecords)의 과목 확인
+    if (!matchedSubject && student.id) {
+      const studentRecords = allRecords.filter((r) => r.student_id === student.id && r.course);
+      if (studentRecords.length > 0) {
+        studentRecords.sort((a, b) => (b.class_date || '').localeCompare(a.class_date || ''));
+        if (studentRecords[0]?.course) {
+          matchedSubject = studentRecords[0].course;
+        }
+      }
+    }
+
+    setFormSubject(matchedSubject || '');
+    setFormStartTime(matchedTime || '10:00');
+
+    // 3. 연락처 정보 구성 (학부모, 학생 본인, 자택/일반 전화)
     const phoneList = [];
-    if (student.parent_mobile_phone) phoneList.push(`(모)${student.parent_mobile_phone}`);
-    if (student.mobile_phone) phoneList.push(`(본)${student.mobile_phone}`);
-    if (student.phone_number) phoneList.push(`(부)${student.phone_number}`);
+    if (student.parent_mobile_phone) {
+      const parentLabel = student.parent_name ? `(학부모: ${student.parent_name})` : '(학부모)';
+      phoneList.push(`${parentLabel} ${student.parent_mobile_phone}`);
+    }
+    if (student.mobile_phone) {
+      phoneList.push(`(학생) ${student.mobile_phone}`);
+    }
+    if (student.phone_number) {
+      phoneList.push(`(전화) ${student.phone_number}`);
+    }
     setFormPhoneInfo(phoneList.join('\n'));
 
     setStudentPickerVisible(false);
+  };
+
+  // 모달 내 요일 변경 핸들러 (학생이 이미 선택되어 있다면 해당 요일의 정규 수업 일정 정보 자동 연동)
+  const handleDaySelect = (newDay) => {
+    setFormDayOfWeek(newDay);
+    if (formStudentId) {
+      const student = students.find((s) => s.id === formStudentId);
+      if (student && Array.isArray(student.default_schedules)) {
+        const daySchedule = student.default_schedules.find(
+          (s) => Number(s.dayOfWeek) === Number(newDay)
+        );
+        if (daySchedule) {
+          if (daySchedule.startTime) setFormStartTime(daySchedule.startTime);
+          if (daySchedule.subject) setFormSubject(daySchedule.subject);
+        }
+      }
+    }
   };
 
   // 특정 수업에 매칭되는 실제 수업 일지 찾기 (완료 여부 판별)
@@ -1049,7 +1108,7 @@ export default function WeeklyPlanScreen() {
                           styles.daySelectPill,
                           formDayOfWeek === idx + 1 && styles.daySelectPillActive,
                         ]}
-                        onPress={() => setFormDayOfWeek(idx + 1)}
+                        onPress={() => handleDaySelect(idx + 1)}
                       >
                         <Text
                           style={[
