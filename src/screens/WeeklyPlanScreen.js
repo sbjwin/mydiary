@@ -304,7 +304,7 @@ export default function WeeklyPlanScreen() {
     setFormSubject(matchedSubject || '');
     setFormStartTime(matchedTime || '10:00');
 
-    // 3. 연락처 정보 구성: (본)000-0000-0000, (학부모)000-0000-0000, (전화)00-000-0000
+    // 3. 연락처 정보 구성: (본)000-0000-0000, (모)000-0000-0000, (전화)00-000-0000
     const parentPhone = student.parent_mobile_phone || student.parentMobilePhone;
     const studentPhone = student.mobile_phone || student.mobilePhone;
     const homePhone = student.phone_number || student.phoneNumber;
@@ -314,7 +314,7 @@ export default function WeeklyPlanScreen() {
       phoneList.push(`(본)${studentPhone}`);
     }
     if (parentPhone) {
-      phoneList.push(`(학부모)${parentPhone}`);
+      phoneList.push(`(모)${parentPhone}`);
     }
     if (homePhone) {
       phoneList.push(`(전화)${homePhone}`);

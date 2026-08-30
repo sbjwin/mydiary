@@ -376,7 +376,7 @@ export const Database = {
               phoneList.push(`(본)${studentPhone}`);
             }
             if (parentPhone) {
-              phoneList.push(`(학부모)${parentPhone}`);
+              phoneList.push(`(모)${parentPhone}`);
             }
             if (homePhone) {
               phoneList.push(`(전화)${homePhone}`);
