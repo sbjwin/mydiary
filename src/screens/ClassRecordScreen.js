@@ -798,219 +798,219 @@ export default function ClassRecordScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-        {/* 수업 일지 출력 모달 (기간 선택 + 프린터 인쇄 vs PDF 공유) */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={printModalVisible}
-          onRequestClose={() => setPrintModalVisible(false)}
-          statusBarTranslucent
+      {/* 수업 일지 출력 모달 (기간 선택 + 프린터 인쇄 vs PDF 공유) */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={printModalVisible}
+        onRequestClose={() => setPrintModalVisible(false)}
+        statusBarTranslucent
+      >
+        <TouchableOpacity
+          style={styles.actionModalOverlay}
+          activeOpacity={1}
+          onPress={() => setPrintModalVisible(false)}
         >
           <TouchableOpacity
-            style={styles.actionModalOverlay}
             activeOpacity={1}
-            onPress={() => setPrintModalVisible(false)}
+            style={styles.actionModalContent}
+            onPress={(e) => e.stopPropagation()}
           >
-            <TouchableOpacity
-              activeOpacity={1}
-              style={styles.actionModalContent}
-              onPress={(e) => e.stopPropagation()}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalScrollContent}
             >
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.modalScrollContent}
-              >
-                <View style={styles.actionModalHeader}>
-                  <View style={styles.actionModalTitleContainer}>
-                    <Text style={styles.actionModalTitle}>수업 일지 보고서 출력</Text>
-                    <Text style={styles.actionModalSubtitle}>
-                      {student?.name || '학생'} 학생의 수업 기록 ({filteredRecordsForPrint.length}건 선택됨)
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setPrintModalVisible(false)} style={styles.actionModalCloseBtn}>
-                    <Feather name="x" size={22} color={theme.colors.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* 기간 필터 선택 칩 */}
-                <Text style={styles.filterSectionLabel}>출력 기간 선택</Text>
-                <View style={styles.filterChipGroup}>
-                  <TouchableOpacity
-                    style={[styles.filterChip, periodFilter === 'all' && styles.filterChipActive]}
-                    onPress={() => {
-                      setPeriodFilter('all');
-                      setActiveDatePicker(null);
-                    }}
-                  >
-                    <Text style={[styles.filterChipText, periodFilter === 'all' && styles.filterChipTextActive]}>
-                      전체 기간
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.filterChip, periodFilter === 'current_month' && styles.filterChipActive]}
-                    onPress={() => {
-                      setPeriodFilter('current_month');
-                      setActiveDatePicker(null);
-                    }}
-                  >
-                    <Text style={[styles.filterChipText, periodFilter === 'current_month' && styles.filterChipTextActive]}>
-                      이번 달
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.filterChip, periodFilter === '1m' && styles.filterChipActive]}
-                    onPress={() => {
-                      setPeriodFilter('1m');
-                      setActiveDatePicker(null);
-                    }}
-                  >
-                    <Text style={[styles.filterChipText, periodFilter === '1m' && styles.filterChipTextActive]}>
-                      최근 1개월
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.filterChip, periodFilter === '3m' && styles.filterChipActive]}
-                    onPress={() => {
-                      setPeriodFilter('3m');
-                      setActiveDatePicker(null);
-                    }}
-                  >
-                    <Text style={[styles.filterChipText, periodFilter === '3m' && styles.filterChipTextActive]}>
-                      최근 3개월
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.filterChip, periodFilter === 'custom' && styles.filterChipActive]}
-                    onPress={() => {
-                      setPeriodFilter('custom');
-                      setActiveDatePicker(null);
-                    }}
-                  >
-                    <Text style={[styles.filterChipText, periodFilter === 'custom' && styles.filterChipTextActive]}>
-                      직접 설정
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* 직접 설정 선택 시 시작일 ~ 종료일 선택기 */}
-                {periodFilter === 'custom' && (
-                  <View style={styles.customDateContainer}>
-                    <View style={styles.customDateRow}>
-                      <TouchableOpacity
-                        style={[
-                          styles.customDateBtn,
-                          activeDatePicker === 'start' && styles.customDateBtnActive
-                        ]}
-                        onPress={() => setActiveDatePicker(activeDatePicker === 'start' ? null : 'start')}
-                      >
-                        <Text style={styles.customDateLabel}>시작일</Text>
-                        <Text style={styles.customDateText}>{customStartDate}</Text>
-                      </TouchableOpacity>
-
-                      <Text style={styles.customDateTilde}>~</Text>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.customDateBtn,
-                          activeDatePicker === 'end' && styles.customDateBtnActive
-                        ]}
-                        onPress={() => setActiveDatePicker(activeDatePicker === 'end' ? null : 'end')}
-                      >
-                        <Text style={styles.customDateLabel}>종료일</Text>
-                        <Text style={styles.customDateText}>{customEndDate}</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* 날짜 선택 인라인 캘린더 */}
-                    {activeDatePicker && (
-                      <View style={styles.inlineCustomCalendar}>
-                        <View style={styles.inlineCustomCalendarHeader}>
-                          <Text style={styles.inlineCustomCalendarTitle}>
-                            {activeDatePicker === 'start' ? '시작 날짜 선택' : '종료 날짜 선택'}
-                          </Text>
-                        </View>
-                        <Calendar
-                          current={activeDatePicker === 'start' ? customStartDate : customEndDate}
-                          onDayPress={(day) => {
-                            if (activeDatePicker === 'start') {
-                              setCustomStartDate(day.dateString);
-                              if (day.dateString > customEndDate) {
-                                setCustomEndDate(day.dateString);
-                              }
-                            } else {
-                              setCustomEndDate(day.dateString);
-                              if (day.dateString < customStartDate) {
-                                setCustomStartDate(day.dateString);
-                              }
-                            }
-                            setActiveDatePicker(null);
-                          }}
-                          theme={{
-                            selectedDayBackgroundColor: theme.colors.primary,
-                            todayTextColor: theme.colors.primary,
-                            arrowColor: theme.colors.primary,
-                          }}
-                        />
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                {/* 선택된 대상 요약 배너 */}
-                <View style={styles.summaryBadgeBox}>
-                  <Feather name="info" size={14} color={theme.colors.primary} style={styles.summaryBadgeIcon} />
-                  <Text style={styles.summaryBadgeText}>
-                    조회: {periodTitle} ({filteredRecordsForPrint.length}회차 기록)
+              <View style={styles.actionModalHeader}>
+                <View style={styles.actionModalTitleContainer}>
+                  <Text style={styles.actionModalTitle}>수업 일지 보고서 출력</Text>
+                  <Text style={styles.actionModalSubtitle}>
+                    {student?.name || '학생'} 학생의 수업 기록 ({filteredRecordsForPrint.length}건 선택됨)
                   </Text>
                 </View>
+                <TouchableOpacity onPress={() => setPrintModalVisible(false)} style={styles.actionModalCloseBtn}>
+                  <Feather name="x" size={22} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
-                {/* 메뉴 1: 무선/유선 프린터로 인쇄 */}
+              {/* 기간 필터 선택 칩 */}
+              <Text style={styles.filterSectionLabel}>출력 기간 선택</Text>
+              <View style={styles.filterChipGroup}>
                 <TouchableOpacity
-                  style={styles.actionMenuItem}
-                  onPress={async () => {
-                    setPrintModalVisible(false);
-                    await printClassRecords(student, filteredRecordsForPrint, periodTitle);
+                  style={[styles.filterChip, periodFilter === 'all' && styles.filterChipActive]}
+                  onPress={() => {
+                    setPeriodFilter('all');
+                    setActiveDatePicker(null);
                   }}
                 >
-                  <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
-                    <Feather name="printer" size={22} color={theme.colors.primary} />
-                  </View>
-                  <View style={styles.actionMenuTextContainer}>
-                    <Text style={styles.actionMenuTitle}>프린터로 인쇄 (A4)</Text>
-                    <Text style={styles.actionMenuSub}>Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다</Text>
-                  </View>
-                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+                  <Text style={[styles.filterChipText, periodFilter === 'all' && styles.filterChipTextActive]}>
+                    전체 기간
+                  </Text>
                 </TouchableOpacity>
 
-                {/* 메뉴 2: PDF 파일 공유 (카톡/메시지) */}
                 <TouchableOpacity
-                  style={styles.actionMenuItem}
-                  onPress={async () => {
-                    setPrintModalVisible(false);
-                    await shareClassRecords(student, filteredRecordsForPrint, periodTitle);
+                  style={[styles.filterChip, periodFilter === 'current_month' && styles.filterChipActive]}
+                  onPress={() => {
+                    setPeriodFilter('current_month');
+                    setActiveDatePicker(null);
                   }}
                 >
-                  <View style={[styles.actionIconBadge, styles.pdfShareIconBadge]}>
-                    <Feather name="share-2" size={22} color="#0284C7" />
-                  </View>
-                  <View style={styles.actionMenuTextContainer}>
-                    <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡/메시지)</Text>
-                    <Text style={styles.actionMenuSub}>학부모님 카톡, 문자, 이메일로 보고서를 발송합니다</Text>
-                  </View>
-                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+                  <Text style={[styles.filterChipText, periodFilter === 'current_month' && styles.filterChipTextActive]}>
+                    이번 달
+                  </Text>
                 </TouchableOpacity>
-              </ScrollView>
-            </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.filterChip, periodFilter === '1m' && styles.filterChipActive]}
+                  onPress={() => {
+                    setPeriodFilter('1m');
+                    setActiveDatePicker(null);
+                  }}
+                >
+                  <Text style={[styles.filterChipText, periodFilter === '1m' && styles.filterChipTextActive]}>
+                    최근 1개월
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.filterChip, periodFilter === '3m' && styles.filterChipActive]}
+                  onPress={() => {
+                    setPeriodFilter('3m');
+                    setActiveDatePicker(null);
+                  }}
+                >
+                  <Text style={[styles.filterChipText, periodFilter === '3m' && styles.filterChipTextActive]}>
+                    최근 3개월
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.filterChip, periodFilter === 'custom' && styles.filterChipActive]}
+                  onPress={() => {
+                    setPeriodFilter('custom');
+                    setActiveDatePicker(null);
+                  }}
+                >
+                  <Text style={[styles.filterChipText, periodFilter === 'custom' && styles.filterChipTextActive]}>
+                    직접 설정
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* 직접 설정 선택 시 시작일 ~ 종료일 선택기 */}
+              {periodFilter === 'custom' && (
+                <View style={styles.customDateContainer}>
+                  <View style={styles.customDateRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.customDateBtn,
+                        activeDatePicker === 'start' && styles.customDateBtnActive
+                      ]}
+                      onPress={() => setActiveDatePicker(activeDatePicker === 'start' ? null : 'start')}
+                    >
+                      <Text style={styles.customDateLabel}>시작일</Text>
+                      <Text style={styles.customDateText}>{customStartDate}</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.customDateTilde}>~</Text>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.customDateBtn,
+                        activeDatePicker === 'end' && styles.customDateBtnActive
+                      ]}
+                      onPress={() => setActiveDatePicker(activeDatePicker === 'end' ? null : 'end')}
+                    >
+                      <Text style={styles.customDateLabel}>종료일</Text>
+                      <Text style={styles.customDateText}>{customEndDate}</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 날짜 선택 인라인 캘린더 */}
+                  {activeDatePicker && (
+                    <View style={styles.inlineCustomCalendar}>
+                      <View style={styles.inlineCustomCalendarHeader}>
+                        <Text style={styles.inlineCustomCalendarTitle}>
+                          {activeDatePicker === 'start' ? '시작 날짜 선택' : '종료 날짜 선택'}
+                        </Text>
+                      </View>
+                      <Calendar
+                        current={activeDatePicker === 'start' ? customStartDate : customEndDate}
+                        onDayPress={(day) => {
+                          if (activeDatePicker === 'start') {
+                            setCustomStartDate(day.dateString);
+                            if (day.dateString > customEndDate) {
+                              setCustomEndDate(day.dateString);
+                            }
+                          } else {
+                            setCustomEndDate(day.dateString);
+                            if (day.dateString < customStartDate) {
+                              setCustomStartDate(day.dateString);
+                            }
+                          }
+                          setActiveDatePicker(null);
+                        }}
+                        theme={{
+                          selectedDayBackgroundColor: theme.colors.primary,
+                          todayTextColor: theme.colors.primary,
+                          arrowColor: theme.colors.primary,
+                        }}
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* 선택된 대상 요약 배너 */}
+              <View style={styles.summaryBadgeBox}>
+                <Feather name="info" size={14} color={theme.colors.primary} style={styles.summaryBadgeIcon} />
+                <Text style={styles.summaryBadgeText}>
+                  조회: {periodTitle} ({filteredRecordsForPrint.length}회차 기록)
+                </Text>
+              </View>
+
+              {/* 메뉴 1: 무선/유선 프린터로 인쇄 */}
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={async () => {
+                  setPrintModalVisible(false);
+                  await printClassRecords(student, filteredRecordsForPrint, periodTitle);
+                }}
+              >
+                <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
+                  <Feather name="printer" size={22} color={theme.colors.primary} />
+                </View>
+                <View style={styles.actionMenuTextContainer}>
+                  <Text style={styles.actionMenuTitle}>프린터로 인쇄 (A4)</Text>
+                  <Text style={styles.actionMenuSub}>Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다</Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+              </TouchableOpacity>
+
+              {/* 메뉴 2: PDF 파일 공유 (카톡/메시지) */}
+              <TouchableOpacity
+                style={styles.actionMenuItem}
+                onPress={async () => {
+                  setPrintModalVisible(false);
+                  await shareClassRecords(student, filteredRecordsForPrint, periodTitle);
+                }}
+              >
+                <View style={[styles.actionIconBadge, styles.pdfShareIconBadge]}>
+                  <Feather name="share-2" size={22} color="#0284C7" />
+                </View>
+                <View style={styles.actionMenuTextContainer}>
+                  <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡/메시지)</Text>
+                  <Text style={styles.actionMenuSub}>학부모님 카톡, 문자, 이메일로 보고서를 발송합니다</Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+              </TouchableOpacity>
+            </ScrollView>
           </TouchableOpacity>
-        </Modal>
+        </TouchableOpacity>
+      </Modal>
 
-      </SafeAreaView>
-    );
-  }
+    </SafeAreaView>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {

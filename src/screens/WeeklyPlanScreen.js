@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
-import { Database, getMondayOfWeek, getDateFromMondayOffset } from '../database/Database';
+import { Database, getMondayOfWeek, getDateFromMondayOffset, formatPhoneInfo } from '../database/Database';
 import { printWeeklyReport, shareWeeklyReport, shareWeeklyReportDocx } from '../services/PrintService';
 import { theme } from '../theme';
 
@@ -254,7 +254,7 @@ export default function WeeklyPlanScreen() {
     setFormPaymentType(item.paymentType || '지사입금');
     setFormSubject(item.subject || '');
     setFormAddress(item.address || '');
-    setFormPhoneInfo(item.phoneInfo || '');
+    setFormPhoneInfo(formatPhoneInfo(item.phoneInfo || ''));
     setFormDayOfWeek(Number(item.dayOfWeek) || 1);
     setFormStartTime(item.startTime || '10:00');
     setFormStatusNote(item.statusNote || '');
@@ -370,7 +370,7 @@ export default function WeeklyPlanScreen() {
       paymentType: formPaymentType.trim(),
       subject: formSubject.trim(),
       address: formAddress.trim(),
-      phoneInfo: formPhoneInfo.trim(),
+      phoneInfo: formatPhoneInfo(formPhoneInfo.trim()),
       dayOfWeek: Number(formDayOfWeek),
       date: targetDate,
       startTime: formStartTime.trim() || '10:00',
@@ -881,7 +881,7 @@ export default function WeeklyPlanScreen() {
                       {item.phoneInfo ? (
                         <View style={styles.timelinePhoneRow}>
                           <Feather name="phone" size={13} color={theme.colors.primary} />
-                          <Text style={styles.timelinePhoneText}>{item.phoneInfo.replace(/\n/g, '  |  ')}</Text>
+                          <Text style={styles.timelinePhoneText}>{formatPhoneInfo(item.phoneInfo).replace(/\n/g, '  |  ')}</Text>
                           <TouchableOpacity
                             style={styles.callSmallBtn}
                             onPress={() => handleMakeCall(item.phoneInfo)}

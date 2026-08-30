@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as FileSystemNext from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
+import { formatPhoneInfo } from '../database/Database';
 
 const TEACHER_NAME = '성백진';
 
@@ -188,7 +189,7 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
 
     // 4) 전화번호
     if (item.phoneInfo) {
-      const phones = item.phoneInfo.split('\n');
+      const phones = formatPhoneInfo(item.phoneInfo).split('\n');
       phones.forEach((p) => {
         if (p.trim()) {
           pars.push(createParagraph([createRun({ text: p.trim(), size: 11, color: '1F2937' })], { spacingAfter: 0, line: 180 }));

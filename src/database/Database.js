@@ -35,6 +35,60 @@ export const getDateFromMondayOffset = (mondayString, offsetDays) => {
   return `${year}-${month}-${date}`;
 };
 
+// 연락처 정보 정규화 헬퍼: 학부모는 (모)010-..., 학생 본인은 (본)010-... 형태로 통일
+export const formatPhoneInfo = (phoneInfo) => {
+  if (!phoneInfo || typeof phoneInfo !== 'string') return '';
+
+  return phoneInfo
+    .split('\n')
+    .map((line) => {
+      let trimmed = line.trim();
+      if (!trimmed) return '';
+
+      // 1. 학부모 관련 표기 교정 -> (모)010-XXXX-XXXX
+      if (/^\(학부모[^)]*\)/.test(trimmed)) {
+        trimmed = trimmed.replace(/^\(학부모[^)]*\)\s*/, '(모)');
+      } else if (/^학부모[:\s]*/.test(trimmed)) {
+        trimmed = trimmed.replace(/^학부모[:\s]*/, '(모)');
+      } else if (/^\(모[^)]*\)/.test(trimmed)) {
+        trimmed = trimmed.replace(/^\(모[^)]*\)\s*/, '(모)');
+      } else if (/^모[:\s]*/.test(trimmed)) {
+        trimmed = trimmed.replace(/^모[:\s]*/, '(모)');
+      }
+
+      // 2. 학생 본인 관련 표기 교정 -> (본)010-XXXX-XXXX
+      else if (/^\(학생[^)]*\)/.test(trimmed)) {
+        trimmed = trimmed.replace(/^\(학생[^)]*\)\s*/, '(본)');
+      } else if (/^학생[:\s]*/.test(trimmed)) {
+        trimmed = trimmed.replace(/^학생[:\s]*/, '(본)');
+      } else if (/^\(본인[^)]*\)/.test(trimmed)) {
+        trimmed = trimmed.replace(/^\(본인[^)]*\)\s*/, '(본)');
+      } else if (/^본인[:\s]*/.test(trimmed)) {
+        trimmed = trimmed.replace(/^본인[:\s]*/, '(본)');
+      } else if (/^\(본[^)]*\)/.test(trimmed)) {
+        trimmed = trimmed.replace(/^\(본[^)]*\)\s*/, '(본)');
+      }
+
+      // 3. 아버지 관련 표기 교정 -> (부)010-XXXX-XXXX
+      else if (/^\(아버지[^)]*\)/.test(trimmed)) {
+        trimmed = trimmed.replace(/^\(아버지[^)]*\)\s*/, '(부)');
+      } else if (/^아버지[:\s]*/.test(trimmed)) {
+        trimmed = trimmed.replace(/^아버지[:\s]*/, '(부)');
+      } else if (/^\(부[^)]*\)/.test(trimmed)) {
+        trimmed = trimmed.replace(/^\(부[^)]*\)\s*/, '(부)');
+      }
+
+      // 4. 일반 전화 표기 교정 -> (전화)000-000-0000
+      else if (/^\(집전화[^)]*\)/.test(trimmed) || /^\(자택[^)]*\)/.test(trimmed) || /^\(전화[^)]*\)/.test(trimmed)) {
+        trimmed = trimmed.replace(/^\([^)]*\)\s*/, '(전화)');
+      }
+
+      return trimmed;
+    })
+    .filter(Boolean)
+    .join('\n');
+};
+
 export const Database = {
   // --- 학생 (주소록) CRUD ---
 
@@ -353,7 +407,14 @@ export const Database = {
     try {
       const plansMap = await Database.getAllWeeklyPlansMap();
       if (plansMap[weekKey]) {
-        return plansMap[weekKey];
+        const plan = plansMap[weekKey];
+        if (Array.isArray(plan.scheduleItems)) {
+          plan.scheduleItems = plan.scheduleItems.map((item) => ({
+            ...item,
+            phoneInfo: formatPhoneInfo(item.phoneInfo),
+          }));
+        }
+        return plan;
       }
 
       // 저장된 주간 계획이 없다면 학생들의 기본 일정(default_schedules)을 바탕으로 초기 데이터 생성
@@ -389,7 +450,7 @@ export const Database = {
               paymentType: student.payment_type || '지사입금',
               subject: sched.subject || '',
               address: student.address || '',
-              phoneInfo: phoneList.join('\n'),
+              phoneInfo: formatPhoneInfo(phoneList.join('\n')),
               dayOfWeek: dayOfWeek,
               date: dateStr,
               startTime: sched.startTime || '10:00',
@@ -441,8 +502,16 @@ export const Database = {
   saveWeeklyPlan: async (weekKey, planData) => {
     try {
       const plansMap = await Database.getAllWeeklyPlansMap();
+      const normalizedScheduleItems = Array.isArray(planData.scheduleItems)
+        ? planData.scheduleItems.map((item) => ({
+            ...item,
+            phoneInfo: formatPhoneInfo(item.phoneInfo),
+          }))
+        : [];
+
       plansMap[weekKey] = {
         ...planData,
+        scheduleItems: normalizedScheduleItems,
         weekKey,
         updatedAt: new Date().toISOString(),
       };

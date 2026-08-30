@@ -1,6 +1,7 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
+import { formatPhoneInfo } from '../database/Database';
 
 const TEACHER_NAME = '성백진';
 
@@ -516,7 +517,7 @@ export const generateWeeklyReportHtml = (weeklyPlan) => {
     const studentName = escapeHtml(item.studentName || '');
     const subject = escapeHtml(item.subject || '');
     const address = escapeHtml(item.address || '');
-    const phoneInfo = escapeHtml(item.phoneInfo || '').replace(/\n/g, '<br/>');
+    const phoneInfo = escapeHtml(formatPhoneInfo(item.phoneInfo || '')).replace(/\n/g, '<br/>');
     const note = escapeHtml(item.statusNote || '');
 
     return `
