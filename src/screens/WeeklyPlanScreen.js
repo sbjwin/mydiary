@@ -269,42 +269,22 @@ export default function WeeklyPlanScreen() {
     setFormPaymentType(student.payment_type || '지사입금');
     setFormAddress(student.address || '');
 
-    // 1. 해당 요일 또는 학생 기본 일정에 등록된 과목/시간 확인
-    let matchedSubject = '';
-    let matchedTime = formStartTime;
+    // [수업 과목 / 과정]은 원치 않는 다른 필드나 이전 기록이 따라오지 않도록 항상 빈칸으로 비워둠
+    setFormSubject('');
 
+    // 시작 시간: 해당 요일 정규 일정에 시간이 등록되어 있다면 시간만 연동
+    let matchedTime = formStartTime;
     if (Array.isArray(student.default_schedules) && student.default_schedules.length > 0) {
-      // 현재 선택된 요일(formDayOfWeek)과 일치하는 스케줄 우선 탐색
       const daySchedule = student.default_schedules.find(
         (s) => Number(s.dayOfWeek) === Number(formDayOfWeek)
       );
-      if (daySchedule) {
-        if (daySchedule.subject) matchedSubject = daySchedule.subject;
-        if (daySchedule.startTime) matchedTime = daySchedule.startTime;
-      } else {
-        // 일치하는 요일이 없으면 첫 번째 유효 과목 탐색
-        const firstWithSubject = student.default_schedules.find((s) => s.subject && s.subject.trim());
-        if (firstWithSubject) {
-          matchedSubject = firstWithSubject.subject;
-        }
+      if (daySchedule && daySchedule.startTime) {
+        matchedTime = daySchedule.startTime;
       }
     }
-
-    // 2. 기본 일정에 과목이 없다면 가장 최근 수업일지(allRecords)의 과목 확인
-    if (!matchedSubject && student.id) {
-      const studentRecords = allRecords.filter((r) => r.student_id === student.id && r.course);
-      if (studentRecords.length > 0) {
-        studentRecords.sort((a, b) => (b.class_date || '').localeCompare(a.class_date || ''));
-        if (studentRecords[0]?.course) {
-          matchedSubject = studentRecords[0].course;
-        }
-      }
-    }
-
-    setFormSubject(matchedSubject || '');
     setFormStartTime(matchedTime || '10:00');
 
-    // 3. 연락처 정보 구성: (본)000-0000-0000, (모)000-0000-0000, (전화)00-000-0000
+    // 2. 연락처 정보 구성: (본)000-0000-0000, (모)000-0000-0000, (전화)00-000-0000
     const parentPhone = student.parent_mobile_phone || student.parentMobilePhone;
     const studentPhone = student.mobile_phone || student.mobilePhone;
     const homePhone = student.phone_number || student.phoneNumber;
@@ -324,7 +304,7 @@ export default function WeeklyPlanScreen() {
     setStudentPickerVisible(false);
   };
 
-  // 모달 내 요일 변경 핸들러 (학생이 이미 선택되어 있다면 해당 요일의 정규 수업 일정 정보 자동 연동)
+  // 모달 내 요일 변경 핸들러 (학생이 이미 선택되어 있다면 해당 요일의 시작 시간만 필요 시 연동)
   const handleDaySelect = (newDay) => {
     setFormDayOfWeek(newDay);
     if (formStudentId) {
@@ -333,9 +313,8 @@ export default function WeeklyPlanScreen() {
         const daySchedule = student.default_schedules.find(
           (s) => Number(s.dayOfWeek) === Number(newDay)
         );
-        if (daySchedule) {
-          if (daySchedule.startTime) setFormStartTime(daySchedule.startTime);
-          if (daySchedule.subject) setFormSubject(daySchedule.subject);
+        if (daySchedule && daySchedule.startTime) {
+          setFormStartTime(daySchedule.startTime);
         }
       }
     }
