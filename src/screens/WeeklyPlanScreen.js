@@ -262,26 +262,28 @@ export default function WeeklyPlanScreen() {
     setEditModalVisible(true);
   };
 
-  // 학생 선택 시 기본 정보 자동 완성
+  // 학생 선택 시 기본 정보 자동 완성 (해당 요일의 정규 수업 일정 정보 연동)
   const handleSelectStudent = (student) => {
     setFormStudentId(student.id);
     setFormStudentName(student.name || '');
     setFormPaymentType(student.payment_type || '지사입금');
     setFormAddress(student.address || '');
 
-    // [수업 과목 / 과정]은 원치 않는 다른 필드나 이전 기록이 따라오지 않도록 항상 빈칸으로 비워둠
-    setFormSubject('');
-
-    // 시작 시간: 해당 요일 정규 일정에 시간이 등록되어 있다면 시간만 연동
+    // 1. 해당 요일(formDayOfWeek)에 등록된 정규 수업 일정(과목, 시간) 확인
+    let matchedSubject = '';
     let matchedTime = formStartTime;
+
     if (Array.isArray(student.default_schedules) && student.default_schedules.length > 0) {
       const daySchedule = student.default_schedules.find(
         (s) => Number(s.dayOfWeek) === Number(formDayOfWeek)
       );
-      if (daySchedule && daySchedule.startTime) {
-        matchedTime = daySchedule.startTime;
+      if (daySchedule) {
+        if (daySchedule.subject) matchedSubject = daySchedule.subject;
+        if (daySchedule.startTime) matchedTime = daySchedule.startTime;
       }
     }
+
+    setFormSubject(matchedSubject || '');
     setFormStartTime(matchedTime || '10:00');
 
     // 2. 연락처 정보 구성: (본)000-0000-0000, (모)000-0000-0000, (전화)00-000-0000
@@ -304,7 +306,7 @@ export default function WeeklyPlanScreen() {
     setStudentPickerVisible(false);
   };
 
-  // 모달 내 요일 변경 핸들러 (학생이 이미 선택되어 있다면 해당 요일의 시작 시간만 필요 시 연동)
+  // 모달 내 요일 변경 핸들러 (학생이 이미 선택되어 있다면 해당 요일의 정규 수업 일정 정보 자동 연동)
   const handleDaySelect = (newDay) => {
     setFormDayOfWeek(newDay);
     if (formStudentId) {
@@ -313,8 +315,9 @@ export default function WeeklyPlanScreen() {
         const daySchedule = student.default_schedules.find(
           (s) => Number(s.dayOfWeek) === Number(newDay)
         );
-        if (daySchedule && daySchedule.startTime) {
-          setFormStartTime(daySchedule.startTime);
+        if (daySchedule) {
+          if (daySchedule.startTime) setFormStartTime(daySchedule.startTime);
+          if (daySchedule.subject !== undefined) setFormSubject(daySchedule.subject || '');
         }
       }
     }
