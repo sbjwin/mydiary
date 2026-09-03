@@ -1027,7 +1027,12 @@ export default function WeeklyPlanScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={true}
+            >
               {/* 일정 주기 구분 (매주 계속 vs 이번주만) */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>일정 주기 구분</Text>
@@ -1182,49 +1187,49 @@ export default function WeeklyPlanScreen() {
                   placeholderTextColor={theme.colors.outline}
                 />
               </View>
-
-              {/* 하단 액션 버튼 */}
-              <View style={styles.modalBtnRow}>
-                {selectedItem && (
-                  <TouchableOpacity
-                    style={styles.modalDeleteBtn}
-                    onPress={() => handleDeleteScheduleItem(selectedItem.id)}
-                  >
-                    <Feather name="trash-2" size={16} color={theme.colors.error} />
-                    <Text style={styles.modalDeleteBtnText}>이번주 제외</Text>
-                  </TouchableOpacity>
-                )}
-
-                {selectedItem && (
-                  <TouchableOpacity
-                    style={styles.modalRecordBtn}
-                    onPress={() => handleGoToClassRecord(selectedItem)}
-                  >
-                    <Feather
-                      name="book-open"
-                      size={16}
-                      color={getMatchedRecord(selectedItem) ? '#16A34A' : theme.colors.primary}
-                    />
-                    <Text
-                      style={[
-                        styles.modalRecordBtnText,
-                        getMatchedRecord(selectedItem) && styles.modalRecordBtnTextDone,
-                      ]}
-                    >
-                      {getMatchedRecord(selectedItem) ? '일지 수정' : '일지 작성'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  style={styles.modalSaveBtn}
-                  onPress={handleSaveScheduleItem}
-                >
-                  <Feather name="check" size={16} color={theme.colors.onPrimary} />
-                  <Text style={styles.modalSaveBtnText}>저장하기</Text>
-                </TouchableOpacity>
-              </View>
             </ScrollView>
+
+            {/* 하단 액션 버튼 (항상 화면 하단에 고정 표시) */}
+            <View style={styles.modalBtnRow}>
+              {selectedItem && (
+                <TouchableOpacity
+                  style={styles.modalDeleteBtn}
+                  onPress={() => handleDeleteScheduleItem(selectedItem.id)}
+                >
+                  <Feather name="trash-2" size={16} color={theme.colors.error} />
+                  <Text style={styles.modalDeleteBtnText}>이번주 제외</Text>
+                </TouchableOpacity>
+              )}
+
+              {selectedItem && (
+                <TouchableOpacity
+                  style={styles.modalRecordBtn}
+                  onPress={() => handleGoToClassRecord(selectedItem)}
+                >
+                  <Feather
+                    name="book-open"
+                    size={16}
+                    color={getMatchedRecord(selectedItem) ? '#16A34A' : theme.colors.primary}
+                  />
+                  <Text
+                    style={[
+                      styles.modalRecordBtnText,
+                      getMatchedRecord(selectedItem) && styles.modalRecordBtnTextDone,
+                    ]}
+                  >
+                    {getMatchedRecord(selectedItem) ? '일지 수정' : '일지 작성'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={styles.modalSaveBtn}
+                onPress={handleSaveScheduleItem}
+              >
+                <Feather name="check" size={16} color={theme.colors.onPrimary} />
+                <Text style={styles.modalSaveBtnText}>저장하기</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -2228,8 +2233,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '90%',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    maxHeight: '88%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -2251,7 +2258,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   modalScroll: {
-    maxHeight: 480,
+    flexShrink: 1,
+  },
+  modalScrollContent: {
+    paddingBottom: 10,
   },
   formGroup: {
     marginBottom: 12,
@@ -2348,11 +2358,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 10,
-    marginTop: 16,
+    marginTop: 10,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: theme.colors.surfaceVariant,
-    paddingBottom: 20,
   },
   modalDeleteBtn: {
     flexDirection: 'row',
