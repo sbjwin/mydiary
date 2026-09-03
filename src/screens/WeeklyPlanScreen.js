@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
-  Linking
+  Linking,
+  Platform
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
@@ -2235,7 +2236,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 16,
+    paddingBottom: Platform.OS === 'android' ? 56 : 36,
     maxHeight: '88%',
   },
   modalHeader: {
