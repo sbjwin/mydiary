@@ -1169,7 +1169,7 @@ export default function WeeklyPlanScreen() {
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>이번 주 특이사항 / 변동 메모 (PDF에 인쇄됨)</Text>
                 <View style={styles.presetChipRow}>
-                  {['=> 이번주만', '=> 8/15일 수업함', '=> 휴일', '=> 아픔', '(30분 수업)'].map((chip) => (
+                  {['=> 이번주만', '=> 휴일', '=> 아픔', '(30분 수업)'].map((chip) => (
                     <TouchableOpacity
                       key={chip}
                       style={styles.presetChip}
