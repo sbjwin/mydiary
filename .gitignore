@@ -172,6 +172,9 @@ xcuserdata/
 *.dSYM.zip
 *.dSYM
 
+# --- AI Agents & Automation ---
+.agents/
+
 # --- OS / Editor specific ---
 .DS_Store
 Thumbs.db
