@@ -137,7 +137,6 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
   const sundayHeader = getDayHeader(6, '일요일 시간표');
 
   const scheduleItems = weeklyPlan?.scheduleItems || [];
-  const callItems = weeklyPlan?.callItems || [];
 
   const timeSlots = [
     { label: '오전', hour: 9 },
@@ -275,7 +274,7 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
     tableRows.push(createRow(rowCells, { height: 520 }));
   });
 
-  // 3. 하단 3단 정보 테이블 (기타 업무, 전화 관리, 일요일 시간표)
+  // 3. 하단 2단 정보 테이블 (기타 업무, 일요일 시간표)
   // 1) 기타 업무 내용
   const colLeftPars = [
     createParagraph([createRun({ text: '기타 업무 (전달물 / 특이사항)', bold: true, size: 13, color: '1E3A8A' })], { align: 'center', spacingAfter: 20 }),
@@ -287,27 +286,7 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
     createParagraph([createRun({ text: weeklyPlan?.specialNotes || '공지사항 확인', size: 11, color: '374151' })], { spacingAfter: 10, line: 180 }),
   ];
 
-  // 2) 전화 관리 내용
-  const colCenterPars = [
-    createParagraph([createRun({ text: '전화 관리 (3개월 미만 2회)', bold: true, size: 13, color: '1E3A8A' })], { align: 'center', spacingAfter: 20 }),
-  ];
-  if (callItems.length === 0) {
-    colCenterPars.push(createParagraph([createRun({ text: '등록된 전화 상담 내역이 없습니다.', size: 11, color: '9CA3AF' })], { align: 'center', spacingAfter: 10 }));
-  } else {
-    callItems.forEach((c) => {
-      colCenterPars.push(
-        createParagraph(
-          [
-            createRun({ text: `• ${c.name || '회원'} : `, bold: true, size: 12, color: '111827' }),
-            createRun({ text: c.content || '', size: 11, color: '374151' }),
-          ],
-          { spacingAfter: 10, line: 180 }
-        )
-      );
-    });
-  }
-
-  // 3) 일요일 시간표 내용
+  // 2) 일요일 시간표 내용
   const colRightPars = [
     createParagraph([createRun({ text: sundayHeader, bold: true, size: 13, color: '991B1B' })], { align: 'center', spacingAfter: 20 }),
   ];
@@ -323,9 +302,8 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
   }
 
   const bottomRow = createRow([
-    createCell({ paragraphs: colLeftPars, width: 3500, fill: 'F8FAFC' }),
-    createCell({ paragraphs: colCenterPars, width: 3500, fill: 'F8FAFC' }),
-    createCell({ paragraphs: colRightPars, width: 3480, fill: 'FFF1F2' }),
+    createCell({ paragraphs: colLeftPars, width: 3680, fill: 'F8FAFC' }),
+    createCell({ paragraphs: colRightPars, width: 6800, fill: 'FFF1F2' }),
   ]);
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
