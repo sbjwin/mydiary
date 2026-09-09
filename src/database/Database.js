@@ -89,14 +89,113 @@ export const formatPhoneInfo = (phoneInfo) => {
     .join('\n');
 };
 
+// 오늘 날짜 YYYY-MM-DD 문자열 헬퍼
+export const getTodayDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const date = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${date}`;
+};
+
+/**
+ * 기존 학생 데이터 하위 호환 및 수강 차수(terms) 정규화 헬퍼
+ * - terms가 없는 구버전 데이터는 1차 수강으로 자동 정규화:
+ *   1순위: 해당 학생의 첫 수업 일지 날짜 (class_date)
+ *   2순위: 학생 등록일시 (created_at)
+ *   3순위: 오늘 날짜
+ */
+export const normalizeStudent = (student, allRecords = []) => {
+  if (!student || typeof student !== 'object') return student;
+
+  const hasValidTerms = Array.isArray(student.terms) && student.terms.length > 0;
+  if (hasValidTerms) {
+    const currentTerm = student.terms[student.terms.length - 1];
+    return {
+      ...student,
+      status: student.status || currentTerm.status || 'active',
+      first_enrolled_date: student.first_enrolled_date || student.terms[0].start_date,
+      current_term_number: student.current_term_number || currentTerm.term_number || student.terms.length,
+    };
+  }
+
+  // terms가 없는 기존 학생 데이터 정규화
+  let inferredStartDate = null;
+  if (Array.isArray(allRecords) && allRecords.length > 0) {
+    const studentRecords = allRecords.filter((r) => r.student_id === student.id && r.class_date);
+    if (studentRecords.length > 0) {
+      studentRecords.sort((a, b) => a.class_date.localeCompare(b.class_date));
+      inferredStartDate = studentRecords[0].class_date;
+    }
+  }
+
+  if (!inferredStartDate && student.start_date) {
+    inferredStartDate = student.start_date;
+  }
+  if (!inferredStartDate && student.created_at) {
+    inferredStartDate = student.created_at.split('T')[0];
+  }
+  if (!inferredStartDate) {
+    inferredStartDate = getTodayDateString();
+  }
+
+  const initialStatus = student.status || 'active';
+  const initialTerms = [
+    {
+      term_number: 1,
+      start_date: inferredStartDate,
+      end_date: null,
+      status: initialStatus,
+      reason: '최초 등록',
+    },
+  ];
+
+  return {
+    ...student,
+    status: initialStatus,
+    first_enrolled_date: student.first_enrolled_date || inferredStartDate,
+    current_term_number: 1,
+    terms: initialTerms,
+  };
+};
+
 export const Database = {
   // --- 학생 (주소록) CRUD ---
 
-  // 학생 전체 목록 조회
+  // 학생 전체 목록 조회 (정규화 및 Lazy 마이그레이션 적용)
   getAllStudents: async () => {
     try {
       const data = await AsyncStorage.getItem(STUDENTS_KEY);
-      return data ? JSON.parse(data) : [];
+      const rawStudents = data ? JSON.parse(data) : [];
+      if (!Array.isArray(rawStudents) || rawStudents.length === 0) {
+        return [];
+      }
+
+      // 정규화 대상 여부 검사
+      const needsMigration = rawStudents.some(
+        (s) => !Array.isArray(s.terms) || s.terms.length === 0
+      );
+
+      let records = [];
+      if (needsMigration) {
+        try {
+          const recData = await AsyncStorage.getItem(RECORDS_KEY);
+          records = recData ? JSON.parse(recData) : [];
+        } catch (err) {
+          console.warn('Failed to load records for student migration:', err);
+        }
+      }
+
+      const normalizedStudents = rawStudents.map((s) => normalizeStudent(s, records));
+
+      // 마이그레이션이 필요한 학생이 있었을 경우 안전하게 1회 영구 동기화
+      if (needsMigration) {
+        AsyncStorage.setItem(STUDENTS_KEY, JSON.stringify(normalizedStudents)).catch((err) =>
+          console.warn('Failed to persist migrated students:', err)
+        );
+      }
+
+      return normalizedStudents;
     } catch (e) {
       console.error('Failed to get students:', e);
       return [];
@@ -115,12 +214,30 @@ export const Database = {
     }
   },
 
-  // 학생 추가
+  // 학생 추가 (1차 수강 자동 초기화)
   addStudent: async (studentData) => {
+    const today = getTodayDateString();
+    const startDate = studentData.start_date || studentData.first_enrolled_date || today;
+    const initialStatus = studentData.status || 'active';
+
     const newStudent = {
       ...studentData,
       id: generateUUID(),
       created_at: new Date().toISOString(),
+      status: initialStatus,
+      first_enrolled_date: startDate,
+      current_term_number: 1,
+      terms: Array.isArray(studentData.terms) && studentData.terms.length > 0
+        ? studentData.terms
+        : [
+            {
+              term_number: 1,
+              start_date: startDate,
+              end_date: null,
+              status: initialStatus,
+              reason: studentData.status_reason || '최초 등록',
+            },
+          ],
     };
 
     try {
@@ -148,11 +265,107 @@ export const Database = {
         ...updatedData,
       };
 
+      // 1차 수강 시작일을 수정한 경우 terms[0]의 start_date도 동기화
+      if (
+        updatedData.first_enrolled_date &&
+        Array.isArray(updatedStudent.terms) &&
+        updatedStudent.terms.length > 0
+      ) {
+        updatedStudent.terms[0] = {
+          ...updatedStudent.terms[0],
+          start_date: updatedData.first_enrolled_date,
+        };
+      }
+
       students[index] = updatedStudent;
       await AsyncStorage.setItem(STUDENTS_KEY, JSON.stringify(students));
       return updatedStudent;
     } catch (e) {
       console.error(`Failed to update student ${id}:`, e);
+      throw e;
+    }
+  },
+
+  // 학생 수강 차수 휴회 처리
+  pauseStudentTerm: async (studentId, { endDate, reason } = {}) => {
+    try {
+      const students = await Database.getAllStudents();
+      const index = students.findIndex((s) => s.id === studentId);
+      if (index === -1) {
+        throw new Error(`Student with id ${studentId} not found`);
+      }
+
+      const student = { ...students[index] };
+      const terms = Array.isArray(student.terms) ? [...student.terms] : [];
+      const pauseDate = endDate || getTodayDateString();
+
+      if (terms.length > 0) {
+        const lastIdx = terms.length - 1;
+        terms[lastIdx] = {
+          ...terms[lastIdx],
+          end_date: pauseDate,
+          status: 'paused',
+          reason: reason || terms[lastIdx].reason || '휴회',
+        };
+      } else {
+        terms.push({
+          term_number: 1,
+          start_date: student.first_enrolled_date || pauseDate,
+          end_date: pauseDate,
+          status: 'paused',
+          reason: reason || '휴회',
+        });
+      }
+
+      student.status = 'paused';
+      student.terms = terms;
+      student.current_term_number = terms.length;
+
+      students[index] = student;
+      await AsyncStorage.setItem(STUDENTS_KEY, JSON.stringify(students));
+      return student;
+    } catch (e) {
+      console.error(`Failed to pause student term for ${studentId}:`, e);
+      throw e;
+    }
+  },
+
+  // 학생 재수강(복귀) 시작 처리 (새로운 차수 추가)
+  resumeStudentTerm: async (studentId, { startDate, reason, defaultSchedules } = {}) => {
+    try {
+      const students = await Database.getAllStudents();
+      const index = students.findIndex((s) => s.id === studentId);
+      if (index === -1) {
+        throw new Error(`Student with id ${studentId} not found`);
+      }
+
+      const student = { ...students[index] };
+      const terms = Array.isArray(student.terms) ? [...student.terms] : [];
+      const resumeDate = startDate || getTodayDateString();
+      const nextTermNumber =
+        (terms.length > 0 ? terms[terms.length - 1].term_number || terms.length : 0) + 1;
+
+      terms.push({
+        term_number: nextTermNumber,
+        start_date: resumeDate,
+        end_date: null,
+        status: 'active',
+        reason: reason || `${nextTermNumber}차 재수강`,
+      });
+
+      student.status = 'active';
+      student.terms = terms;
+      student.current_term_number = nextTermNumber;
+
+      if (Array.isArray(defaultSchedules)) {
+        student.default_schedules = defaultSchedules;
+      }
+
+      students[index] = student;
+      await AsyncStorage.setItem(STUDENTS_KEY, JSON.stringify(students));
+      return student;
+    } catch (e) {
+      console.error(`Failed to resume student term for ${studentId}:`, e);
       throw e;
     }
   },
@@ -248,9 +461,21 @@ export const Database = {
       const weeklyPlan = await Database.getWeeklyPlan(monday);
       const dateRecords = await Database.getRecordsByDate(dateString);
 
-      const scheduledForDay = (weeklyPlan?.scheduleItems || []).filter(
-        (item) => item.date === dateString
+      const allStudents = await Database.getAllStudents();
+      const pausedStudentIds = new Set(
+        (allStudents || []).filter((s) => s.status === 'paused').map((s) => s.id)
       );
+      const pausedStudentNames = new Set(
+        (allStudents || []).filter((s) => s.status === 'paused').map((s) => s.name)
+      );
+
+      // 시간표에는 재원생만 표기: 휴회 중인 학생의 계획 일정은 제외
+      const scheduledForDay = (weeklyPlan?.scheduleItems || []).filter((item) => {
+        if (item.date !== dateString) return false;
+        if (item.studentId && pausedStudentIds.has(item.studentId)) return false;
+        if (!item.studentId && item.studentName && pausedStudentNames.has(item.studentName)) return false;
+        return true;
+      });
 
       const mappedList = [];
       const matchedRecordIds = new Set();
@@ -422,6 +647,11 @@ export const Database = {
       const defaultScheduleItems = [];
 
       students.forEach((student) => {
+        // 휴회 상태(paused)인 학생은 주간 시간표 자동 생성에서 제외
+        if (student.status === 'paused') {
+          return;
+        }
+
         if (Array.isArray(student.default_schedules)) {
           student.default_schedules.forEach((sched) => {
             const dayOfWeek = sched.dayOfWeek || 1; // 1:월 ~ 7:일

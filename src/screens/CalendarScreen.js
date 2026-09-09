@@ -163,8 +163,9 @@ export default function CalendarScreen() {
     try {
       const allRecs = await Database.getAllRecords();
       const allStuds = await Database.getAllStudents();
-      // 학생 목록 가나다(이름)순 정렬
-      const sortedStuds = (allStuds || []).sort((a, b) =>
+      // 수업 추가 대상 학생 목록: 재원생만 필터링하여 가나다(이름)순 정렬
+      const activeStuds = (allStuds || []).filter((s) => s.status !== 'paused');
+      const sortedStuds = activeStuds.sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', 'ko')
       );
       setStudents(sortedStuds);
@@ -564,7 +565,9 @@ export default function CalendarScreen() {
                     style={styles.studentSelectItem}
                     onPress={() => handleSelectStudentForRecord(item.id)}
                   >
-                    <Text style={styles.studentSelectName}>{item.name}</Text>
+                    <View style={styles.studentSelectNameRow}>
+                      <Text style={styles.studentSelectName}>{item.name}</Text>
+                    </View>
                     <Text style={styles.studentSelectSchool}>
                       {item.school_grade || '학교/학년 미지정'}
                     </Text>
@@ -845,10 +848,36 @@ const styles = StyleSheet.create({
   studentSelectItem: {
     paddingVertical: 14,
   },
+  studentSelectNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   studentSelectName: {
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.textPrimary,
+  },
+  studentSelectStatusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    marginLeft: 6,
+  },
+  studentSelectBadgeActive: {
+    backgroundColor: '#EFF6FF',
+  },
+  studentSelectBadgePaused: {
+    backgroundColor: '#F3F4F6',
+  },
+  studentSelectStatusBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  studentSelectBadgeTextActive: {
+    color: '#2563EB',
+  },
+  studentSelectBadgeTextPaused: {
+    color: '#6B7280',
   },
   studentSelectSchool: {
     fontSize: 13,
