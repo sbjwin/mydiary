@@ -215,6 +215,37 @@ export const generateStudentProfileHtml = (student) => {
     ? escapeHtml(student.notes).replace(/\n/g, '<br/>')
     : '(등록된 특이사항이나 메모가 없습니다.)';
 
+  const isPaused = student?.status === 'paused';
+  const statusLabel = isPaused ? '휴회' : `${student?.current_term_number || 1}차 수강중`;
+  const enrolledDate = escapeHtml(student?.first_enrolled_date || student?.start_date || '-');
+
+  const terms = Array.isArray(student?.terms) && student.terms.length > 0 ? student.terms : [];
+  const termsHtml = terms.length > 0
+    ? terms.map((t, idx) => `
+        <tr>
+          <td class="text-center" style="font-weight: 700;">${t.term_number || idx + 1}차</td>
+          <td class="text-center">${escapeHtml(t.start_date || '-')} ~ ${escapeHtml(t.end_date || '진행중')}</td>
+          <td class="text-center">
+            <span class="badge-chip" style="${t.status === 'paused' ? 'background: #F3F4F6; color: #6B7280;' : 'background: #DCFCE7; color: #16A34A;'}">
+              ${t.status === 'paused' ? '휴회' : '수강중'}
+            </span>
+          </td>
+          <td>${escapeHtml(t.reason || '-')}</td>
+        </tr>
+      `).join('')
+    : `
+        <tr>
+          <td class="text-center" style="font-weight: 700;">1차</td>
+          <td class="text-center">${enrolledDate} ~ ${isPaused ? '휴회' : '진행중'}</td>
+          <td class="text-center">
+            <span class="badge-chip" style="${isPaused ? 'background: #F3F4F6; color: #6B7280;' : 'background: #DCFCE7; color: #16A34A;'}">
+              ${statusLabel}
+            </span>
+          </td>
+          <td>최초 등록</td>
+        </tr>
+      `;
+
   return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -246,6 +277,16 @@ export const generateStudentProfileHtml = (student) => {
       <td>${schoolGrade}</td>
     </tr>
     <tr>
+      <th>수강 상태</th>
+      <td>
+        <span class="badge-chip" style="${isPaused ? 'background: #F3F4F6; color: #6B7280;' : 'background: #EFF6FF; color: #1D4ED8;'}">
+          ${statusLabel}
+        </span>
+      </td>
+      <th>최초 입회일</th>
+      <td style="font-weight: 600;">${enrolledDate}</td>
+    </tr>
+    <tr>
       <th>주민등록번호</th>
       <td>${residentNumber}</td>
       <th>학습 방법</th>
@@ -265,6 +306,21 @@ export const generateStudentProfileHtml = (student) => {
       <th>거주지 주소</th>
       <td colspan="3">${address}</td>
     </tr>
+  </table>
+
+  <div class="section-title">■ 수강 차수 및 등록 이력</div>
+  <table class="record-table">
+    <thead>
+      <tr>
+        <th style="width: 15%;">차수</th>
+        <th style="width: 45%;">수강 기간</th>
+        <th style="width: 15%;">상태</th>
+        <th style="width: 25%;">비고 / 사유</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${termsHtml}
+    </tbody>
   </table>
 
   <div class="section-title">■ 학부모 (보호자) 정보</div>

@@ -28,6 +28,29 @@ export default function StudentDetailScreen() {
 
   const isEditMode = !!studentId;
 
+  const getTodayFormatted = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // 수강 상태 및 차수 관련 상태
+  const [status, setStatus] = useState('active'); // 'active' | 'paused'
+  const [firstEnrolledDate, setFirstEnrolledDate] = useState(getTodayFormatted());
+  const [terms, setTerms] = useState([]);
+  const [currentTermNumber, setCurrentTermNumber] = useState(1);
+
+  // 휴회/재수강 모달 제어 상태
+  const [pauseModalVisible, setPauseModalVisible] = useState(false);
+  const [pauseEndDate, setPauseEndDate] = useState(getTodayFormatted());
+  const [pauseReason, setPauseReason] = useState('');
+
+  const [resumeModalVisible, setResumeModalVisible] = useState(false);
+  const [resumeStartDate, setResumeStartDate] = useState(getTodayFormatted());
+  const [resumeReason, setResumeReason] = useState('');
+
   // 학생 데이터 상태 (이름 제외하고 기본값은 빈 문자열)
   const [name, setName] = useState('');
   const [schoolGrade, setSchoolGrade] = useState('');
@@ -65,6 +88,10 @@ export default function StudentDetailScreen() {
     parent_mobile_phone: parentMobilePhone.trim() || null,
     default_schedules: defaultSchedules,
     notes: notes.trim() || null,
+    status: status,
+    first_enrolled_date: firstEnrolledDate,
+    current_term_number: currentTermNumber,
+    terms: terms,
   });
 
   // 상단 헤더 우측 인쇄 버튼
@@ -132,6 +159,18 @@ export default function StudentDetailScreen() {
             setDefaultSchedules(Array.isArray(student.default_schedules) ? student.default_schedules : []);
 
             setNotes(student.notes || '');
+
+            // 수강 상태 및 차수(terms) 로드
+            const stTerms = Array.isArray(student.terms) && student.terms.length > 0 ? student.terms : [];
+            setTerms(stTerms);
+            setStatus(student.status || 'active');
+            setFirstEnrolledDate(
+              student.first_enrolled_date ||
+                student.start_date ||
+                stTerms[0]?.start_date ||
+                (student.created_at ? student.created_at.split('T')[0] : getTodayFormatted())
+            );
+            setCurrentTermNumber(student.current_term_number || stTerms.length || 1);
           }
         } catch (e) {
           console.error('Failed to load student details:', e);
@@ -164,6 +203,59 @@ export default function StudentDetailScreen() {
     );
   };
 
+  // 휴회 처리 모달 열기
+  const handleOpenPauseModal = () => {
+    setPauseEndDate(getTodayFormatted());
+    setPauseReason('');
+    setPauseModalVisible(true);
+  };
+
+  // 재수강 시작 모달 열기
+  const handleOpenResumeModal = () => {
+    setResumeStartDate(getTodayFormatted());
+    const nextTerm = (terms.length || 0) + 1;
+    setResumeReason(`${nextTerm}차 재수강`);
+    setResumeModalVisible(true);
+  };
+
+  // 휴회 확정 저장
+  const handleConfirmPause = async () => {
+    if (!studentId) return;
+    try {
+      const updated = await Database.pauseStudentTerm(studentId, {
+        endDate: pauseEndDate,
+        reason: pauseReason.trim(),
+      });
+      setStatus('paused');
+      setTerms(updated.terms);
+      setCurrentTermNumber(updated.current_term_number);
+      setPauseModalVisible(false);
+      Alert.alert('완료', `${name} 학생이 휴회 처리되었습니다.`);
+    } catch (e) {
+      console.error('Failed to pause student:', e);
+      Alert.alert('오류', '휴회 처리에 실패했습니다.');
+    }
+  };
+
+  // 재수강 확정 저장
+  const handleConfirmResume = async () => {
+    if (!studentId) return;
+    try {
+      const updated = await Database.resumeStudentTerm(studentId, {
+        startDate: resumeStartDate,
+        reason: resumeReason.trim(),
+      });
+      setStatus('active');
+      setTerms(updated.terms);
+      setCurrentTermNumber(updated.current_term_number);
+      setResumeModalVisible(false);
+      Alert.alert('완료', `${name} 학생의 재수강이 시작되었습니다.`);
+    } catch (e) {
+      console.error('Failed to resume student:', e);
+      Alert.alert('오류', '재수강 처리에 실패했습니다.');
+    }
+  };
+
   // 저장 처리
   const handleSave = async () => {
     if (!name.trim()) {
@@ -184,18 +276,33 @@ export default function StudentDetailScreen() {
       parent_mobile_phone: parentMobilePhone.trim() || null,
       default_schedules: defaultSchedules,
       notes: notes.trim() || null,
+      status: status,
+      first_enrolled_date: firstEnrolledDate,
+      current_term_number: currentTermNumber,
+      terms:
+        terms.length > 0
+          ? terms
+          : [
+              {
+                term_number: 1,
+                start_date: firstEnrolledDate,
+                end_date: null,
+                status: status,
+                reason: '최초 등록',
+              },
+            ],
     };
 
     try {
       if (isEditMode) {
         await Database.updateStudent(studentId, studentData);
         Alert.alert('완료', '학생 정보가 수정되었습니다.', [
-          { text: '확인', onPress: () => navigation.goBack() }
+          { text: '확인', onPress: () => navigation.goBack() },
         ]);
       } else {
         await Database.addStudent(studentData);
         Alert.alert('완료', '새로운 학생이 등록되었습니다.', [
-          { text: '확인', onPress: () => navigation.goBack() }
+          { text: '확인', onPress: () => navigation.goBack() },
         ]);
       }
     } catch (e) {
@@ -238,8 +345,115 @@ export default function StudentDetailScreen() {
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
 
-          {/* 학생 기본 정보 */}
+          {/* 수강 상태 및 차수(Terms) 이력 */}
           <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionHeaderLeft}>
+              <Feather name="award" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
+              <Text style={styles.sectionTitle}>수강 상태 및 차수 이력</Text>
+            </View>
+            <View
+              style={[
+                styles.statusBadge,
+                status === 'paused' ? styles.statusBadgePaused : styles.statusBadgeActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusBadgeText,
+                  status === 'paused' ? styles.statusBadgeTextPaused : styles.statusBadgeTextActive,
+                ]}
+              >
+                {status === 'paused' ? '휴회중' : `${currentTermNumber}차 수강중`}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.cardContainer}>
+            {/* 상태 배너 및 빠른 변경 버튼 */}
+            <View style={styles.statusActionRow}>
+              <View style={styles.statusActionInfo}>
+                <Text style={styles.statusTitle}>
+                  {status === 'paused' ? '현재 휴회 상태입니다' : `현재 ${currentTermNumber}차 수강 진행 중입니다`}
+                </Text>
+                <Text style={styles.statusSubtitle}>
+                  {status === 'paused'
+                    ? '새 학기/새 차수로 복귀 시 [재수강 시작]을 누르세요'
+                    : '수강을 잠시 쉴 경우 [휴회 처리]를 누르세요'}
+                </Text>
+              </View>
+              {isEditMode && (
+                status === 'paused' ? (
+                  <TouchableOpacity
+                    style={[styles.statusToggleBtn, styles.statusToggleResumeBtn]}
+                    onPress={handleOpenResumeModal}
+                  >
+                    <Feather name="play" size={13} color="#FFF" style={styles.statusToggleBtnIcon} />
+                    <Text style={styles.statusToggleBtnText}>재수강 시작</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.statusToggleBtn, styles.statusTogglePauseBtn]}
+                    onPress={handleOpenPauseModal}
+                  >
+                    <Feather name="pause" size={13} color="#FFF" style={styles.statusToggleBtnIcon} />
+                    <Text style={styles.statusToggleBtnText}>휴회 처리</Text>
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
+
+            {/* 수강 시작일 (입회일) 수정 */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>최초 수강 시작일 (입회일)</Text>
+              <TextInput
+                style={styles.input}
+                value={firstEnrolledDate}
+                onChangeText={setFirstEnrolledDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={theme.colors.outline}
+              />
+            </View>
+
+            {/* 수강 차수 이력 목록 */}
+            {terms.length > 0 && (
+              <View style={styles.termsHistoryContainer}>
+                <Text style={styles.termsHistoryLabel}>수강 차수(Terms) 이력</Text>
+                {terms.map((t, idx) => (
+                  <View key={idx} style={styles.termItemCard}>
+                    <View style={styles.termItemHeader}>
+                      <View style={styles.termBadge}>
+                        <Text style={styles.termBadgeText}>{`${t.term_number || idx + 1}차`}</Text>
+                      </View>
+                      <Text style={styles.termPeriodText}>
+                        {`${t.start_date || '-'} ~ ${t.end_date ? t.end_date : '현재 진행중'}`}
+                      </Text>
+                      <View
+                        style={[
+                          styles.termStatusChip,
+                          t.status === 'paused' ? styles.termChipPaused : styles.termChipActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.termStatusChipText,
+                            t.status === 'paused' ? styles.termChipTextPaused : styles.termChipTextActive,
+                          ]}
+                        >
+                          {t.status === 'paused' ? '휴회' : '수강'}
+                        </Text>
+                      </View>
+                    </View>
+                    {t.reason ? (
+                      <Text style={styles.termReasonText}>{`사유: ${t.reason}`}</Text>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* 학생 기본 정보 */}
+          <View style={[styles.sectionHeaderRow, styles.sectionHeaderMargin]}>
             <View style={styles.sectionHeaderLeft}>
               <Feather name="user" size={16} color={theme.colors.primary} style={styles.sectionIcon} />
               <Text style={styles.sectionTitle}>학생 기본 정보</Text>
@@ -602,6 +816,128 @@ export default function StudentDetailScreen() {
                 <Feather name="chevron-right" size={20} color={theme.colors.outline} />
               </TouchableOpacity>
             </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* 휴회 처리 입력 모달 */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={pauseModalVisible}
+          onRequestClose={() => setPauseModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.centerModalOverlay}
+            activeOpacity={1}
+            onPress={() => setPauseModalVisible(false)}
+          >
+            <TouchableOpacity
+              style={styles.dialogCard}
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={styles.dialogHeader}>
+                <Feather name="pause-circle" size={24} color="#EA580C" style={styles.dialogHeaderIcon} />
+                <Text style={styles.dialogTitle}>학생 휴회 처리</Text>
+              </View>
+              <Text style={styles.dialogSubtitle}>
+                {`${name} 학생을 휴회 상태로 전환합니다.`}
+              </Text>
+
+              <Text style={styles.inputLabel}>마지막 수업일 (종료일)</Text>
+              <TextInput
+                style={styles.dialogInput}
+                value={pauseEndDate}
+                onChangeText={setPauseEndDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={theme.colors.outline}
+              />
+
+              <Text style={styles.inputLabel}>휴회 사유 (선택 입력)</Text>
+              <TextInput
+                style={styles.dialogInput}
+                value={pauseReason}
+                onChangeText={setPauseReason}
+                placeholder="예: 여름방학 휴회, 개인 사정 등"
+                placeholderTextColor={theme.colors.outline}
+              />
+
+              <View style={styles.dialogBtnRow}>
+                <TouchableOpacity
+                  style={styles.dialogCancelBtn}
+                  onPress={() => setPauseModalVisible(false)}
+                >
+                  <Text style={styles.dialogCancelBtnText}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dialogConfirmBtn, styles.dialogPauseBtn]}
+                  onPress={handleConfirmPause}
+                >
+                  <Text style={styles.dialogConfirmBtnText}>휴회 확정</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* 재수강 시작 입력 모달 */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={resumeModalVisible}
+          onRequestClose={() => setResumeModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.centerModalOverlay}
+            activeOpacity={1}
+            onPress={() => setResumeModalVisible(false)}
+          >
+            <TouchableOpacity
+              style={styles.dialogCard}
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <View style={styles.dialogHeader}>
+                <Feather name="play-circle" size={24} color="#16A34A" style={styles.dialogHeaderIcon} />
+                <Text style={styles.dialogTitle}>재수강(복귀) 시작</Text>
+              </View>
+              <Text style={styles.dialogSubtitle}>
+                {`${name} 학생의 새로운 수강 차수를 시작합니다.`}
+              </Text>
+
+              <Text style={styles.inputLabel}>재수강 시작일</Text>
+              <TextInput
+                style={styles.dialogInput}
+                value={resumeStartDate}
+                onChangeText={setResumeStartDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={theme.colors.outline}
+              />
+
+              <Text style={styles.inputLabel}>재등록 사유/메모 (선택 입력)</Text>
+              <TextInput
+                style={styles.dialogInput}
+                value={resumeReason}
+                onChangeText={setResumeReason}
+                placeholder="예: 2학기 재등록"
+                placeholderTextColor={theme.colors.outline}
+              />
+
+              <View style={styles.dialogBtnRow}>
+                <TouchableOpacity
+                  style={styles.dialogCancelBtn}
+                  onPress={() => setResumeModalVisible(false)}
+                >
+                  <Text style={styles.dialogCancelBtnText}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dialogConfirmBtn, styles.dialogResumeBtn]}
+                  onPress={handleConfirmResume}
+                >
+                  <Text style={styles.dialogConfirmBtnText}>재수강 시작</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
           </TouchableOpacity>
         </Modal>
 
@@ -1035,5 +1371,234 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     fontSize: 13,
     color: theme.colors.textPrimary,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  statusBadgeActive: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  statusBadgePaused: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  statusBadgeTextActive: {
+    color: '#2563EB',
+  },
+  statusBadgeTextPaused: {
+    color: '#6B7280',
+  },
+  statusActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.surfaceVariant + '60',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  statusActionInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  statusTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  statusSubtitle: {
+    fontSize: 11.5,
+    color: theme.colors.textSecondary,
+    lineHeight: 16,
+  },
+  statusToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  statusToggleResumeBtn: {
+    backgroundColor: '#16A34A',
+  },
+  statusTogglePauseBtn: {
+    backgroundColor: '#EA580C',
+  },
+  statusToggleBtnIcon: {
+    marginRight: 4,
+  },
+  statusToggleBtnText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  termsHistoryContainer: {
+    marginTop: 10,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.surfaceVariant,
+  },
+  termsHistoryLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
+  },
+  termItemCard: {
+    backgroundColor: theme.colors.surfaceVariant + '40',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '30',
+  },
+  termItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  termBadge: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  termBadgeText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  termPeriodText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  termStatusChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  termChipActive: {
+    backgroundColor: '#DCFCE7',
+  },
+  termChipPaused: {
+    backgroundColor: '#F3F4F6',
+  },
+  termStatusChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  termChipTextActive: {
+    color: '#16A34A',
+  },
+  termChipTextPaused: {
+    color: '#6B7280',
+  },
+  termReasonText: {
+    fontSize: 11.5,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+    paddingLeft: 4,
+  },
+  centerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dialogCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: theme.colors.white,
+    borderRadius: 18,
+    padding: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  dialogHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dialogHeaderIcon: {
+    marginRight: 8,
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  dialogSubtitle: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 6,
+    marginTop: 6,
+  },
+  dialogInput: {
+    backgroundColor: theme.colors.surfaceVariant + '60',
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '60',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    marginBottom: 10,
+  },
+  dialogBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  dialogCancelBtn: {
+    flex: 1,
+    backgroundColor: theme.colors.surfaceVariant,
+    paddingVertical: 11,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  dialogCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  dialogConfirmBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  dialogPauseBtn: {
+    backgroundColor: '#EA580C',
+  },
+  dialogResumeBtn: {
+    backgroundColor: '#16A34A',
+  },
+  dialogConfirmBtnText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: theme.colors.white,
   },
 });

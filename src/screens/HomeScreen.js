@@ -21,7 +21,8 @@ export default function HomeScreen() {
 
   const [loading, setLoading] = useState(true);
   const [dailyItems, setDailyItems] = useState([]);
-  const [studentCount, setStudentCount] = useState(0);
+  const [activeStudentCount, setActiveStudentCount] = useState(0);
+  const [pausedStudentCount, setPausedStudentCount] = useState(0);
 
   const getTodayFormatted = () => {
     const d = new Date();
@@ -39,8 +40,19 @@ export default function HomeScreen() {
       const items = await Database.getDailyScheduleAndRecords(today);
       const students = await Database.getAllStudents();
 
+      let active = 0;
+      let paused = 0;
+      (students || []).forEach((s) => {
+        if (s.status === 'paused') {
+          paused++;
+        } else {
+          active++;
+        }
+      });
+
       setDailyItems(items || []);
-      setStudentCount(students?.length || 0);
+      setActiveStudentCount(active);
+      setPausedStudentCount(paused);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -146,7 +158,7 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* 카드 2: 총 수강생 */}
+          {/* 카드 2: 수강생 현황 (재원 / 휴회) */}
           <TouchableOpacity
             style={styles.metricCard}
             activeOpacity={0.8}
@@ -156,11 +168,16 @@ export default function HomeScreen() {
               <View style={[styles.metricIconWrap, styles.bgEmeraldLight]}>
                 <Feather name="users" size={18} color="#059669" />
               </View>
-              <Text style={styles.metricBadgeLabel}>총 수강생</Text>
+              <Text style={styles.metricBadgeLabel}>수강생 현황</Text>
             </View>
             <View style={styles.metricValueRow}>
-              <Text style={styles.metricBigValue}>{studentCount}</Text>
-              <Text style={styles.metricSubCount}>명</Text>
+              <Text style={styles.metricBigValue}>{activeStudentCount}</Text>
+              <Text style={styles.metricSubCount}>재원</Text>
+              {pausedStudentCount > 0 && (
+                <Text style={styles.metricPausedSubCount}>
+                  {`(${pausedStudentCount} 휴회)`}
+                </Text>
+              )}
             </View>
             <Text style={styles.metricBottomHint}>학생 주소록 관리 ➔</Text>
           </TouchableOpacity>
@@ -518,6 +535,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#64748B',
+  },
+  metricPausedSubCount: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginLeft: 3,
   },
   progressBg: {
     height: 4,

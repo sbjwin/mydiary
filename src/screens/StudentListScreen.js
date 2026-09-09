@@ -43,11 +43,38 @@ export default function StudentListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // 수강 상태 필터: 'active'(재원생) | 'paused'(휴회생) | 'all'(전체)
+  const [statusFilter, setStatusFilter] = useState('active');
+
   // 모달 제어용 상태
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [actionModalVisible, setActionModalVisible] = useState(false);
   const [printOptionModalVisible, setPrintOptionModalVisible] = useState(false);
   const [printType, setPrintType] = useState('student'); // 'student' 또는 'records'
+
+  // 휴회 처리 모달 상태
+  const [pauseModalVisible, setPauseModalVisible] = useState(false);
+  const [pauseEndDate, setPauseEndDate] = useState(getTodayFormatted());
+  const [pauseReason, setPauseReason] = useState('');
+
+  // 재수강 시작 모달 상태
+  const [resumeModalVisible, setResumeModalVisible] = useState(false);
+  const [resumeStartDate, setResumeStartDate] = useState(getTodayFormatted());
+  const [resumeReason, setResumeReason] = useState('');
+
+  // 학생 수 집계 (재원생 / 휴회생 / 전체)
+  const { activeCount, pausedCount, totalCount } = useMemo(() => {
+    let active = 0;
+    let paused = 0;
+    students.forEach((s) => {
+      if (s.status === 'paused') {
+        paused++;
+      } else {
+        active++;
+      }
+    });
+    return { activeCount: active, pausedCount: paused, totalCount: students.length };
+  }, [students]);
 
   // 수업일지 출력 기간 필터 관련 상태
   const [selectedStudentRecords, setSelectedStudentRecords] = useState([]);
@@ -217,14 +244,75 @@ export default function StudentListScreen() {
     }
   }, [isFocused]);
 
-  // 검색 쿼리가 변경될 때 필터링
+  // 휴회 처리 모달 열기
+  const handleOpenPauseModal = () => {
+    setActionModalVisible(false);
+    setPauseEndDate(getTodayFormatted());
+    setPauseReason('');
+    setPauseModalVisible(true);
+  };
+
+  // 재수강 시작 모달 열기
+  const handleOpenResumeModal = () => {
+    setActionModalVisible(false);
+    setResumeStartDate(getTodayFormatted());
+    const nextTerm = (selectedStudent?.terms?.length || 0) + 1;
+    setResumeReason(`${nextTerm}차 재수강`);
+    setResumeModalVisible(true);
+  };
+
+  // 휴회 확정 저장
+  const handleConfirmPause = async () => {
+    if (!selectedStudent) return;
+    try {
+      await Database.pauseStudentTerm(selectedStudent.id, {
+        endDate: pauseEndDate,
+        reason: pauseReason.trim(),
+      });
+      setPauseModalVisible(false);
+      Alert.alert('완료', `${selectedStudent.name} 학생이 휴회 처리되었습니다.`);
+      await loadStudents();
+    } catch (e) {
+      console.error('Failed to pause student:', e);
+      Alert.alert('오류', '휴회 처리에 실패했습니다.');
+    }
+  };
+
+  // 재수강 확정 저장
+  const handleConfirmResume = async () => {
+    if (!selectedStudent) return;
+    try {
+      await Database.resumeStudentTerm(selectedStudent.id, {
+        startDate: resumeStartDate,
+        reason: resumeReason.trim(),
+      });
+      setResumeModalVisible(false);
+      Alert.alert('완료', `${selectedStudent.name} 학생의 재수강이 시작되었습니다.`);
+      await loadStudents();
+    } catch (e) {
+      console.error('Failed to resume student:', e);
+      Alert.alert('오류', '재수강 처리에 실패했습니다.');
+    }
+  };
+
+  // 검색 쿼리 및 수강 상태(statusFilter)가 변경될 때 필터링
   useEffect(() => {
+    let baseList = students;
+
+    // 1. 수강 상태 필터링
+    if (statusFilter === 'active') {
+      baseList = baseList.filter((s) => s.status !== 'paused');
+    } else if (statusFilter === 'paused') {
+      baseList = baseList.filter((s) => s.status === 'paused');
+    }
+
+    // 2. 검색어 필터링
     if (searchQuery.trim() === '') {
-      setFilteredStudents(students);
+      setFilteredStudents(baseList);
     } else {
       const q = searchQuery.trim().toLowerCase();
       const qDigits = q.replace(/-/g, '');
-      const filtered = students.filter((s) => {
+      const filtered = baseList.filter((s) => {
         const nameMatch = s.name.toLowerCase().includes(q);
         const schoolMatch = s.school_grade && s.school_grade.toLowerCase().includes(q);
         const mobileMatch = s.mobile_phone && s.mobile_phone.replace(/-/g, '').includes(qDigits);
@@ -233,29 +321,64 @@ export default function StudentListScreen() {
       });
       setFilteredStudents(filtered);
     }
-  }, [searchQuery, students]);
+  }, [searchQuery, students, statusFilter]);
 
-  const renderStudentItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.studentCard}
-      onPress={() => handleStudentPress(item)}
-    >
-      <View style={styles.studentInfo}>
-        <View style={styles.nameRow}>
-          <Text style={styles.studentName}>{item.name}</Text>
-          {item.school_grade ? (
-            <Text style={styles.schoolGrade}>{item.school_grade}</Text>
-          ) : null}
+  const renderStudentItem = ({ item }) => {
+    const isPaused = item.status === 'paused';
+    const terms = Array.isArray(item.terms) && item.terms.length > 0 ? item.terms : [];
+    const currentTerm = terms.length > 0 ? terms[terms.length - 1] : null;
+
+    let termSummary = '';
+    if (isPaused) {
+      const lastEndDate = currentTerm?.end_date || '휴회';
+      termSummary = `휴회 (${lastEndDate}~)`;
+      if (currentTerm?.reason) {
+        termSummary += ` · ${currentTerm.reason}`;
+      }
+    } else {
+      const termNum = item.current_term_number || currentTerm?.term_number || 1;
+      const startDate = currentTerm?.start_date || item.first_enrolled_date || '';
+      termSummary = `${termNum}차 수강중` + (startDate ? ` (${startDate}~)` : '');
+    }
+
+    return (
+      <TouchableOpacity
+        style={styles.studentCard}
+        onPress={() => handleStudentPress(item)}
+      >
+        <View style={styles.studentInfo}>
+          <View style={styles.nameRow}>
+            <Text style={styles.studentName}>{item.name}</Text>
+            {item.school_grade ? (
+              <Text style={styles.schoolGrade}>{item.school_grade}</Text>
+            ) : null}
+            <View
+              style={[
+                styles.statusChip,
+                isPaused ? styles.statusChipPaused : styles.statusChipActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusChipText,
+                  isPaused ? styles.statusChipTextPaused : styles.statusChipTextActive,
+                ]}
+              >
+                {isPaused ? '휴회' : '재원'}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.termSummaryText}>{termSummary}</Text>
+          <Text style={styles.mobilePhone}>
+            {item.mobile_phone ? `📱 ${item.mobile_phone}` : item.phone_number ? `📞 ${item.phone_number}` : '전화번호 없음'}
+          </Text>
         </View>
-        <Text style={styles.mobilePhone}>
-          {item.mobile_phone ? `📱 ${item.mobile_phone}` : item.phone_number ? `📞 ${item.phone_number}` : '전화번호 없음'}
-        </Text>
-      </View>
-      <View style={styles.arrowIcon}>
-        <Feather name="chevron-right" size={18} color={theme.colors.outline} />
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.arrowIcon}>
+          <Feather name="chevron-right" size={18} color={theme.colors.outline} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -277,6 +400,34 @@ export default function StudentListScreen() {
             <Feather name="x" size={18} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         )}
+      </View>
+
+      {/* 상태 필터 세그먼트 탭 */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tabButton, statusFilter === 'active' && styles.tabButtonActive]}
+          onPress={() => setStatusFilter('active')}
+        >
+          <Text style={[styles.tabButtonText, statusFilter === 'active' && styles.tabButtonTextActive]}>
+            {`재원생 (${activeCount})`}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, statusFilter === 'paused' && styles.tabButtonActive]}
+          onPress={() => setStatusFilter('paused')}
+        >
+          <Text style={[styles.tabButtonText, statusFilter === 'paused' && styles.tabButtonTextActive]}>
+            {`휴회생 (${pausedCount})`}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, statusFilter === 'all' && styles.tabButtonActive]}
+          onPress={() => setStatusFilter('all')}
+        >
+          <Text style={[styles.tabButtonText, statusFilter === 'all' && styles.tabButtonTextActive]}>
+            {`전체 (${totalCount})`}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* 목록 본문 */}
@@ -402,9 +553,162 @@ export default function StudentListScreen() {
                   </View>
                   <Feather name="chevron-right" size={20} color={theme.colors.outline} />
                 </TouchableOpacity>
+
+                {/* 메뉴 5: 상태에 따른 휴회 처리 또는 재수강 시작 */}
+                {selectedStudent.status === 'paused' ? (
+                  <TouchableOpacity
+                    style={styles.actionMenuItem}
+                    onPress={handleOpenResumeModal}
+                  >
+                    <View style={[styles.actionIconBadge, styles.resumeIconBadge]}>
+                      <Feather name="play-circle" size={20} color="#16A34A" />
+                    </View>
+                    <View style={styles.actionMenuTextContainer}>
+                      <Text style={styles.actionMenuTitle}>재수강(복귀) 시작</Text>
+                      <Text style={styles.actionMenuSub}>학생의 새로운 수강 차수를 시작하고 재원생으로 전환합니다</Text>
+                    </View>
+                    <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.actionMenuItem}
+                    onPress={handleOpenPauseModal}
+                  >
+                    <View style={[styles.actionIconBadge, styles.pauseIconBadge]}>
+                      <Feather name="pause-circle" size={20} color="#EA580C" />
+                    </View>
+                    <View style={styles.actionMenuTextContainer}>
+                      <Text style={styles.actionMenuTitle}>휴회 처리</Text>
+                      <Text style={styles.actionMenuSub}>현재 수강 차수를 마감하고 휴회 상태로 전환합니다</Text>
+                    </View>
+                    <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+                  </TouchableOpacity>
+                )}
               </>
             )}
           </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* 휴회 처리 입력 모달 */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={pauseModalVisible}
+        onRequestClose={() => setPauseModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.centerModalOverlay}
+          activeOpacity={1}
+          onPress={() => setPauseModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.dialogCard}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.dialogHeader}>
+              <Feather name="pause-circle" size={24} color="#EA580C" style={styles.dialogHeaderIcon} />
+              <Text style={styles.dialogTitle}>학생 휴회 처리</Text>
+            </View>
+            <Text style={styles.dialogSubtitle}>
+              {`${selectedStudent?.name} 학생을 휴회 상태로 전환합니다.`}
+            </Text>
+
+            <Text style={styles.inputLabel}>마지막 수업일 (종료일)</Text>
+            <TextInput
+              style={styles.dialogInput}
+              value={pauseEndDate}
+              onChangeText={setPauseEndDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.colors.outline}
+            />
+
+            <Text style={styles.inputLabel}>휴회 사유 (선택 입력)</Text>
+            <TextInput
+              style={styles.dialogInput}
+              value={pauseReason}
+              onChangeText={setPauseReason}
+              placeholder="예: 여름방학 휴회, 개인 사정 등"
+              placeholderTextColor={theme.colors.outline}
+            />
+
+            <View style={styles.dialogBtnRow}>
+              <TouchableOpacity
+                style={styles.dialogCancelBtn}
+                onPress={() => setPauseModalVisible(false)}
+              >
+                <Text style={styles.dialogCancelBtnText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dialogConfirmBtn, styles.dialogPauseBtn]}
+                onPress={handleConfirmPause}
+              >
+                <Text style={styles.dialogConfirmBtnText}>휴회 확정</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* 재수강 시작 입력 모달 */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={resumeModalVisible}
+        onRequestClose={() => setResumeModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.centerModalOverlay}
+          activeOpacity={1}
+          onPress={() => setResumeModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.dialogCard}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.dialogHeader}>
+              <Feather name="play-circle" size={24} color="#16A34A" style={styles.dialogHeaderIcon} />
+              <Text style={styles.dialogTitle}>재수강(복귀) 시작</Text>
+            </View>
+            <Text style={styles.dialogSubtitle}>
+              {`${selectedStudent?.name} 학생의 새로운 수강 차수를 시작합니다.`}
+            </Text>
+
+            <Text style={styles.inputLabel}>재수강 시작일</Text>
+            <TextInput
+              style={styles.dialogInput}
+              value={resumeStartDate}
+              onChangeText={setResumeStartDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.colors.outline}
+            />
+
+            <Text style={styles.inputLabel}>재등록 사유/메모 (선택 입력)</Text>
+            <TextInput
+              style={styles.dialogInput}
+              value={resumeReason}
+              onChangeText={setResumeReason}
+              placeholder="예: 2학기 재등록"
+              placeholderTextColor={theme.colors.outline}
+            />
+
+            <View style={styles.dialogBtnRow}>
+              <TouchableOpacity
+                style={styles.dialogCancelBtn}
+                onPress={() => setResumeModalVisible(false)}
+              >
+                <Text style={styles.dialogCancelBtnText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dialogConfirmBtn, styles.dialogResumeBtn]}
+                onPress={handleConfirmResume}
+              >
+                <Text style={styles.dialogConfirmBtnText}>재수강 시작</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
@@ -961,5 +1265,164 @@ const styles = StyleSheet.create({
   },
   pdfShareIconBadge: {
     backgroundColor: '#E0F2FE',
+  },
+  resumeIconBadge: {
+    backgroundColor: '#DCFCE7',
+  },
+  pauseIconBadge: {
+    backgroundColor: '#FFEDD5',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surfaceVariant + '70',
+    borderRadius: 10,
+    padding: 3,
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  tabButtonActive: {
+    backgroundColor: theme.colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  tabButtonTextActive: {
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
+  statusChip: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 6,
+  },
+  statusChipActive: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  statusChipPaused: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  statusChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  statusChipTextActive: {
+    color: '#2563EB',
+  },
+  statusChipTextPaused: {
+    color: '#6B7280',
+  },
+  termSummaryText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginBottom: 3,
+    fontWeight: '500',
+  },
+  centerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dialogCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: theme.colors.white,
+    borderRadius: 18,
+    padding: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  dialogHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dialogHeaderIcon: {
+    marginRight: 8,
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  dialogSubtitle: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 6,
+    marginTop: 6,
+  },
+  dialogInput: {
+    backgroundColor: theme.colors.surfaceVariant + '60',
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '60',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    marginBottom: 10,
+  },
+  dialogBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  dialogCancelBtn: {
+    flex: 1,
+    backgroundColor: theme.colors.surfaceVariant,
+    paddingVertical: 11,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  dialogCancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  dialogConfirmBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  dialogPauseBtn: {
+    backgroundColor: '#EA580C',
+  },
+  dialogResumeBtn: {
+    backgroundColor: '#16A34A',
+  },
+  dialogConfirmBtnText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: theme.colors.white,
   },
 });
