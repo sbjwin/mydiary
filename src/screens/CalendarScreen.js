@@ -163,13 +163,11 @@ export default function CalendarScreen() {
     try {
       const allRecs = await Database.getAllRecords();
       const allStuds = await Database.getAllStudents();
-      // 학생 목록: 재원생 우선, 그 후 가나다(이름)순 정렬
-      const sortedStuds = (allStuds || []).sort((a, b) => {
-        const aPaused = a.status === 'paused' ? 1 : 0;
-        const bPaused = b.status === 'paused' ? 1 : 0;
-        if (aPaused !== bPaused) return aPaused - bPaused;
-        return (a.name || '').localeCompare(b.name || '', 'ko');
-      });
+      // 수업 추가 대상 학생 목록: 재원생만 필터링하여 가나다(이름)순 정렬
+      const activeStuds = (allStuds || []).filter((s) => s.status !== 'paused');
+      const sortedStuds = activeStuds.sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', 'ko')
+      );
       setStudents(sortedStuds);
 
       const dateGroups = {};
@@ -562,37 +560,19 @@ export default function CalendarScreen() {
                 style={styles.modalList}
                 contentContainerStyle={styles.modalListContent}
                 keyboardShouldPersistTaps="handled"
-                renderItem={({ item }) => {
-                  const isPaused = item.status === 'paused';
-                  return (
-                    <TouchableOpacity
-                      style={styles.studentSelectItem}
-                      onPress={() => handleSelectStudentForRecord(item.id)}
-                    >
-                      <View style={styles.studentSelectNameRow}>
-                        <Text style={styles.studentSelectName}>{item.name}</Text>
-                        <View
-                          style={[
-                            styles.studentSelectStatusBadge,
-                            isPaused ? styles.studentSelectBadgePaused : styles.studentSelectBadgeActive,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.studentSelectStatusBadgeText,
-                              isPaused ? styles.studentSelectBadgeTextPaused : styles.studentSelectBadgeTextActive,
-                            ]}
-                          >
-                            {isPaused ? '휴회' : '재원'}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.studentSelectSchool}>
-                        {item.school_grade || '학교/학년 미지정'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                }}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.studentSelectItem}
+                    onPress={() => handleSelectStudentForRecord(item.id)}
+                  >
+                    <View style={styles.studentSelectNameRow}>
+                      <Text style={styles.studentSelectName}>{item.name}</Text>
+                    </View>
+                    <Text style={styles.studentSelectSchool}>
+                      {item.school_grade || '학교/학년 미지정'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 ItemSeparatorComponent={Separator}
               />
             )}

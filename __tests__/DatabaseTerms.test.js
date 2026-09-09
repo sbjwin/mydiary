@@ -1,6 +1,11 @@
-import { normalizeStudent } from '../src/database/Database';
+import { Database, normalizeStudent } from '../src/database/Database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 describe('수강생/휴회자 차수(Terms) 관리 및 정규화(Migration) 단위 테스트', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
   test('1. 일지 기록이 있는 구버전 학생 데이터는 가장 첫 수업 일지 날짜로 1차 수강 시작일을 자동 복원해야 한다.', () => {
     const oldStudent = {
       id: 'student-101',
@@ -78,4 +83,59 @@ describe('수강생/휴회자 차수(Terms) 관리 및 정규화(Migration) 단�
     expect(normalized.current_term_number).toBe(2);
     expect(normalized.terms).toHaveLength(2);
   });
+
+  test('4. 시간표(getDailyScheduleAndRecords)에는 휴회생의 계획 일정이 배제되고 재원생만 표기되어야 한다.', async () => {
+    const targetDate = '2026-08-17'; // 월요일
+    const activeStudent = {
+      id: 'stud-active-1',
+      name: '재원생학생',
+      status: 'active',
+      default_schedules: [{ dayOfWeek: 1, startTime: '10:00', subject: '수학' }],
+    };
+    const pausedStudent = {
+      id: 'stud-paused-2',
+      name: '휴회생학생',
+      status: 'paused',
+      default_schedules: [{ dayOfWeek: 1, startTime: '11:00', subject: '영어' }],
+    };
+
+    // DB에 학생 저장
+    const savedActive = await Database.addStudent(activeStudent);
+    const savedPaused = await Database.addStudent(pausedStudent);
+
+    // 저장된 주간 계획에 휴회생 일정이 남아있는 경우를 가정한 목업
+    const mockPlan = {
+      weekKey: '2026-08-17',
+      scheduleItems: [
+        {
+          id: 'item-1',
+          studentId: savedActive.id,
+          studentName: '재원생학생',
+          date: targetDate,
+          dayOfWeek: 1,
+          startTime: '10:00',
+          subject: '수학',
+        },
+        {
+          id: 'item-2',
+          studentId: savedPaused.id,
+          studentName: '휴회생학생',
+          date: targetDate,
+          dayOfWeek: 1,
+          startTime: '11:00',
+          subject: '영어',
+        },
+      ],
+    };
+    await Database.saveWeeklyPlan('2026-08-17', mockPlan);
+
+    // 당일 시간표 조회
+    const dailyItems = await Database.getDailyScheduleAndRecords(targetDate);
+
+    // 검증: 재원생만 표기되고, 휴회생은 시간표 목록에 절대 포함되지 않아야 함
+    expect(dailyItems).toHaveLength(1);
+    expect(dailyItems[0].studentName).toBe('재원생학생');
+    expect(dailyItems.some((it) => it.studentName === '휴회생학생')).toBe(false);
+  });
 });
+

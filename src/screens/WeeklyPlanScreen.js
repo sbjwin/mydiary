@@ -91,6 +91,8 @@ export default function WeeklyPlanScreen() {
   const [currentMonday, setCurrentMonday] = useState(() => getMondayOfWeek(new Date()));
   const [weeklyPlan, setWeeklyPlan] = useState(null);
   const [students, setStudents] = useState([]);
+  const [pausedStudentIds, setPausedStudentIds] = useState(() => new Set());
+  const [pausedStudentNames, setPausedStudentNames] = useState(() => new Set());
   const [loading, setLoading] = useState(true);
 
   // 뷰 모드: 'table' (주간 전체 타임테이블) | 'timeline' (요일별 상세 타임라인)
@@ -176,8 +178,15 @@ export default function WeeklyPlanScreen() {
     setLoading(true);
     try {
       const allStudents = await Database.getAllStudents();
-      // 학생 목록 가나다(이름)순 정렬
-      const sortedStudents = (allStudents || []).sort((a, b) =>
+      
+      // 휴회 학생 식별 (시간표 표기에서 제외하기 위함)
+      const pausedList = (allStudents || []).filter((s) => s.status === 'paused');
+      setPausedStudentIds(new Set(pausedList.map((s) => s.id)));
+      setPausedStudentNames(new Set(pausedList.map((s) => s.name)));
+
+      // 시간표에는 재원생만 등록/선택하므로 재원생(status !== 'paused')만 students에 저장
+      const activeStudents = (allStudents || []).filter((s) => s.status !== 'paused');
+      const sortedStudents = activeStudents.sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', 'ko')
       );
       setStudents(sortedStudents);
@@ -535,10 +544,29 @@ export default function WeeklyPlanScreen() {
     );
   }, [students, studentSearchQuery]);
 
-  // 특정 요일/시간 슬롯의 수업 찾기
-  const getSlotItems = (dayOfWeek, hour) => {
+  // 시간표에는 재원생만 표기: 휴회 중인 학생의 수업은 시간표 렌더링에서 제외
+  const activeScheduleItems = useMemo(() => {
     const items = weeklyPlan?.scheduleItems || [];
+    if (!items.length) return [];
     return items.filter((it) => {
+      if (it.studentId && pausedStudentIds.has(it.studentId)) return false;
+      if (!it.studentId && it.studentName && pausedStudentNames.has(it.studentName)) return false;
+      return true;
+    });
+  }, [weeklyPlan?.scheduleItems, pausedStudentIds, pausedStudentNames]);
+
+  // 보고서 출력/공유용 주간 계획 (재원생 수업만 포함)
+  const activeWeeklyPlan = useMemo(() => {
+    if (!weeklyPlan) return null;
+    return {
+      ...weeklyPlan,
+      scheduleItems: activeScheduleItems,
+    };
+  }, [weeklyPlan, activeScheduleItems]);
+
+  // 특정 요일/시간 슬롯의 수업 찾기 (재원생만)
+  const getSlotItems = (dayOfWeek, hour) => {
+    return activeScheduleItems.filter((it) => {
       if (Number(it.dayOfWeek) !== dayOfWeek) return false;
       const rawHour = (it.startTime || '').match(/\d{1,2}/);
       if (!rawHour) return false;
@@ -549,12 +577,11 @@ export default function WeeklyPlanScreen() {
     });
   };
 
-  // 선택된 요일의 수업 목록 (타임라인 뷰용)
+  // 선택된 요일의 수업 목록 (타임라인 뷰용 - 재원생만)
   const selectedDayItems = useMemo(() => {
     const targetDay = selectedDayOffset + 1; // 1:월 ~ 7:일
-    const items = weeklyPlan?.scheduleItems || [];
-    return items.filter((it) => Number(it.dayOfWeek) === targetDay);
-  }, [weeklyPlan, selectedDayOffset]);
+    return activeScheduleItems.filter((it) => Number(it.dayOfWeek) === targetDay);
+  }, [activeScheduleItems, selectedDayOffset]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -735,12 +762,12 @@ export default function WeeklyPlanScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {weeklyPlan?.scheduleItems?.filter((it) => Number(it.dayOfWeek) === 7).length === 0 ? (
+                {activeScheduleItems.filter((it) => Number(it.dayOfWeek) === 7).length === 0 ? (
                   <Text style={styles.emptySundayText}>일요일에 등록된 수업 일정이 없습니다.</Text>
                 ) : (
                   <View style={styles.sundayGrid}>
-                    {weeklyPlan?.scheduleItems
-                      ?.filter((it) => Number(it.dayOfWeek) === 7)
+                    {activeScheduleItems
+                      .filter((it) => Number(it.dayOfWeek) === 7)
                       .map((item) => {
                         const matchedRec = getMatchedRecord(item);
                         const isDone = Boolean(matchedRec);
@@ -1361,7 +1388,7 @@ export default function WeeklyPlanScreen() {
               style={styles.actionMenuItem}
               onPress={async () => {
                 setPdfModalVisible(false);
-                await printWeeklyReport(weeklyPlan);
+                await printWeeklyReport(activeWeeklyPlan);
               }}
             >
               <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
@@ -1378,7 +1405,7 @@ export default function WeeklyPlanScreen() {
               style={styles.actionMenuItem}
               onPress={async () => {
                 setPdfModalVisible(false);
-                await shareWeeklyReport(weeklyPlan);
+                await shareWeeklyReport(activeWeeklyPlan);
               }}
             >
               <View style={[styles.actionIconBadge, styles.pdfShareIconBadge]}>
@@ -1395,7 +1422,7 @@ export default function WeeklyPlanScreen() {
               style={styles.actionMenuItem}
               onPress={async () => {
                 setPdfModalVisible(false);
-                await shareWeeklyReportDocx(weeklyPlan);
+                await shareWeeklyReportDocx(activeWeeklyPlan);
               }}
             >
               <View style={[styles.actionIconBadge, styles.docxShareIconBadge]}>

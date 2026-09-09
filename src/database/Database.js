@@ -461,9 +461,21 @@ export const Database = {
       const weeklyPlan = await Database.getWeeklyPlan(monday);
       const dateRecords = await Database.getRecordsByDate(dateString);
 
-      const scheduledForDay = (weeklyPlan?.scheduleItems || []).filter(
-        (item) => item.date === dateString
+      const allStudents = await Database.getAllStudents();
+      const pausedStudentIds = new Set(
+        (allStudents || []).filter((s) => s.status === 'paused').map((s) => s.id)
       );
+      const pausedStudentNames = new Set(
+        (allStudents || []).filter((s) => s.status === 'paused').map((s) => s.name)
+      );
+
+      // 시간표에는 재원생만 표기: 휴회 중인 학생의 계획 일정은 제외
+      const scheduledForDay = (weeklyPlan?.scheduleItems || []).filter((item) => {
+        if (item.date !== dateString) return false;
+        if (item.studentId && pausedStudentIds.has(item.studentId)) return false;
+        if (!item.studentId && item.studentName && pausedStudentNames.has(item.studentName)) return false;
+        return true;
+      });
 
       const mappedList = [];
       const matchedRecordIds = new Set();
