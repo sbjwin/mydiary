@@ -121,7 +121,7 @@ export const buildHeaderXml = () => {
          xmlns:hwpunitchar="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar"
          xmlns:epub="http://www.idpf.org/2007/ops"
          xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0"
-         version="1.5" secCnt="1">
+         version="1.2" secCnt="1">
   <hh:beginNum page="1" footnote="1" endnote="1" pic="1" tbl="1" equation="1"/>
   <hh:refList>
     <!-- 글꼴 목록 -->
@@ -654,10 +654,10 @@ export const shareWeeklyReportHwpx = async (weeklyPlan) => {
     // 1. mimetype (KS X 6101 표준: 아카이브 맨 첫 파일, 무압축 STORE 방식 필수)
     zip.file('mimetype', 'application/hwp+zip', { compression: 'STORE' });
 
-    // 2. version.xml (한컴오피스 한글 2020+ HCFVersion 스키마 필수)
+    // 2. version.xml (한컴오피스 한글 2020 호환 HCFVersion 메타데이터)
     zip.file(
       'version.xml',
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<hv:HCFVersion xmlns:hv="http://www.hancom.co.kr/hwpml/2011/version" tagetApplication="WORDPROCESSOR" major="5" minor="1" micro="1" buildNumber="0" os="1" xmlVersion="1.5" application="Hancom Office Hangul" appVersion="13, 0, 0, 1408 WIN32LEWindows_10"/>`
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<hv:HCFVersion xmlns:hv="http://www.hancom.co.kr/hwpml/2011/version" tagetApplication="WORDPROCESSOR" major="5" minor="0" micro="0" buildNumber="0" os="1" xmlVersion="1.2" application="Hancom Office Hangul" appVersion="11, 0, 0, 2128 WIN32LEWindows_10"/>`
     );
 
     // 3. settings.xml (캐럿 위치 및 뷰어 설정)
