@@ -20,7 +20,7 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
     const headerXml = buildHeaderXml();
 
     expect(headerXml).toContain('<hh:head');
-    expect(headerXml).toContain('version="1.5"');
+    expect(headerXml).toContain('version="1.2"');
     expect(headerXml).toContain('<hh:fontfaces');
     expect(headerXml).toContain('lang="HANGUL"');
     expect(headerXml).toContain('face="맑은 고딕"');
@@ -66,17 +66,17 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
     expect(sectionXml).toContain('2026년 8월 17일 주간의 성백진 업무 보고서');
     expect(sectionXml).toContain('방문 수업 (팀별, 개별 마케팅 일정 포함)');
 
-    // 한글 2020 필수: 첫 번째 문단 내 용지 설정 secPr 및 다단 colPr 확인
+    // 한글 2020 필수: 첫 번째 문단 내 용지 설정 secPr 및 다단 colPr 확인 (A4 세로 NARROWLY)
     expect(sectionXml).toContain('<hp:secPr');
-    expect(sectionXml).toContain('landscape="WIDELY"');
+    expect(sectionXml).toContain('landscape="NARROWLY"');
     expect(sectionXml).toContain('<hp:colPr');
 
     // 한글 2020 필수: 표가 문단(<hp:p><hp:run><hp:tbl>) 내에 올바르게 캡슐화되어야 함
     expect(sectionXml).toContain('<hp:tbl id="1"');
     expect(sectionXml).toContain('<hp:tbl id="2"');
 
-    // 표 크기 및 위치 속성 확인
-    expect(sectionXml).toContain('<hp:sz width="51500"');
+    // 표 크기 및 위치 속성 확인 (A4 세로 42520 HWPUnit)
+    expect(sectionXml).toContain('<hp:sz width="42520"');
     expect(sectionXml).toContain('<hp:pos treatAsChar="1"');
 
     // 한글 2020 필수: 모든 셀(<hp:tc>) 내부 문단은 <hp:subList>로 감싸져 있어야 함
@@ -89,7 +89,7 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
     });
 
     // 점심시간 행 포함 확인
-    expect(sectionXml).toContain('즐거운 점심 시간 ☕');
+    expect(sectionXml).toContain('점심 및 이동 시간');
     expect(sectionXml).toContain('colSpan="6"');
 
     // 월요일 학생 정보 렌더링 확인
@@ -104,9 +104,9 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
     expect(sectionXml).toContain('영어');
 
     // 하단 메모 확인
-    expect(sectionXml).toContain('#개학준비 체크');
-    expect(sectionXml).toContain('#김철수 결석 보강');
-    expect(sectionXml).toContain('#상담 예정');
+    expect(sectionXml).toContain('개학준비 체크');
+    expect(sectionXml).toContain('김철수 결석 보강');
+    expect(sectionXml).toContain('상담 예정');
   });
 
   test('5. 수업 일정이 없는 빈 시간대라도 오류 없이 빈 문단 셀을 안전하게 생성해야 한다.', () => {

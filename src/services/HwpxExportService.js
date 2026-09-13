@@ -33,7 +33,7 @@ const createRun = (text, charPrIDRef = 0) => {
  */
 const createParagraph = (runs = [], paraPrIDRef = 0) => {
   const runContent = Array.isArray(runs) ? runs.join('') : runs;
-  return `<hp:p paraPrIDRef="${paraPrIDRef}">${runContent || createRun('', 0)}</hp:p>`;
+  return `<hp:p paraPrIDRef="${paraPrIDRef}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">${runContent || createRun('', 0)}</hp:p>`;
 };
 
 /**
@@ -43,22 +43,24 @@ const createParagraph = (runs = [], paraPrIDRef = 0) => {
 const createCell = ({
   paragraphs = [],
   width = 6600,
-  height = 400,
+  height = 500,
   colAddr = 0,
   rowAddr = 0,
   colSpan = 1,
   rowSpan = 1,
   borderFillIDRef = 1,
+  vertAlign = 'CENTER',
+  margin = { left: 160, right: 160, top: 100, bottom: 100 },
 }) => {
   const content = Array.isArray(paragraphs) ? paragraphs.join('') : paragraphs;
-  const textWidth = Math.max(800, width - 180);
+  const textWidth = Math.max(800, width - (margin.left + margin.right));
   return `
     <hp:tc borderFillIDRef="${borderFillIDRef}">
       <hp:cellAddr colAddr="${colAddr}" rowAddr="${rowAddr}"/>
       <hp:cellSpan colSpan="${colSpan}" rowSpan="${rowSpan}"/>
       <hp:cellSz width="${width}" height="${height}"/>
-      <hp:cellMargin left="90" right="90" top="50" bottom="50"/>
-      <hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" linkListIDRef="0" linkListNextIDRef="0" textWidth="${textWidth}" fieldName="">
+      <hp:cellMargin left="${margin.left}" right="${margin.right}" top="${margin.top}" bottom="${margin.bottom}"/>
+      <hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="${vertAlign}" linkListIDRef="0" linkListNextIDRef="0" textWidth="${textWidth}" fieldName="">
         ${content || createParagraph([], 3)}
       </hp:subList>
     </hp:tc>
@@ -74,7 +76,7 @@ const createRow = (cells = []) => {
 
 /**
  * 표(Table) 문단 래퍼 헬퍼
- * OWPML 표준: 표는 <hs:sec>의 직계 자식이 아니며, 반드시 <hp:p><hp:run><hp:tbl> 계층으로 배치되어야 함
+ * OWPML 표준: 표는 <hs:sec>의 직계 자식이 아니며, 반드시 <hp:p><hp:run charPrIDRef="0"><hp:tbl> 계층으로 배치되어야 함
  */
 const createTableParagraph = ({
   id = 1,
@@ -86,8 +88,8 @@ const createTableParagraph = ({
   borderFillIDRef = 1,
 }) => {
   return `
-  <hp:p paraPrIDRef="1">
-    <hp:run>
+  <hp:p paraPrIDRef="1" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">
+    <hp:run charPrIDRef="0">
       <hp:tbl id="${id}" zOrder="0" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="0" rowCnt="${rowCnt}" colCnt="${colCnt}" cellSpacing="0" borderFillIDRef="${borderFillIDRef}" noAdjust="0">
         <hp:sz width="${width}" widthRelTo="ABSOLUTE" height="${height}" heightRelTo="ABSOLUTE" protect="0"/>
         <hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="COLUMN" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>
@@ -149,151 +151,328 @@ export const buildHeaderXml = () => {
       </hh:fontface>
     </hh:fontfaces>
 
-    <!-- 테두리 / 배경 스타일 목록 -->
-    <hh:borderFills itemCnt="7">
-      <!-- 1: 기본 셀 (단선 테두리 #CBD5E1, 흰색 배경) -->
-      <hh:borderFill id="1" backSlash="none" slash="none">
-        <hh:leftBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:rightBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:topBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:bottomBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:fillBrush>
+    <!-- 테두리 / 배경 스타일 목록 (OWPML 표준 테두리/채우기 정의) -->
+    <hh:borderFills itemCnt="8">
+      <!-- 1: 기본 데이터 셀 (단선 #D1D5DB, 흰색 배경) -->
+      <hh:borderFill id="1" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
+        <hh:slash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:backSlash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:leftBorder type="SOLID" width="0.12 mm" color="#D1D5DB"/>
+        <hh:rightBorder type="SOLID" width="0.12 mm" color="#D1D5DB"/>
+        <hh:topBorder type="SOLID" width="0.12 mm" color="#D1D5DB"/>
+        <hh:bottomBorder type="SOLID" width="0.12 mm" color="#D1D5DB"/>
+        <hh:diagonal type="NONE" width="0.1 mm" color="#000000"/>
+        <hc:fillBrush>
           <hc:winBrush faceColor="#FFFFFF" hatchColor="#FFFFFF" alpha="0"/>
-        </hh:fillBrush>
+        </hc:fillBrush>
       </hh:borderFill>
-      <!-- 2: 헤더 셀 (단선 테두리, 연회색 배경 #E2E8F0) -->
-      <hh:borderFill id="2" backSlash="none" slash="none">
-        <hh:leftBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:rightBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:topBorder type="solid" width="0.12 mm" color="#475569"/>
-        <hh:bottomBorder type="solid" width="0.12 mm" color="#475569"/>
-        <hh:fillBrush>
-          <hc:winBrush faceColor="#E2E8F0" hatchColor="#E2E8F0" alpha="0"/>
-        </hh:fillBrush>
+      <!-- 2: 표 헤더 셀 (단선 #94A3B8, 소프트 슬레이트 배경 #F1F5F9) -->
+      <hh:borderFill id="2" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
+        <hh:slash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:backSlash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:leftBorder type="SOLID" width="0.12 mm" color="#94A3B8"/>
+        <hh:rightBorder type="SOLID" width="0.12 mm" color="#94A3B8"/>
+        <hh:topBorder type="SOLID" width="0.15 mm" color="#475569"/>
+        <hh:bottomBorder type="SOLID" width="0.15 mm" color="#475569"/>
+        <hh:diagonal type="NONE" width="0.1 mm" color="#000000"/>
+        <hc:fillBrush>
+          <hc:winBrush faceColor="#F1F5F9" hatchColor="#FFFFFF" alpha="0"/>
+        </hc:fillBrush>
       </hh:borderFill>
-      <!-- 3: 시간 열 셀 (단선 테두리, 연회색 배경 #F8FAFC) -->
-      <hh:borderFill id="3" backSlash="none" slash="none">
-        <hh:leftBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:rightBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:topBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:bottomBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:fillBrush>
-          <hc:winBrush faceColor="#F8FAFC" hatchColor="#F8FAFC" alpha="0"/>
-        </hh:fillBrush>
+      <!-- 3: 시간 열 셀 (단선 #D1D5DB, 연회색 배경 #F8FAFC) -->
+      <hh:borderFill id="3" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
+        <hh:slash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:backSlash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:leftBorder type="SOLID" width="0.12 mm" color="#94A3B8"/>
+        <hh:rightBorder type="SOLID" width="0.12 mm" color="#D1D5DB"/>
+        <hh:topBorder type="SOLID" width="0.12 mm" color="#D1D5DB"/>
+        <hh:bottomBorder type="SOLID" width="0.12 mm" color="#D1D5DB"/>
+        <hh:diagonal type="NONE" width="0.1 mm" color="#000000"/>
+        <hc:fillBrush>
+          <hc:winBrush faceColor="#F8FAFC" hatchColor="#FFFFFF" alpha="0"/>
+        </hc:fillBrush>
       </hh:borderFill>
-      <!-- 4: 점심시간 셀 (단선 테두리, 노란색 배경 #FEF3C7) -->
-      <hh:borderFill id="4" backSlash="none" slash="none">
-        <hh:leftBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:rightBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:topBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:bottomBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:fillBrush>
-          <hc:winBrush faceColor="#FEF3C7" hatchColor="#FEF3C7" alpha="0"/>
-        </hh:fillBrush>
+      <!-- 4: 점심시간 셀 (단선 #E2E8F0, 은은한 파스텔 크림 옐로우 #FEF9C3) -->
+      <hh:borderFill id="4" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
+        <hh:slash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:backSlash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:leftBorder type="SOLID" width="0.12 mm" color="#E2E8F0"/>
+        <hh:rightBorder type="SOLID" width="0.12 mm" color="#E2E8F0"/>
+        <hh:topBorder type="SOLID" width="0.12 mm" color="#E2E8F0"/>
+        <hh:bottomBorder type="SOLID" width="0.12 mm" color="#E2E8F0"/>
+        <hh:diagonal type="NONE" width="0.1 mm" color="#000000"/>
+        <hc:fillBrush>
+          <hc:winBrush faceColor="#FEF9C3" hatchColor="#FFFFFF" alpha="0"/>
+        </hc:fillBrush>
       </hh:borderFill>
-      <!-- 5: 기타 업무 셀 (단선 테두리, 배경 #F8FAFC) -->
-      <hh:borderFill id="5" backSlash="none" slash="none">
-        <hh:leftBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:rightBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:topBorder type="solid" width="0.12 mm" color="#475569"/>
-        <hh:bottomBorder type="solid" width="0.12 mm" color="#475569"/>
-        <hh:fillBrush>
-          <hc:winBrush faceColor="#F8FAFC" hatchColor="#F8FAFC" alpha="0"/>
-        </hh:fillBrush>
+      <!-- 5: 하단 정보 패널 헤더 (단선 #94A3B8, 배경 #F1F5F9) -->
+      <hh:borderFill id="5" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
+        <hh:slash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:backSlash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:leftBorder type="SOLID" width="0.15 mm" color="#94A3B8"/>
+        <hh:rightBorder type="SOLID" width="0.15 mm" color="#94A3B8"/>
+        <hh:topBorder type="SOLID" width="0.15 mm" color="#94A3B8"/>
+        <hh:bottomBorder type="SOLID" width="0.12 mm" color="#CBD5E1"/>
+        <hh:diagonal type="NONE" width="0.1 mm" color="#000000"/>
+        <hc:fillBrush>
+          <hc:winBrush faceColor="#F1F5F9" hatchColor="#FFFFFF" alpha="0"/>
+        </hc:fillBrush>
       </hh:borderFill>
-      <!-- 6: 일요일 시간표 셀 (단선 테두리, 연붉은색 배경 #FFF1F2) -->
-      <hh:borderFill id="6" backSlash="none" slash="none">
-        <hh:leftBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:rightBorder type="solid" width="0.12 mm" color="#CBD5E1"/>
-        <hh:topBorder type="solid" width="0.12 mm" color="#475569"/>
-        <hh:bottomBorder type="solid" width="0.12 mm" color="#475569"/>
-        <hh:fillBrush>
-          <hc:winBrush faceColor="#FFF1F2" hatchColor="#FFF1F2" alpha="0"/>
-        </hh:fillBrush>
+      <!-- 6: 하단 정보 패널 본문 (단선 #94A3B8, 배경 #FFFFFF) -->
+      <hh:borderFill id="6" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
+        <hh:slash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:backSlash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:leftBorder type="SOLID" width="0.15 mm" color="#94A3B8"/>
+        <hh:rightBorder type="SOLID" width="0.15 mm" color="#94A3B8"/>
+        <hh:topBorder type="SOLID" width="0.12 mm" color="#CBD5E1"/>
+        <hh:bottomBorder type="SOLID" width="0.15 mm" color="#94A3B8"/>
+        <hh:diagonal type="NONE" width="0.1 mm" color="#000000"/>
+        <hc:fillBrush>
+          <hc:winBrush faceColor="#FFFFFF" hatchColor="#FFFFFF" alpha="0"/>
+        </hc:fillBrush>
+      </hh:borderFill>
+      <!-- 7: 하단 전체 통합 박스 셀 (외곽선 #94A3B8, 내부 #FFFFFF) -->
+      <hh:borderFill id="7" threeD="0" shadow="0" centerLine="NONE" breakCellSeparateLine="0">
+        <hh:slash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:backSlash type="NONE" Crooked="0" isCounter="0"/>
+        <hh:leftBorder type="SOLID" width="0.15 mm" color="#94A3B8"/>
+        <hh:rightBorder type="SOLID" width="0.15 mm" color="#94A3B8"/>
+        <hh:topBorder type="SOLID" width="0.15 mm" color="#94A3B8"/>
+        <hh:bottomBorder type="SOLID" width="0.15 mm" color="#94A3B8"/>
+        <hh:diagonal type="NONE" width="0.1 mm" color="#000000"/>
+        <hc:fillBrush>
+          <hc:winBrush faceColor="#FFFFFF" hatchColor="#FFFFFF" alpha="0"/>
+        </hc:fillBrush>
       </hh:borderFill>
     </hh:borderFills>
 
-    <!-- 글자 모양 목록 -->
-    <hh:charProperties itemCnt="13">
-      <!-- 0: 기본 본문 (9pt = 900 HWPUnit) -->
-      <hh:charPr id="0" height="900" textColor="#000000">
+    <!-- 글자 모양 목록 (OWPML 표준 장평 100, 상대크기 100, 세련된 비즈니스 폰트 규격) -->
+    <hh:charProperties itemCnt="15">
+      <!-- 0: 기본 본문 (9pt) -->
+      <hh:charPr id="0" height="900" textColor="#000000" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 1: 문서 대제목 (13pt = 1300 HWPUnit, Bold) -->
-      <hh:charPr id="1" height="1300" textColor="#0F172A" bold="1">
+      <!-- 1: 문서 대제목 (16pt, Bold, 프리미엄 딥 네이비) -->
+      <hh:charPr id="1" height="1600" textColor="#0F172A" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="-2" latin="-2" hanja="-2" japanese="-2" other="-2" symbol="-2" user="-2"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 2: 문서 부제목 (8pt = 800 HWPUnit) -->
-      <hh:charPr id="2" height="800" textColor="#64748B">
+      <!-- 2: 문서 부제목 (8.5pt, 슬레이트 그레이) -->
+      <hh:charPr id="2" height="850" textColor="#64748B" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 3: 표 헤더 (8pt = 800 HWPUnit, Bold) -->
-      <hh:charPr id="3" height="800" textColor="#1E293B" bold="1">
+      <!-- 3: 표 헤더 (8.5pt, Bold, 다크 차콜) -->
+      <hh:charPr id="3" height="850" textColor="#1E293B" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="-1" latin="-1" hanja="-1" japanese="-1" other="-1" symbol="-1" user="-1"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 4: 수업 시간 + 학생 이름 (7.5pt = 750 HWPUnit, Bold) -->
-      <hh:charPr id="4" height="750" textColor="#111827" bold="1">
+      <!-- 4: 수업 시간 + 학생 이름 (8pt, Bold, 선명한 블랙) -->
+      <hh:charPr id="4" height="800" textColor="#0F172A" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="-1" latin="-1" hanja="-1" japanese="-1" other="-1" symbol="-1" user="-1"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 5: 과목명 (7pt = 700 HWPUnit, Bold, 파란색) -->
-      <hh:charPr id="5" height="700" textColor="#1D4ED8" bold="1">
+      <!-- 5: 과목명 (7.5pt, Bold, 로열 블루 #1D4ED8) -->
+      <hh:charPr id="5" height="750" textColor="#1D4ED8" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 6: 주소 및 연락처 (6.5pt = 650 HWPUnit, 회색조) -->
-      <hh:charPr id="6" height="650" textColor="#374151">
+      <!-- 6: 주소 및 연락처 (7pt, 중간 슬레이트 #475569) -->
+      <hh:charPr id="6" height="700" textColor="#475569" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 7: 특이사항 메모 (6.5pt = 650 HWPUnit, Bold, 빨간색) -->
-      <hh:charPr id="7" height="650" textColor="#DC2626" bold="1">
+      <!-- 7: 특이사항 메모 (7pt, Bold, 포인트 레드 #DC2626) -->
+      <hh:charPr id="7" height="700" textColor="#DC2626" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 8: 점심시간 텍스트 (8pt = 800 HWPUnit, Bold, 갈색) -->
-      <hh:charPr id="8" height="800" textColor="#92400E" bold="1">
+      <!-- 8: 점심시간 텍스트 (8pt, Bold, 차분한 브라운 #854D0E) -->
+      <hh:charPr id="8" height="800" textColor="#854D0E" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 9: 기타업무 타이틀 (8pt = 800 HWPUnit, Bold, 네이비) -->
-      <hh:charPr id="9" height="800" textColor="#1E3A8A" bold="1">
+      <!-- 9: 하단 섹션 대분류 타이틀 (8.5pt, Bold, 딥 네이비 #1E3A8A) -->
+      <hh:charPr id="9" height="850" textColor="#1E3A8A" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="-1" latin="-1" hanja="-1" japanese="-1" other="-1" symbol="-1" user="-1"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 10: 일요일 헤더 (8pt = 800 HWPUnit, Bold, 적색) -->
-      <hh:charPr id="10" height="800" textColor="#991B1B" bold="1">
+      <!-- 10: 일요일 섹션 대분류 타이틀 (8.5pt, Bold, 딥 레드 #991B1B) -->
+      <hh:charPr id="10" height="850" textColor="#991B1B" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="-1" latin="-1" hanja="-1" japanese="-1" other="-1" symbol="-1" user="-1"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 11: 소항목 라벨 (7pt = 700 HWPUnit, Bold, 어두운 회색) -->
-      <hh:charPr id="11" height="700" textColor="#1F2937" bold="1">
+      <!-- 11: 하단 소항목 소제목 (7.5pt, Bold, #334155) -->
+      <hh:charPr id="11" height="750" textColor="#334155" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 12: 수업 구분선 (6pt = 600 HWPUnit, 밝은 회색) -->
-      <hh:charPr id="12" height="600" textColor="#CBD5E1">
+      <!-- 12: 수업 구분선 (6pt, 연회색) -->
+      <hh:charPr id="12" height="600" textColor="#CBD5E1" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
+      </hh:charPr>
+      <!-- 13: 시간 열 라벨 (8pt, Bold, 딥 슬레이트 #475569) -->
+      <hh:charPr id="13" height="800" textColor="#475569" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
+        <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="-1" latin="-1" hanja="-1" japanese="-1" other="-1" symbol="-1" user="-1"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
+      </hh:charPr>
+      <!-- 14: 예정된 수업 없음 안내문 (7.5pt, 연회색 #94A3B8) -->
+      <hh:charPr id="14" height="750" textColor="#94A3B8" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
+        <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
+        <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:underline type="NONE" shape="SOLID" color="#000000"/>
+        <hh:strikeout shape="NONE" color="#000000"/>
+        <hh:outline type="NONE"/>
+        <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
     </hh:charProperties>
 
     <!-- 문단 모양 목록 -->
-    <hh:paraProperties itemCnt="6">
-      <!-- 0: 일반 본문 좌측 정렬 (줄간격 140%) -->
+    <hh:paraProperties itemCnt="8">
+      <!-- 0: 일반 본문 좌측 정렬 (줄간격 130%) -->
       <hh:paraPr id="0" align="left">
-        <hh:lineSpacing type="percent" value="140"/>
+        <hh:lineSpacing type="percent" value="130"/>
       </hh:paraPr>
-      <!-- 1: 일반 본문 중앙 정렬 (줄간격 140%) -->
+      <!-- 1: 일반 본문 중앙 정렬 (줄간격 130%) -->
       <hh:paraPr id="1" align="center">
-        <hh:lineSpacing type="percent" value="140"/>
+        <hh:lineSpacing type="percent" value="130"/>
       </hh:paraPr>
-      <!-- 2: 문서 대제목/부제목 중앙 정렬 (줄간격 115%) -->
+      <!-- 2: 문서 대제목/부제목 중앙 정렬 (줄간격 120%) -->
       <hh:paraPr id="2" align="center">
-        <hh:lineSpacing type="percent" value="115"/>
+        <hh:lineSpacing type="percent" value="120"/>
       </hh:paraPr>
-      <!-- 3: 표 내부 컴팩트 좌측 정렬 (줄간격 115%) -->
+      <!-- 3: 표 내부 컴팩트 좌측 정렬 (줄간격 120%) -->
       <hh:paraPr id="3" align="left">
-        <hh:lineSpacing type="percent" value="115"/>
+        <hh:lineSpacing type="percent" value="120"/>
       </hh:paraPr>
-      <!-- 4: 표 내부 컴팩트 중앙 정렬 (줄간격 115%) -->
+      <!-- 4: 표 내부 컴팩트 중앙 정렬 (줄간격 120%) -->
       <hh:paraPr id="4" align="center">
-        <hh:lineSpacing type="percent" value="115"/>
+        <hh:lineSpacing type="percent" value="120"/>
       </hh:paraPr>
-      <!-- 5: 하단 섹션 소제목 좌측 정렬 (상하 미세 여백) -->
+      <!-- 5: 하단 섹션 소제목 좌측 정렬 (줄간격 125%) -->
       <hh:paraPr id="5" align="left">
-        <hh:lineSpacing type="percent" value="115"/>
+        <hh:lineSpacing type="percent" value="125"/>
+      </hh:paraPr>
+      <!-- 6: 제목 하단 미세 여백 문단 (줄간격 60%) -->
+      <hh:paraPr id="6" align="center">
+        <hh:lineSpacing type="percent" value="60"/>
+      </hh:paraPr>
+      <!-- 7: 표 사이 여백 문단 (줄간격 80%) -->
+      <hh:paraPr id="7" align="center">
+        <hh:lineSpacing type="percent" value="80"/>
       </hh:paraPr>
     </hh:paraProperties>
 
@@ -323,7 +502,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
   // 요일 헤더 계산
   const getDayHeader = (offset, label) => {
     const d = new Date(year, month - 1, day + offset);
-    return `${label}(${d.getMonth() + 1}/${d.getDate()})`;
+    return `${label} (${d.getMonth() + 1}/${d.getDate()})`;
   };
 
   const dayHeaders = [
@@ -334,23 +513,23 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
     getDayHeader(4, '금'),
     getDayHeader(5, '토'),
   ];
-  const sundayHeader = getDayHeader(6, '일요일 시간표');
+  const sundayHeader = getDayHeader(6, '일요일');
 
   const scheduleItems = weeklyPlan?.scheduleItems || [];
 
   const timeSlots = [
-    { label: '오전', hour: 9 },
-    { label: '10시', hour: 10 },
-    { label: '11시', hour: 11 },
-    { label: '12시', hour: 12, isLunch: true },
-    { label: '1시', hour: 13 },
-    { label: '2시', hour: 14 },
-    { label: '3시', hour: 15 },
-    { label: '4시', hour: 16 },
-    { label: '5시', hour: 17 },
-    { label: '6시', hour: 18 },
-    { label: '7시', hour: 19 },
-    { label: '8시', hour: 20 },
+    { label: '09:00', hour: 9 },
+    { label: '10:00', hour: 10 },
+    { label: '11:00', hour: 11 },
+    { label: '12:00', hour: 12, isLunch: true },
+    { label: '13:00', hour: 13 },
+    { label: '14:00', hour: 14 },
+    { label: '15:00', hour: 15 },
+    { label: '16:00', hour: 16 },
+    { label: '17:00', hour: 17 },
+    { label: '18:00', hour: 18 },
+    { label: '19:00', hour: 19 },
+    { label: '20:00', hour: 20 },
   ];
 
   const getItemsForSlot = (dayOfWeek, hour) => {
@@ -367,21 +546,21 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
 
   const sundayItems = scheduleItems.filter((item) => Number(item.dayOfWeek) === 7);
 
-  // 셀 내 수업 카드 문단 생성
+  // 셀 내 수업 카드 문단 생성 (단정하고 시각적으로 정돈된 카드 형태)
   const renderItemParagraphs = (item) => {
     const pars = [];
     // 1) 시간 + 이름
     const timeAndName = `${item.startTime || ''} ${item.studentName || ''}`.trim();
-    pars.push(createParagraph([createRun(timeAndName, 4)], 3));
+    pars.push(createParagraph([createRun(`● ${timeAndName}`, 4)], 3));
 
     // 2) 과목
     if (item.subject) {
-      pars.push(createParagraph([createRun(item.subject, 5)], 3));
+      pars.push(createParagraph([createRun(`  [${item.subject}]`, 5)], 3));
     }
 
     // 3) 주소
     if (item.address) {
-      pars.push(createParagraph([createRun(item.address, 6)], 3));
+      pars.push(createParagraph([createRun(`  ${item.address}`, 6)], 3));
     }
 
     // 4) 전화번호
@@ -389,7 +568,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
       const phones = formatPhoneInfo(item.phoneInfo).split('\n');
       phones.forEach((p) => {
         if (p.trim()) {
-          pars.push(createParagraph([createRun(p.trim(), 6)], 3));
+          pars.push(createParagraph([createRun(`  ${p.trim()}`, 6)], 3));
         }
       });
     }
@@ -397,23 +576,23 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
     // 5) 특이사항 / 메모
     if (item.statusNote) {
       const noteText = item.statusNote.startsWith('=>') ? item.statusNote : `=> ${item.statusNote}`;
-      pars.push(createParagraph([createRun(noteText, 7)], 3));
+      pars.push(createParagraph([createRun(`  ※ ${noteText}`, 7)], 3));
     }
 
     return pars;
   };
 
   // A4 세로 표준 규격 (본문 유효폭: 42520 HWPUnit = 59528 - (8504 * 2))
-  const TIME_COL_WIDTH = 2920;
-  const DAY_COL_WIDTH = 6600; // 6600 * 6 = 39600
-  const TOTAL_TABLE_WIDTH = 42520; // 2920 + 39600 = 42520
+  const TIME_COL_WIDTH = 3220;
+  const DAY_COL_WIDTH = 6550; // 6550 * 6 = 39300
+  const TOTAL_TABLE_WIDTH = 42520; // 3220 + 39300 = 42520
 
   // 1. 메인 시간표 헤더 행 (시간, 월~토)
   const headerCells = [
     createCell({
-      paragraphs: [createParagraph([createRun('시간', 3)], 4)],
+      paragraphs: [createParagraph([createRun('구 분', 3)], 4)],
       width: TIME_COL_WIDTH,
-      height: 350,
+      height: 480,
       colAddr: 0,
       rowAddr: 0,
       borderFillIDRef: 2,
@@ -422,7 +601,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
       createCell({
         paragraphs: [createParagraph([createRun(dh, 3)], 4)],
         width: DAY_COL_WIDTH,
-        height: 350,
+        height: 480,
         colAddr: idx + 1,
         rowAddr: 0,
         borderFillIDRef: 2,
@@ -438,17 +617,17 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
     if (slot.isLunch) {
       const lunchCells = [
         createCell({
-          paragraphs: [createParagraph([createRun(slot.label, 3)], 4)],
+          paragraphs: [createParagraph([createRun(slot.label, 13)], 4)],
           width: TIME_COL_WIDTH,
-          height: 280,
+          height: 380,
           colAddr: 0,
           rowAddr: currentRow,
           borderFillIDRef: 3,
         }),
         createCell({
-          paragraphs: [createParagraph([createRun('즐거운 점심 시간 ☕', 8)], 4)],
+          paragraphs: [createParagraph([createRun('☕ 12:00 ~ 13:00 점심 및 이동 시간', 8)], 4)],
           width: DAY_COL_WIDTH * 6,
-          height: 280,
+          height: 380,
           colAddr: 1,
           rowAddr: currentRow,
           colSpan: 6,
@@ -461,9 +640,9 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
 
     const rowCells = [
       createCell({
-        paragraphs: [createParagraph([createRun(slot.label, 3)], 4)],
+        paragraphs: [createParagraph([createRun(slot.label, 13)], 4)],
         width: TIME_COL_WIDTH,
-        height: 450,
+        height: 600,
         colAddr: 0,
         rowAddr: currentRow,
         borderFillIDRef: 3,
@@ -477,7 +656,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
           createCell({
             paragraphs: [createParagraph([], 3)],
             width: DAY_COL_WIDTH,
-            height: 450,
+            height: 600,
             colAddr: colIdx + 1,
             rowAddr: currentRow,
             borderFillIDRef: 1,
@@ -487,7 +666,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
         const cellPars = [];
         items.forEach((it, idx) => {
           if (idx > 0) {
-            cellPars.push(createParagraph([createRun('----------------', 12)], 4));
+            cellPars.push(createParagraph([createRun('------------------------', 12)], 4));
           }
           cellPars.push(...renderItemParagraphs(it));
         });
@@ -495,10 +674,11 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
           createCell({
             paragraphs: cellPars,
             width: DAY_COL_WIDTH,
-            height: 450,
+            height: 600,
             colAddr: colIdx + 1,
             rowAddr: currentRow,
             borderFillIDRef: 1,
+            margin: { left: 160, right: 160, top: 120, bottom: 120 },
           })
         );
       }
@@ -508,29 +688,45 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
   });
 
   // 3. 하단 2단 정보 테이블 (기타 업무, 일요일 시간표)
-  // 좌: 16120, 우: 26400 (합계 42520)
-  const BOTTOM_LEFT_WIDTH = 16120;
-  const BOTTOM_RIGHT_WIDTH = 26400;
+  // 좌: 17520, 우: 25000 (합계 42520)
+  const BOTTOM_LEFT_WIDTH = 17520;
+  const BOTTOM_RIGHT_WIDTH = 25000;
+
+  // 좌측 기타 업무 내용 포맷팅
+  const formatBulletList = (text, defaultText) => {
+    const raw = text || defaultText;
+    return raw
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => (line.startsWith('#') ? `  • ${line.substring(1).trim()}` : `  • ${line}`))
+      .join('\n');
+  };
 
   const colLeftPars = [
-    createParagraph([createRun('기타 업무 (전달물 / 특이사항)', 9)], 4),
-    createParagraph([createRun('<금주 주요사항>', 11)], 5),
-    createParagraph([createRun(weeklyPlan?.mainNotes || '#개학후 시간변동 체크\n#마감보고서 제출', 6)], 3),
-    createParagraph([createRun('<전주 결석>', 11)], 5),
-    createParagraph([createRun(weeklyPlan?.prevAbsentNotes || '#개인사정 결석', 6)], 3),
-    createParagraph([createRun('<특이사항>', 11)], 5),
-    createParagraph([createRun(weeklyPlan?.specialNotes || '공지사항 확인', 6)], 3),
+    createParagraph([createRun('■ 기타 업무 (전달물 / 특이사항)', 9)], 3),
+    createParagraph([createRun('', 0)], 6),
+    createParagraph([createRun('▶ 금주 주요사항', 11)], 5),
+    createParagraph([createRun(formatBulletList(weeklyPlan?.mainNotes, '#개학 후 시간변동 체크\n#마감보고서 제출'), 6)], 3),
+    createParagraph([createRun('', 0)], 6),
+    createParagraph([createRun('▶ 전주 결석', 11)], 5),
+    createParagraph([createRun(formatBulletList(weeklyPlan?.prevAbsentNotes, '#개인사정 결석'), 6)], 3),
+    createParagraph([createRun('', 0)], 6),
+    createParagraph([createRun('▶ 특이사항', 11)], 5),
+    createParagraph([createRun(formatBulletList(weeklyPlan?.specialNotes, '공지사항 확인'), 6)], 3),
   ];
 
+  // 우측 일요일 시간표 내용 포맷팅
   const colRightPars = [
-    createParagraph([createRun(sundayHeader, 10)], 4),
+    createParagraph([createRun(`■ ${sundayHeader} 시간표`, 10)], 3),
+    createParagraph([createRun('', 0)], 6),
   ];
   if (sundayItems.length === 0) {
-    colRightPars.push(createParagraph([createRun('일요일 예정된 수업이 없습니다.', 6)], 4));
+    colRightPars.push(createParagraph([createRun('일요일 예정된 수업이 없습니다.', 14)], 3));
   } else {
     sundayItems.forEach((it, idx) => {
       if (idx > 0) {
-        colRightPars.push(createParagraph([createRun('----------------', 12)], 4));
+        colRightPars.push(createParagraph([createRun('------------------------', 12)], 4));
       }
       colRightPars.push(...renderItemParagraphs(it));
     });
@@ -540,18 +736,22 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
     createCell({
       paragraphs: colLeftPars,
       width: BOTTOM_LEFT_WIDTH,
-      height: 750,
+      height: 1800,
       colAddr: 0,
       rowAddr: 0,
-      borderFillIDRef: 5,
+      borderFillIDRef: 7,
+      vertAlign: 'TOP',
+      margin: { left: 240, right: 240, top: 180, bottom: 180 },
     }),
     createCell({
       paragraphs: colRightPars,
       width: BOTTOM_RIGHT_WIDTH,
-      height: 750,
+      height: 1800,
       colAddr: 1,
       rowAddr: 0,
-      borderFillIDRef: 6,
+      borderFillIDRef: 7,
+      vertAlign: 'TOP',
+      margin: { left: 240, right: 240, top: 180, bottom: 180 },
     }),
   ]);
 
@@ -571,13 +771,13 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
         xmlns:hwpunitchar="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar"
         xmlns:epub="http://www.idpf.org/2007/ops"
         xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0">
-  <!-- 첫 번째 문단: 구역(섹션) 속성 정의 (A4 세로형 표준 1장 최적화) -->
+  <!-- 첫 번째 문단: 구역(섹션) 속성 정의 (A4 세로형 표준 1장 최적화, 쪽 테두리 제거) -->
   <hp:p id="1000000001" paraPrIDRef="0" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">
     <hp:run charPrIDRef="0">
-      <hp:secPr id="0" textDirection="HORIZONTAL" spaceColumns="1134" tabStop="8000" tabStopVal="4000" tabStopUnit="HWPUNIT" outlineShapeIDRef="1" memoShapeIDRef="0" textVerticalWidthHead="0" masterPageCnt="0">
+      <hp:secPr id="" textDirection="HORIZONTAL" spaceColumns="1134" tabStop="8000" tabStopVal="4000" tabStopUnit="HWPUNIT" outlineShapeIDRef="1" memoShapeIDRef="0" textVerticalWidthHead="0" masterPageCnt="0">
         <hp:grid lineGrid="0" charGrid="0" wonggojiFormat="0"/>
         <hp:startNum pageStartsOn="BOTH" page="0" pic="0" tbl="0" equation="0"/>
-        <hp:visibility hideFirstHeader="0" hideFirstFooter="0" hideFirstMasterPage="0" border="SHOW_ALL" fill="SHOW_ALL" hideFirstPageNum="0" hideFirstEmptyLine="0" showLineNumber="0"/>
+        <hp:visibility hideFirstHeader="0" hideFirstFooter="0" hideFirstMasterPage="0" border="HIDE_ALL" fill="HIDE_ALL" hideFirstPageNum="0" hideFirstEmptyLine="0" showLineNumber="0"/>
         <hp:lineNumberShape restartType="0" countBy="0" distance="0" startNumber="0"/>
         <hp:pagePr landscape="NARROWLY" width="59528" height="84188" gutterType="LEFT_ONLY">
           <hp:margin header="1417" footer="1417" gutter="0" left="8504" right="8504" top="4252" bottom="4252"/>
@@ -596,19 +796,18 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
           <hp:numbering type="CONTINUOUS" newNum="1"/>
           <hp:placement place="END_OF_DOCUMENT" beneathText="0"/>
         </hp:endNotePr>
-        <hp:pageBorderFill type="BOTH" borderFillIDRef="1" textBorder="PAPER" headerInside="0" footerInside="0" fillArea="PAPER">
-          <hp:offset left="1417" right="1417" top="1417" bottom="1417"/>
-        </hp:pageBorderFill>
       </hp:secPr>
       <hp:ctrl>
         <hp:colPr id="0" type="NEWSPAPER" layout="LEFT" colCount="1" sameSz="1" sameGap="0"/>
       </hp:ctrl>
     </hp:run>
+    <hp:run charPrIDRef="0"><hp:t/></hp:run>
   </hp:p>
 
-  <!-- 문서 제목 (컴팩트 배치) -->
+  <!-- 문서 제목 및 부제목 (품격 있는 헤더) -->
   ${createParagraph([createRun(docTitle, 1)], 2)}
   ${createParagraph([createRun(docSubTitle, 2)], 2)}
+  ${createParagraph([createRun('', 0)], 6)}
 
   <!-- 1. 주간 시간표 메인 테이블 (총 너비: 42520 HWPUnit) -->
   ${createTableParagraph({
@@ -617,9 +816,12 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
     rowCnt: timeSlots.length + 1,
     colCnt: 7,
     width: TOTAL_TABLE_WIDTH,
-    height: (timeSlots.length + 1) * 450,
+    height: (timeSlots.length + 1) * 580,
     borderFillIDRef: 1,
   })}
+
+  <!-- 표 사이 미세 간격 -->
+  ${createParagraph([createRun('', 0)], 7)}
 
   <!-- 2. 하단 2단 정보 테이블 (기타 업무, 일요일 시간표 - 총 너비: 42520 HWPUnit) -->
   ${createTableParagraph({
@@ -628,8 +830,8 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
     rowCnt: 1,
     colCnt: 2,
     width: TOTAL_TABLE_WIDTH,
-    height: 750,
-    borderFillIDRef: 1,
+    height: 1800,
+    borderFillIDRef: 7,
   })}
 </hs:sec>`;
 };
@@ -666,15 +868,19 @@ export const shareWeeklyReportHwpx = async (weeklyPlan) => {
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<ha:HWPApplicationSetting xmlns:ha="http://www.hancom.co.kr/hwpml/2011/app" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0">\n  <ha:CaretPosition listIDRef="0" paraIDRef="0" pos="0"/>\n</ha:HWPApplicationSetting>`
     );
 
-    // 4. META-INF/container.xml (hwpml-package+xml 매니페스트 경로 선언)
-    zip.folder('META-INF').file(
+    // 4. META-INF/container.xml, manifest.xml, container.rdf (표준 매니페스트 및 리소스 매핑)
+    const metaFolder = zip.folder('META-INF');
+    metaFolder.file(
       'container.xml',
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ocf:container xmlns:ocf="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:hpf="http://www.hancom.co.kr/schema/2011/hpf">
-  <ocf:rootfiles>
-    <ocf:rootfile full-path="Contents/content.hpf" media-type="application/hwpml-package+xml"/>
-  </ocf:rootfiles>
-</ocf:container>`
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<ocf:container xmlns:ocf="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:hpf="http://www.hancom.co.kr/schema/2011/hpf">\n  <ocf:rootfiles>\n    <ocf:rootfile full-path="Contents/content.hpf" media-type="application/hwpml-package+xml"/>\n  </ocf:rootfiles>\n</ocf:container>`
+    );
+    metaFolder.file(
+      'manifest.xml',
+      `<?xml version="1.0" encoding="UTF-8"?>\n<odf:manifest xmlns:odf="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0"/>`
+    );
+    metaFolder.file(
+      'container.rdf',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about=""><ns0:hasPart xmlns:ns0="http://www.hancom.co.kr/hwpml/2016/meta/pkg#" rdf:resource="Contents/header.xml"/></rdf:Description><rdf:Description rdf:about="Contents/header.xml"><rdf:type rdf:resource="http://www.hancom.co.kr/hwpml/2016/meta/pkg#HeaderFile"/></rdf:Description><rdf:Description rdf:about=""><ns0:hasPart xmlns:ns0="http://www.hancom.co.kr/hwpml/2016/meta/pkg#" rdf:resource="Contents/section0.xml"/></rdf:Description><rdf:Description rdf:about="Contents/section0.xml"><rdf:type rdf:resource="http://www.hancom.co.kr/hwpml/2016/meta/pkg#SectionFile"/></rdf:Description><rdf:Description rdf:about=""><rdf:type rdf:resource="http://www.hancom.co.kr/hwpml/2016/meta/pkg#Document"/></rdf:Description></rdf:RDF>`
     );
 
     // 5. Contents/content.hpf (OPF 매니페스트 및 스파인 정의)
