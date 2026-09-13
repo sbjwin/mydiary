@@ -38,6 +38,7 @@ const createParagraph = (runs = [], paraPrIDRef = 0) => {
 
 /**
  * 표 셀(Cell) 생성 헬퍼
+ * OWPML 표준: hp:tc 아래에 hp:cellAddr, hp:cellSpan, hp:cellSz, hp:cellMargin, 그리고 hp:subList 내부에 문단이 위치해야 함
  */
 const createCell = ({
   paragraphs = [],
@@ -50,13 +51,16 @@ const createCell = ({
   borderFillIDRef = 1,
 }) => {
   const content = Array.isArray(paragraphs) ? paragraphs.join('') : paragraphs;
+  const textWidth = Math.max(1000, width - 280);
   return `
     <hp:tc borderFillIDRef="${borderFillIDRef}">
       <hp:cellAddr colAddr="${colAddr}" rowAddr="${rowAddr}"/>
       <hp:cellSpan colSpan="${colSpan}" rowSpan="${rowSpan}"/>
       <hp:cellSz width="${width}" height="${height}"/>
       <hp:cellMargin left="140" right="140" top="100" bottom="100"/>
-      ${content || createParagraph([], 3)}
+      <hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" linkListIDRef="0" linkListNextIDRef="0" textWidth="${textWidth}" fieldName="">
+        ${content || createParagraph([], 3)}
+      </hp:subList>
     </hp:tc>
   `;
 };
@@ -69,38 +73,79 @@ const createRow = (cells = []) => {
 };
 
 /**
+ * 표(Table) 문단 래퍼 헬퍼
+ * OWPML 표준: 표는 <hs:sec>의 직계 자식이 아니며, 반드시 <hp:p><hp:run><hp:tbl> 계층으로 배치되어야 함
+ */
+const createTableParagraph = ({
+  id = 1,
+  rows = [],
+  rowCnt = 1,
+  colCnt = 1,
+  width = 51500,
+  height = 5000,
+  borderFillIDRef = 1,
+}) => {
+  return `
+  <hp:p paraPrIDRef="1">
+    <hp:run>
+      <hp:tbl id="${id}" zOrder="0" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="0" rowCnt="${rowCnt}" colCnt="${colCnt}" cellSpacing="0" borderFillIDRef="${borderFillIDRef}" noAdjust="0">
+        <hp:sz width="${width}" widthRelTo="ABSOLUTE" height="${height}" heightRelTo="ABSOLUTE" protect="0"/>
+        <hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="COLUMN" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>
+        <hp:outMargin left="0" right="0" top="0" bottom="0"/>
+        <hp:inMargin left="0" right="0" top="0" bottom="0"/>
+        ${rows.join('')}
+      </hp:tbl>
+    </hp:run>
+  </hp:p>
+  `;
+};
+
+/**
  * OWPML header.xml 생성
- * 글꼴, 글자 모양, 문단 모양, 테두리/배경 스타일 정의
+ * 글꼴, 글자 모양, 문단 모양, 테두리/배경 스타일 정의 (한글 2020+ 표준 스키마 준수)
  */
 export const buildHeaderXml = () => {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<hh:head xmlns:hh="http://www.hancom.co.kr/hwpml/2011/head"
+<hh:head xmlns:ha="http://www.hancom.co.kr/hwpml/2011/app"
+         xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph"
+         xmlns:hp10="http://www.hancom.co.kr/hwpml/2016/paragraph"
+         xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section"
          xmlns:hc="http://www.hancom.co.kr/hwpml/2011/core"
-         xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph">
+         xmlns:hh="http://www.hancom.co.kr/hwpml/2011/head"
+         xmlns:hhs="http://www.hancom.co.kr/hwpml/2011/history"
+         xmlns:hm="http://www.hancom.co.kr/hwpml/2011/master-page"
+         xmlns:hpf="http://www.hancom.co.kr/schema/2011/hpf"
+         xmlns:dc="http://purl.org/dc/elements/1.1/"
+         xmlns:opf="http://www.idpf.org/2007/opf/"
+         xmlns:ooxmlchart="http://www.hancom.co.kr/hwpml/2016/ooxmlchart"
+         xmlns:hwpunitchar="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar"
+         xmlns:epub="http://www.idpf.org/2007/ops"
+         xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0"
+         version="1.5" secCnt="1">
   <hh:beginNum page="1" footnote="1" endnote="1" pic="1" tbl="1" equation="1"/>
   <hh:refList>
     <!-- 글꼴 목록 -->
     <hh:fontfaces itemCnt="7">
-      <hh:fontface lang="hangul" fontCnt="1">
-        <hh:font id="0" face="맑은 고딕" type="ttf" isEmbedded="0"/>
+      <hh:fontface lang="HANGUL" fontCnt="1">
+        <hh:font id="0" face="맑은 고딕" type="TTF" isEmbedded="0"/>
       </hh:fontface>
-      <hh:fontface lang="latin" fontCnt="1">
-        <hh:font id="0" face="맑은 고딕" type="ttf" isEmbedded="0"/>
+      <hh:fontface lang="LATIN" fontCnt="1">
+        <hh:font id="0" face="맑은 고딕" type="TTF" isEmbedded="0"/>
       </hh:fontface>
-      <hh:fontface lang="hanja" fontCnt="1">
-        <hh:font id="0" face="맑은 고딕" type="ttf" isEmbedded="0"/>
+      <hh:fontface lang="HANJA" fontCnt="1">
+        <hh:font id="0" face="맑은 고딕" type="TTF" isEmbedded="0"/>
       </hh:fontface>
-      <hh:fontface lang="japanese" fontCnt="1">
-        <hh:font id="0" face="맑은 고딕" type="ttf" isEmbedded="0"/>
+      <hh:fontface lang="JAPANESE" fontCnt="1">
+        <hh:font id="0" face="맑은 고딕" type="TTF" isEmbedded="0"/>
       </hh:fontface>
-      <hh:fontface lang="other" fontCnt="1">
-        <hh:font id="0" face="맑은 고딕" type="ttf" isEmbedded="0"/>
+      <hh:fontface lang="OTHER" fontCnt="1">
+        <hh:font id="0" face="맑은 고딕" type="TTF" isEmbedded="0"/>
       </hh:fontface>
-      <hh:fontface lang="symbol" fontCnt="1">
-        <hh:font id="0" face="맑은 고딕" type="ttf" isEmbedded="0"/>
+      <hh:fontface lang="SYMBOL" fontCnt="1">
+        <hh:font id="0" face="맑은 고딕" type="TTF" isEmbedded="0"/>
       </hh:fontface>
-      <hh:fontface lang="user" fontCnt="1">
-        <hh:font id="0" face="맑은 고딕" type="ttf" isEmbedded="0"/>
+      <hh:fontface lang="USER" fontCnt="1">
+        <hh:font id="0" face="맑은 고딕" type="TTF" isEmbedded="0"/>
       </hh:fontface>
     </hh:fontfaces>
 
@@ -254,9 +299,15 @@ export const buildHeaderXml = () => {
 
     <!-- 스타일 목록 -->
     <hh:styles itemCnt="1">
-      <hh:style id="0" type="para" name="바탕글" engName="Normal" paraPrIDRef="0" charPrIDRef="0"/>
+      <hh:style id="0" type="PARA" name="바탕글" engName="Normal" paraPrIDRef="0" charPrIDRef="0"/>
     </hh:styles>
   </hh:refList>
+  <hh:compatibleDocument targetProgram="HWP201X">
+    <hh:layoutCompatibility/>
+  </hh:compatibleDocument>
+  <hh:docOption>
+    <hh:linkinfo path="" pageInherit="0" footnoteInherit="0"/>
+  </hh:docOption>
 </hh:head>`;
 };
 
@@ -496,27 +547,85 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
   ]);
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<hs:sec xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section"
+<hs:sec xmlns:ha="http://www.hancom.co.kr/hwpml/2011/app"
         xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph"
+        xmlns:hp10="http://www.hancom.co.kr/hwpml/2016/paragraph"
+        xmlns:hs="http://www.hancom.co.kr/hwpml/2011/section"
         xmlns:hc="http://www.hancom.co.kr/hwpml/2011/core"
-        xmlns:hh="http://www.hancom.co.kr/hwpml/2011/head">
+        xmlns:hh="http://www.hancom.co.kr/hwpml/2011/head"
+        xmlns:hhs="http://www.hancom.co.kr/hwpml/2011/history"
+        xmlns:hm="http://www.hancom.co.kr/hwpml/2011/master-page"
+        xmlns:hpf="http://www.hancom.co.kr/schema/2011/hpf"
+        xmlns:dc="http://purl.org/dc/elements/1.1/"
+        xmlns:opf="http://www.idpf.org/2007/opf/"
+        xmlns:ooxmlchart="http://www.hancom.co.kr/hwpml/2016/ooxmlchart"
+        xmlns:hwpunitchar="http://www.hancom.co.kr/hwpml/2016/HwpUnitChar"
+        xmlns:epub="http://www.idpf.org/2007/ops"
+        xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0">
+  <!-- 첫 번째 문단: 구역(섹션) 속성 정의 (A4 가로형 표준) -->
+  <hp:p id="1000000001" paraPrIDRef="0" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">
+    <hp:run charPrIDRef="0">
+      <hp:secPr id="0" textDirection="HORIZONTAL" spaceColumns="1134" tabStop="8000" tabStopVal="4000" tabStopUnit="HWPUNIT" outlineShapeIDRef="1" memoShapeIDRef="0" textVerticalWidthHead="0" masterPageCnt="0">
+        <hp:grid lineGrid="0" charGrid="0" wonggojiFormat="0"/>
+        <hp:startNum pageStartsOn="BOTH" page="0" pic="0" tbl="0" equation="0"/>
+        <hp:visibility hideFirstHeader="0" hideFirstFooter="0" hideFirstMasterPage="0" border="SHOW_ALL" fill="SHOW_ALL" hideFirstPageNum="0" hideFirstEmptyLine="0" showLineNumber="0"/>
+        <hp:lineNumberShape restartType="0" countBy="0" distance="0" startNumber="0"/>
+        <hp:pagePr landscape="WIDELY" width="84188" height="59528" gutterType="LEFT_ONLY">
+          <hp:margin header="2835" footer="2835" gutter="0" left="5668" right="5668" top="5668" bottom="4252"/>
+        </hp:pagePr>
+        <hp:footNotePr>
+          <hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/>
+          <hp:noteLine length="-1" type="SOLID" width="0.12 mm" color="#000000"/>
+          <hp:noteSpacing betweenNotes="283" belowLine="567" aboveLine="850"/>
+          <hp:numbering type="CONTINUOUS" newNum="1"/>
+          <hp:placement place="EACH_COLUMN" beneathText="0"/>
+        </hp:footNotePr>
+        <hp:endNotePr>
+          <hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/>
+          <hp:noteLine length="14692344" type="SOLID" width="0.12 mm" color="#000000"/>
+          <hp:noteSpacing betweenNotes="0" belowLine="567" aboveLine="850"/>
+          <hp:numbering type="CONTINUOUS" newNum="1"/>
+          <hp:placement place="END_OF_DOCUMENT" beneathText="0"/>
+        </hp:endNotePr>
+        <hp:pageBorderFill type="BOTH" borderFillIDRef="1" textBorder="PAPER" headerInside="0" footerInside="0" fillArea="PAPER">
+          <hp:offset left="1417" right="1417" top="1417" bottom="1417"/>
+        </hp:pageBorderFill>
+      </hp:secPr>
+      <hp:ctrl>
+        <hp:colPr id="0" type="NEWSPAPER" layout="LEFT" colCount="1" sameSz="1" sameGap="0"/>
+      </hp:ctrl>
+    </hp:run>
+  </hp:p>
+
   <!-- 문서 제목 -->
   ${createParagraph([createRun(docTitle, 1)], 2)}
   ${createParagraph([createRun(docSubTitle, 2)], 2)}
   ${createParagraph([], 0)}
 
   <!-- 1. 주간 시간표 메인 테이블 (총 너비: 51500 HWPUnit) -->
-  <hp:tbl id="1" pageBreak="cell" repeatHeader="0" rowCnt="${timeSlots.length + 1}" colCnt="7" cellSpacing="0" borderFillIDRef="1">
-    ${tableRows.join('')}
-  </hp:tbl>
+  ${createTableParagraph({
+    id: 1,
+    rows: tableRows,
+    rowCnt: timeSlots.length + 1,
+    colCnt: 7,
+    width: 51500,
+    height: (timeSlots.length + 1) * 700,
+    borderFillIDRef: 1,
+  })}
 
   <!-- 테이블 간 간격 문단 -->
   ${createParagraph([], 0)}
 
   <!-- 2. 하단 2단 정보 테이블 (기타 업무, 일요일 시간표) -->
-  <hp:tbl id="2" pageBreak="cell" repeatHeader="0" rowCnt="1" colCnt="2" cellSpacing="0" borderFillIDRef="1">
-    ${bottomRow}
-  </hp:tbl>
+  ${createTableParagraph({
+    id: 2,
+    rows: [bottomRow],
+    rowCnt: 1,
+    colCnt: 2,
+    width: 51500,
+    height: 1200,
+    borderFillIDRef: 1,
+  })}
 </hs:sec>`;
 };
 
@@ -537,55 +646,63 @@ export const shareWeeklyReportHwpx = async (weeklyPlan) => {
 
     const zip = new JSZip();
 
-    // 1. mimetype (OWPML 명세: 무압축 application/hwp+zip)
-    zip.file('mimetype', 'application/hwp+zip');
+    // 1. mimetype (KS X 6101 표준: 아카이브 맨 첫 파일, 무압축 STORE 방식 필수)
+    zip.file('mimetype', 'application/hwp+zip', { compression: 'STORE' });
 
-    // 2. version.xml
+    // 2. version.xml (한컴오피스 한글 2020+ HCFVersion 스키마 필수)
     zip.file(
       'version.xml',
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<hh:version xmlns:hh="http://www.hancom.co.kr/hwpml/2011/head" version="5.0.0.0"/>`
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<hv:HCFVersion xmlns:hv="http://www.hancom.co.kr/hwpml/2011/version" tagetApplication="WORDPROCESSOR" major="5" minor="1" micro="1" buildNumber="0" os="1" xmlVersion="1.5" application="Hancom Office Hangul" appVersion="13, 0, 0, 1408 WIN32LEWindows_10"/>`
     );
 
-    // 3. META-INF/container.xml
+    // 3. settings.xml (캐럿 위치 및 뷰어 설정)
+    zip.file(
+      'settings.xml',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<ha:HWPApplicationSetting xmlns:ha="http://www.hancom.co.kr/hwpml/2011/app" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0">\n  <ha:CaretPosition listIDRef="0" paraIDRef="0" pos="0"/>\n</ha:HWPApplicationSetting>`
+    );
+
+    // 4. META-INF/container.xml (hwpml-package+xml 매니페스트 경로 선언)
     zip.folder('META-INF').file(
       'container.xml',
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ocf:container xmlns:ocf="urn:oasis:names:tc:opendocument:xmlns:container">
+<ocf:container xmlns:ocf="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:hpf="http://www.hancom.co.kr/schema/2011/hpf">
   <ocf:rootfiles>
-    <ocf:rootfile full-path="Contents/content.hpf" media-type="application/hwp+zip"/>
+    <ocf:rootfile full-path="Contents/content.hpf" media-type="application/hwpml-package+xml"/>
   </ocf:rootfiles>
 </ocf:container>`
     );
 
-    // 4. Contents/content.hpf
+    // 5. Contents/content.hpf (OPF 매니페스트 및 스파인 정의)
     const contentsFolder = zip.folder('Contents');
     contentsFolder.file(
       'content.hpf',
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="BookId">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
-    <dc:title>주간 업무 보고서</dc:title>
-    <dc:creator>${TEACHER_NAME}</dc:creator>
-    <dc:language>ko</dc:language>
-  </metadata>
-  <manifest>
-    <item id="header" href="header.xml" media-type="application/xml"/>
-    <item id="section0" href="section0.xml" media-type="application/xml"/>
-  </manifest>
-  <spine>
-    <itemref idref="section0"/>
-  </spine>
-</package>`
+<opf:package xmlns:opf="http://www.idpf.org/2007/opf/" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0" unique-identifier="BookId">
+  <opf:metadata>
+    <opf:title>주간 업무 보고서</opf:title>
+    <opf:language>ko</opf:language>
+    <opf:meta name="creator" content="${TEACHER_NAME}"/>
+  </opf:metadata>
+  <opf:manifest>
+    <opf:item id="header" href="Contents/header.xml" media-type="application/xml"/>
+    <opf:item id="section0" href="Contents/section0.xml" media-type="application/xml"/>
+    <opf:item id="settings" href="settings.xml" media-type="application/xml"/>
+  </opf:manifest>
+  <opf:spine>
+    <opf:itemref idref="header" linear="yes"/>
+    <opf:itemref idref="section0" linear="yes"/>
+  </opf:spine>
+</opf:package>`
     );
 
-    // 5. Contents/header.xml
+    // 6. Contents/header.xml
     contentsFolder.file('header.xml', buildHeaderXml());
 
-    // 6. Contents/section0.xml
+    // 7. Contents/section0.xml
     const sectionXml = buildWeeklyPlanHwpxSectionXml(weeklyPlan);
     contentsFolder.file('section0.xml', sectionXml);
 
-    // ZIP 생성 (base64)
+    // ZIP 생성 (base64) - mimetype 파일만 STORE가 유지되고 나머지는 DEFLATE 압축
     const base64Data = await zip.generateAsync({
       type: 'base64',
       compression: 'DEFLATE',

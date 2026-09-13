@@ -16,19 +16,22 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
     expect(escapeXml(undefined)).toBe('');
   });
 
-  test('3. buildHeaderXml은 필수 OWPML 헤더 구조(글꼴, 테두리, 글자모양, 문단모양)를 포함해야 한다.', () => {
+  test('3. buildHeaderXml은 한글 2020 호환 필수 OWPML 헤더 구조를 포함해야 한다.', () => {
     const headerXml = buildHeaderXml();
 
     expect(headerXml).toContain('<hh:head');
+    expect(headerXml).toContain('version="1.5"');
     expect(headerXml).toContain('<hh:fontfaces');
+    expect(headerXml).toContain('lang="HANGUL"');
     expect(headerXml).toContain('face="맑은 고딕"');
     expect(headerXml).toContain('<hh:borderFills');
     expect(headerXml).toContain('<hh:charProperties');
     expect(headerXml).toContain('<hh:paraProperties');
+    expect(headerXml).toContain('<hh:compatibleDocument targetProgram="HWP201X">');
     expect(headerXml).toContain('</hh:head>');
   });
 
-  test('4. buildWeeklyPlanHwpxSectionXml은 주간 시간표와 교사 정보를 반영한 유효한 OWPML 섹션을 생성해야 한다.', () => {
+  test('4. buildWeeklyPlanHwpxSectionXml은 한글 2020 표준 구역 속성(secPr) 및 하위 리스트(subList)를 준수해야 한다.', () => {
     const mockWeeklyPlan = {
       startDate: '2026-08-17',
       mainNotes: '#개학준비 체크\n#교재 배부',
@@ -63,9 +66,27 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
     expect(sectionXml).toContain('2026년 8월 17일 주간의 성백진 업무 보고서');
     expect(sectionXml).toContain('방문 수업 (팀별, 개별 마케팅 일정 포함)');
 
-    // 메인 시간표 및 하단 테이블 2개 존재 확인
+    // 한글 2020 필수: 첫 번째 문단 내 용지 설정 secPr 및 다단 colPr 확인
+    expect(sectionXml).toContain('<hp:secPr');
+    expect(sectionXml).toContain('landscape="WIDELY"');
+    expect(sectionXml).toContain('<hp:colPr');
+
+    // 한글 2020 필수: 표가 문단(<hp:p><hp:run><hp:tbl>) 내에 올바르게 캡슐화되어야 함
     expect(sectionXml).toContain('<hp:tbl id="1"');
     expect(sectionXml).toContain('<hp:tbl id="2"');
+
+    // 표 크기 및 위치 속성 확인
+    expect(sectionXml).toContain('<hp:sz width="51500"');
+    expect(sectionXml).toContain('<hp:pos treatAsChar="1"');
+
+    // 한글 2020 필수: 모든 셀(<hp:tc>) 내부 문단은 <hp:subList>로 감싸져 있어야 함
+    expect(sectionXml).toContain('<hp:subList');
+    const cellMatches = sectionXml.match(/<hp:tc[^>]*>[\s\S]*?<\/hp:tc>/g) || [];
+    expect(cellMatches.length).toBeGreaterThan(0);
+    cellMatches.forEach((cell) => {
+      expect(cell).toContain('<hp:subList');
+      expect(cell).toMatch(/<hp:p[^>]*>/);
+    });
 
     // 점심시간 행 포함 확인
     expect(sectionXml).toContain('즐거운 점심 시간 ☕');
@@ -86,13 +107,6 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
     expect(sectionXml).toContain('#개학준비 체크');
     expect(sectionXml).toContain('#김철수 결석 보강');
     expect(sectionXml).toContain('#상담 예정');
-
-    // OWPML 필수 규칙: 모든 셀(<hp:tc>) 내부에 최소 1개 이상의 문단(<hp:p>)이 포함되어야 함
-    const cellMatches = sectionXml.match(/<hp:tc[^>]*>[\s\S]*?<\/hp:tc>/g) || [];
-    expect(cellMatches.length).toBeGreaterThan(0);
-    cellMatches.forEach((cell) => {
-      expect(cell).toMatch(/<hp:p[^>]*>/);
-    });
   });
 
   test('5. 수업 일정이 없는 빈 시간대라도 오류 없이 빈 문단 셀을 안전하게 생성해야 한다.', () => {
