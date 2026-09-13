@@ -16,7 +16,7 @@ import {
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Database, getMondayOfWeek, getDateFromMondayOffset, formatPhoneInfo } from '../database/Database';
-import { printWeeklyReport, shareWeeklyReport, shareWeeklyReportDocx } from '../services/PrintService';
+import { printWeeklyReport, shareWeeklyReport, shareWeeklyReportDocx, shareWeeklyReportHwpx } from '../services/PrintService';
 import { theme } from '../theme';
 
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
@@ -1434,6 +1434,23 @@ export default function WeeklyPlanScreen() {
               </View>
               <Feather name="chevron-right" size={20} color={theme.colors.outline} />
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={async () => {
+                setPdfModalVisible(false);
+                await shareWeeklyReportHwpx(activeWeeklyPlan);
+              }}
+            >
+              <View style={[styles.actionIconBadge, styles.hwpxShareIconBadge]}>
+                <MaterialCommunityIcons name="file-document-outline" size={22} color="#EA580C" />
+              </View>
+              <View style={styles.actionMenuTextContainer}>
+                <Text style={styles.actionMenuTitle}>한글 문서 (.hwpx) 파일 공유</Text>
+                <Text style={styles.actionMenuSub}>한컴오피스 한글, 한컴독스 등으로 전송하여 수정/편집</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={theme.colors.outline} />
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -2539,6 +2556,9 @@ const styles = StyleSheet.create({
   },
   docxShareIconBadge: {
     backgroundColor: '#EFF6FF',
+  },
+  hwpxShareIconBadge: {
+    backgroundColor: '#FFF7ED',
   },
   cellItemBoxDone: {
     backgroundColor: '#DCFCE7',

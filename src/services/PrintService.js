@@ -971,5 +971,6 @@ export const shareWeeklyReport = async (weeklyPlan) => {
 };
 
 export { shareWeeklyReportDocx } from './DocxExportService';
+export { shareWeeklyReportHwpx } from './HwpxExportService';
 
 
