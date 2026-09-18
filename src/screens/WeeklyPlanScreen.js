@@ -177,7 +177,7 @@ export default function WeeklyPlanScreen() {
     setLoading(true);
     try {
       const allStudents = await Database.getAllStudents();
-      
+
       // 휴회 학생 식별 (시간표 표기에서 제외하기 위함)
       const pausedList = (allStudents || []).filter((s) => s.status === 'paused');
       setPausedStudentIds(new Set(pausedList.map((s) => s.id)));
@@ -1296,7 +1296,7 @@ export default function WeeklyPlanScreen() {
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>이번 주 특이사항 / 변동 메모 (PDF에 인쇄됨)</Text>
                 <View style={styles.presetChipRow}>
-                  {['=> 이번주만', '=> 휴일', '=> 아픔', '(30분 수업)'].map((chip) => (
+                  {['이번주만', '휴일', '아픔', '(30분 수업)'].map((chip) => (
                     <TouchableOpacity
                       key={chip}
                       style={styles.presetChip}
