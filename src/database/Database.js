@@ -627,7 +627,7 @@ export const Database = {
     }
   },
 
-  // 특정 주차(weekKey: 월요일 YYYY-MM-DD) 계획 조회 (없으면 학생 기본 시간표로 자동 생성)
+  // 특정 주차(weekKey: 월요일 YYYY-MM-DD) 계획 조회 (없으면 빈 주간 계획 반환)
   getWeeklyPlan: async (weekKey) => {
     try {
       const plansMap = await Database.getAllWeeklyPlansMap();
@@ -642,64 +642,7 @@ export const Database = {
         return plan;
       }
 
-      // 저장된 주간 계획이 없다면 학생들의 기본 일정(default_schedules)을 바탕으로 초기 데이터 생성
-      const students = await Database.getAllStudents();
-      const defaultScheduleItems = [];
-
-      students.forEach((student) => {
-        // 휴회 상태(paused)인 학생은 주간 시간표 자동 생성에서 제외
-        if (student.status === 'paused') {
-          return;
-        }
-
-        if (Array.isArray(student.default_schedules)) {
-          student.default_schedules.forEach((sched) => {
-            const dayOfWeek = sched.dayOfWeek || 1; // 1:월 ~ 7:일
-            const offset = dayOfWeek - 1;
-            const dateStr = getDateFromMondayOffset(weekKey, offset);
-
-            const parentPhone = student.parent_mobile_phone || student.parentMobilePhone;
-            const studentPhone = student.mobile_phone || student.mobilePhone;
-            const homePhone = student.phone_number || student.phoneNumber;
-
-            const phoneList = [];
-            if (studentPhone) {
-              phoneList.push(`(본)${studentPhone}`);
-            }
-            if (parentPhone) {
-              phoneList.push(`(모)${parentPhone}`);
-            }
-            if (homePhone) {
-              phoneList.push(`(전화)${homePhone}`);
-            }
-
-            defaultScheduleItems.push({
-              id: generateUUID(),
-              studentId: student.id,
-              studentName: student.name || '무명',
-              paymentType: student.payment_type || '지사입금',
-              subject: sched.subject || '',
-              address: student.address || '',
-              phoneInfo: formatPhoneInfo(phoneList.join('\n')),
-              dayOfWeek: dayOfWeek,
-              date: dateStr,
-              startTime: sched.startTime || '10:00',
-              duration: sched.duration || 60,
-              statusTag: '정규',
-              statusNote: '',
-              isDefault: true,
-              isRecurring: true,
-            });
-          });
-        }
-      });
-
-      // 시간 순서대로 정렬
-      defaultScheduleItems.sort((a, b) => {
-        if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
-        return (a.startTime || '00:00').localeCompare(b.startTime || '00:00');
-      });
-
+      // 저장된 주간 계획이 없다면 빈 주간 계획 반환 (사용자가 매주 독립적으로 직접 정의)
       const initialPlan = {
         weekKey: weekKey,
         startDate: weekKey,
@@ -707,7 +650,7 @@ export const Database = {
         mainNotes: '',
         prevAbsentNotes: '',
         specialNotes: '',
-        scheduleItems: defaultScheduleItems,
+        scheduleItems: [],
         callItems: [],
         updatedAt: new Date().toISOString(),
       };
@@ -725,6 +668,139 @@ export const Database = {
         scheduleItems: [],
         callItems: [],
       };
+    }
+  },
+
+  // 다른 주차의 시간표를 대상 주차로 복사 (날짜 재계산 및 ID 신규 발급)
+  copyWeeklyPlan: async (sourceWeekKey, targetWeekKey) => {
+    try {
+      const plansMap = await Database.getAllWeeklyPlansMap();
+      const sourcePlan = plansMap[sourceWeekKey];
+      if (!sourcePlan || !Array.isArray(sourcePlan.scheduleItems) || sourcePlan.scheduleItems.length === 0) {
+        return null;
+      }
+
+      const copiedScheduleItems = sourcePlan.scheduleItems.map((item) => {
+        const dayOfWeek = item.dayOfWeek || 1;
+        const offset = dayOfWeek - 1;
+        const targetDate = getDateFromMondayOffset(targetWeekKey, offset);
+        return {
+          ...item,
+          id: generateUUID(),
+          date: targetDate,
+          phoneInfo: formatPhoneInfo(item.phoneInfo),
+        };
+      });
+
+      // 기존 대상 주차 계획이 있으면 가져오고 없으면 새로 생성
+      const targetPlan = plansMap[targetWeekKey] || {
+        weekKey: targetWeekKey,
+        startDate: targetWeekKey,
+        endDate: getDateFromMondayOffset(targetWeekKey, 6),
+        mainNotes: '',
+        prevAbsentNotes: '',
+        specialNotes: '',
+        callItems: [],
+      };
+
+      const updatedPlan = {
+        ...targetPlan,
+        scheduleItems: copiedScheduleItems,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await Database.saveWeeklyPlan(targetWeekKey, updatedPlan);
+      return updatedPlan;
+    } catch (e) {
+      console.error(`Failed to copy weekly plan from ${sourceWeekKey} to ${targetWeekKey}:`, e);
+      throw e;
+    }
+  },
+
+  // 학생들의 기본 정규 시간표(default_schedules)로부터 주간 계획 불러오기 (중복 시간 자동 정제)
+  loadWeeklyPlanFromStudentDefaults: async (weekKey) => {
+    try {
+      const students = await Database.getAllStudents();
+      const defaultScheduleItems = [];
+      const seenKeys = new Set(); // studentId + dayOfWeek + startTime 중복 방지
+
+      students.forEach((student) => {
+        if (student.status === 'paused') {
+          return;
+        }
+
+        if (Array.isArray(student.default_schedules)) {
+          student.default_schedules.forEach((sched) => {
+            const dayOfWeek = sched.dayOfWeek || 1;
+            const startTime = sched.startTime || '10:00';
+            const dedupeKey = `${student.id}_${dayOfWeek}_${startTime}`;
+
+            if (seenKeys.has(dedupeKey)) {
+              return; // 중복 누적된 기본 일정 제외
+            }
+            seenKeys.add(dedupeKey);
+
+            const offset = dayOfWeek - 1;
+            const dateStr = getDateFromMondayOffset(weekKey, offset);
+
+            const parentPhone = student.parent_mobile_phone || student.parentMobilePhone;
+            const studentPhone = student.mobile_phone || student.mobilePhone;
+            const homePhone = student.phone_number || student.phoneNumber;
+
+            const phoneList = [];
+            if (studentPhone) phoneList.push(`(본)${studentPhone}`);
+            if (parentPhone) phoneList.push(`(모)${parentPhone}`);
+            if (homePhone) phoneList.push(`(전화)${homePhone}`);
+
+            defaultScheduleItems.push({
+              id: generateUUID(),
+              studentId: student.id,
+              studentName: student.name || '무명',
+              paymentType: student.payment_type || '지사입금',
+              subject: sched.subject || '',
+              address: student.address || '',
+              phoneInfo: formatPhoneInfo(phoneList.join('\n')),
+              dayOfWeek: dayOfWeek,
+              date: dateStr,
+              startTime: startTime,
+              duration: sched.duration || 60,
+              statusTag: '정규',
+              statusNote: '',
+              isDefault: true,
+              isRecurring: true,
+            });
+          });
+        }
+      });
+
+      // 요일 및 시간 순서대로 정렬
+      defaultScheduleItems.sort((a, b) => {
+        if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+        return (a.startTime || '00:00').localeCompare(b.startTime || '00:00');
+      });
+
+      const plansMap = await Database.getAllWeeklyPlansMap();
+      const currentPlan = plansMap[weekKey] || {
+        weekKey: weekKey,
+        startDate: weekKey,
+        endDate: getDateFromMondayOffset(weekKey, 6),
+        mainNotes: '',
+        prevAbsentNotes: '',
+        specialNotes: '',
+        callItems: [],
+      };
+
+      const updatedPlan = {
+        ...currentPlan,
+        scheduleItems: defaultScheduleItems,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await Database.saveWeeklyPlan(weekKey, updatedPlan);
+      return updatedPlan;
+    } catch (e) {
+      console.error(`Failed to load weekly plan from student defaults for ${weekKey}:`, e);
+      throw e;
     }
   },
 

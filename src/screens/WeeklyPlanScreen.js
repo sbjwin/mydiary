@@ -117,7 +117,6 @@ export default function WeeklyPlanScreen() {
   const [formDayOfWeek, setFormDayOfWeek] = useState(1);
   const [formStartTime, setFormStartTime] = useState('10:00');
   const [formStatusNote, setFormStatusNote] = useState('');
-  const [formIsRecurring, setFormIsRecurring] = useState(true); // 매주 계속 반복 vs 이번주만
   const [studentPickerVisible, setStudentPickerVisible] = useState(false);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [timePickerVisible, setTimePickerVisible] = useState(false);
@@ -253,7 +252,6 @@ export default function WeeklyPlanScreen() {
     setFormDayOfWeek(dayOfWeek);
     setFormStartTime(formattedHour);
     setFormStatusNote('');
-    setFormIsRecurring(true);
     setEditModalVisible(true);
   };
 
@@ -268,7 +266,6 @@ export default function WeeklyPlanScreen() {
     setFormDayOfWeek(Number(item.dayOfWeek) || 1);
     setFormStartTime(item.startTime || '10:00');
     setFormStatusNote(item.statusNote || '');
-    setFormIsRecurring(item.isRecurring !== false);
     setEditModalVisible(true);
   };
 
@@ -347,32 +344,8 @@ export default function WeeklyPlanScreen() {
     [allRecords]
   );
 
-  // 수업 항목 저장
-  const handleSaveScheduleItem = async () => {
-    if (!formStudentName.trim()) {
-      Alert.alert('알림', '학생 이름을 입력하거나 선택해 주세요.');
-      return;
-    }
-
-    const targetDate = getDayDateString(formDayOfWeek);
-    const newItem = {
-      id: selectedItem ? selectedItem.id : Date.now().toString(),
-      studentId: formStudentId || null,
-      studentName: formStudentName.trim(),
-      paymentType: formPaymentType.trim(),
-      subject: formSubject.trim(),
-      address: formAddress.trim(),
-      phoneInfo: formatPhoneInfo(formPhoneInfo.trim()),
-      dayOfWeek: Number(formDayOfWeek),
-      date: targetDate,
-      startTime: formStartTime.trim() || '10:00',
-      duration: 60,
-      statusTag: formStatusNote ? '변동' : '정규',
-      statusNote: formStatusNote.trim(),
-      isDefault: false,
-      isRecurring: formIsRecurring,
-    };
-
+  // 수업 항목 저장 실행 헬퍼
+  const executeSaveScheduleItem = async (newItem) => {
     let updatedItems = [];
     const currentItems = weeklyPlan?.scheduleItems || [];
 
@@ -395,36 +368,160 @@ export default function WeeklyPlanScreen() {
 
     try {
       await Database.saveWeeklyPlan(currentMonday, updatedPlan);
-
-      // 매주 계속 반복으로 설정되고 학생 ID가 있으면 학생 기본 시간표(default_schedules)에도 동기화
-      if (formIsRecurring && formStudentId) {
-        const student = await Database.getStudentById(formStudentId);
-        if (student) {
-          const currentScheds = Array.isArray(student.default_schedules)
-            ? [...student.default_schedules]
-            : [];
-          const exists = currentScheds.some(
-            (s) => Number(s.dayOfWeek) === Number(formDayOfWeek) && s.startTime === formStartTime
-          );
-          if (!exists) {
-            currentScheds.push({
-              id: Date.now().toString(),
-              dayOfWeek: Number(formDayOfWeek),
-              startTime: formStartTime,
-              duration: 60,
-              subject: formSubject,
-            });
-            await Database.updateStudent(formStudentId, { default_schedules: currentScheds });
-          }
-        }
-      }
-
       setWeeklyPlan(updatedPlan);
       setEditModalVisible(false);
     } catch (e) {
       console.error('Failed to save schedule item:', e);
       Alert.alert('오류', '일정을 저장하는 도중 오류가 발생했습니다.');
     }
+  };
+
+  // 수업 항목 저장 (중복 검사 포함)
+  const handleSaveScheduleItem = async () => {
+    if (!formStudentName.trim()) {
+      Alert.alert('알림', '학생 이름을 입력하거나 선택해 주세요.');
+      return;
+    }
+
+    const targetDate = getDayDateString(formDayOfWeek);
+    const cleanStartTime = formStartTime.trim() || '10:00';
+    const newItem = {
+      id: selectedItem ? selectedItem.id : Date.now().toString(),
+      studentId: formStudentId || null,
+      studentName: formStudentName.trim(),
+      paymentType: formPaymentType.trim(),
+      subject: formSubject.trim(),
+      address: formAddress.trim(),
+      phoneInfo: formatPhoneInfo(formPhoneInfo.trim()),
+      dayOfWeek: Number(formDayOfWeek),
+      date: targetDate,
+      startTime: cleanStartTime,
+      duration: 60,
+      statusTag: formStatusNote ? '변동' : '정규',
+      statusNote: formStatusNote.trim(),
+      isDefault: false,
+      isRecurring: true,
+    };
+
+    const currentItems = weeklyPlan?.scheduleItems || [];
+
+    // 동일 요일 / 동일 시작 시간 충돌 검사 (현재 편집 중인 항목 제외)
+    const timeConflictItem = currentItems.find(
+      (it) =>
+        it.id !== (selectedItem?.id) &&
+        Number(it.dayOfWeek) === Number(formDayOfWeek) &&
+        it.startTime === cleanStartTime
+    );
+
+    if (timeConflictItem) {
+      Alert.alert(
+        '시간 중복 알림',
+        `${DAY_LABELS[formDayOfWeek - 1]}요일 ${cleanStartTime}에 이미 [${timeConflictItem.studentName}] 학생의 수업이 등록되어 있습니다.\n\n동일 시간대로 함께 등록하시겠습니까?`,
+        [
+          { text: '시간 변경 (취소)', style: 'cancel' },
+          {
+            text: '동일 시간 등록',
+            onPress: () => executeSaveScheduleItem(newItem),
+          },
+        ]
+      );
+      return;
+    }
+
+    // 동일 요일에 동일 학생 중복 검사 (수업 추가 시)
+    if (!selectedItem) {
+      const studentConflictItem = currentItems.find(
+        (it) =>
+          Number(it.dayOfWeek) === Number(formDayOfWeek) &&
+          ((formStudentId && it.studentId === formStudentId) ||
+            (!formStudentId && it.studentName === formStudentName.trim()))
+      );
+
+      if (studentConflictItem) {
+        Alert.alert(
+          '학생 중복 알림',
+          `${DAY_LABELS[formDayOfWeek - 1]}요일에 이미 [${formStudentName.trim()}] 학생의 수업(${studentConflictItem.startTime})이 등록되어 있습니다.\n\n해당 요일에 추가 수업으로 등록하시겠습니까?`,
+          [
+            { text: '취소', style: 'cancel' },
+            {
+              text: '추가 등록',
+              onPress: () => executeSaveScheduleItem(newItem),
+            },
+          ]
+        );
+        return;
+      }
+    }
+
+    await executeSaveScheduleItem(newItem);
+  };
+
+  // 지난주 시간표 복사
+  const handleCopyPrevWeek = async () => {
+    const prevMonday = getDateFromMondayOffset(currentMonday, -7);
+    const prevPlan = await Database.getWeeklyPlan(prevMonday);
+    const prevItems = (prevPlan?.scheduleItems || []).filter((it) => {
+      if (it.studentId && pausedStudentIds.has(it.studentId)) return false;
+      if (!it.studentId && it.studentName && pausedStudentNames.has(it.studentName)) return false;
+      return true;
+    });
+
+    if (prevItems.length === 0) {
+      Alert.alert('알림', '복사해 올 지난주 시간표에 등록된 수업이 없습니다.');
+      return;
+    }
+
+    Alert.alert(
+      '지난주 시간표 복사',
+      `지난주(${prevMonday})의 정규 수업 ${prevItems.length}건을 이번 주 시간표로 복사하시겠습니까?\n\n※ 현재 이번 주에 작성된 시간표가 있다면 지난주 시간표로 대체됩니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '복사하기',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const updatedPlan = await Database.copyWeeklyPlan(prevMonday, currentMonday);
+              setWeeklyPlan(updatedPlan);
+              Alert.alert('완료', `지난주 시간표 ${prevItems.length}건을 성공적으로 복사해 왔습니다.`);
+            } catch (e) {
+              console.error('Failed to copy prev weekly plan:', e);
+              Alert.alert('오류', '지난주 시간표를 복사하는 도중 오류가 발생했습니다.');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // 학생 기본 시간표 불러오기
+  const handleLoadDefaultSchedule = async () => {
+    Alert.alert(
+      '기본 시간표 불러오기',
+      '학생 원장에 등록된 정규 수업 시간표를 불러오시겠습니까?\n\n※ 중복 시간은 1건으로 자동 정제되며, 현재 이번 주 시간표가 대체됩니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '불러오기',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const updatedPlan = await Database.loadWeeklyPlanFromStudentDefaults(currentMonday);
+              setWeeklyPlan(updatedPlan);
+              const count = updatedPlan?.scheduleItems?.length || 0;
+              Alert.alert('완료', `기본 시간표 ${count}건을 불러왔습니다.`);
+            } catch (e) {
+              console.error('Failed to load default schedules:', e);
+              Alert.alert('오류', '기본 시간표를 불러오는 도중 오류가 발생했습니다.');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // 수업 항목 삭제
@@ -642,6 +739,36 @@ export default function WeeklyPlanScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* 2.5. 시간표 빠른 작업 바 (지난주 복사 / 기본 일정 불러오기 / 수업 추가) */}
+      <View style={styles.quickActionRow}>
+        <TouchableOpacity
+          style={styles.quickActionBtn}
+          onPress={handleCopyPrevWeek}
+          activeOpacity={0.7}
+        >
+          <Feather name="copy" size={13} color={theme.colors.primary} />
+          <Text style={styles.quickActionBtnText}>지난주 시간표 복사</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.quickActionBtn}
+          onPress={handleLoadDefaultSchedule}
+          activeOpacity={0.7}
+        >
+          <Feather name="download-cloud" size={13} color={theme.colors.secondary || '#4F46E5'} />
+          <Text style={styles.quickActionBtnText}>기본 일정 불러오기</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.quickActionBtn, styles.quickActionAddBtn]}
+          onPress={() => openAddModal(selectedDayOffset + 1, 10)}
+          activeOpacity={0.7}
+        >
+          <Feather name="plus-circle" size={13} color={theme.colors.onPrimary} />
+          <Text style={styles.quickActionAddBtnText}>새 수업 등록</Text>
+        </TouchableOpacity>
+      </View>
+
       {loading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -839,8 +966,24 @@ export default function WeeklyPlanScreen() {
                   <Feather name="calendar" size={32} color={theme.colors.outline} />
                   <Text style={styles.emptyTimelineTitle}>예정된 수업이 없습니다.</Text>
                   <Text style={styles.emptyTimelineSub}>
-                    '+ 수업 추가' 버튼을 눌러 새로운 수업 일정을 등록할 수 있습니다.
+                    새로운 수업 일정을 등록하거나 지난주 시간표를 복사해 올 수 있습니다.
                   </Text>
+                  <View style={styles.emptyTimelineBtnRow}>
+                    <TouchableOpacity
+                      style={styles.emptySubBtn}
+                      onPress={handleCopyPrevWeek}
+                    >
+                      <Feather name="copy" size={13} color={theme.colors.primary} />
+                      <Text style={styles.emptySubBtnText}>지난주 시간표 복사</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.emptyAddBtn}
+                      onPress={() => openAddModal(selectedDayOffset + 1, 10)}
+                    >
+                      <Feather name="plus" size={13} color={theme.colors.onPrimary} />
+                      <Text style={styles.emptyAddBtnText}>+ 새 수업 추가</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ) : (
                 selectedDayItems.map((item) => {
@@ -856,11 +999,6 @@ export default function WeeklyPlanScreen() {
                           </Text>
                         </View>
                         <Text style={styles.timelineStudentName}>{item.studentName}</Text>
-                        <View style={[styles.recurringBadge, item.isRecurring === false && styles.recurringBadgeTemp]}>
-                          <Text style={[styles.recurringBadgeText, item.isRecurring === false && styles.recurringBadgeTextTemp]}>
-                            {item.isRecurring === false ? '이번주만 ⏱️' : '매주 반복 🔄'}
-                          </Text>
-                        </View>
                         <View style={[styles.statusBadge, isDone ? styles.statusBadgeDone : styles.statusBadgePlanned]}>
                           <Text style={[styles.statusBadgeText, isDone ? styles.statusBadgeTextDone : styles.statusBadgeTextPlanned]}>
                             {isDone ? '작성 완료 ✅' : '수업 예정 ⏳'}
@@ -1061,45 +1199,6 @@ export default function WeeklyPlanScreen() {
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={true}
             >
-              {/* 일정 주기 구분 (매주 계속 vs 이번주만) */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>일정 주기 구분</Text>
-                <View style={styles.recurringToggleRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.recurringToggleBtn,
-                      formIsRecurring && styles.recurringToggleBtnActive,
-                    ]}
-                    onPress={() => setFormIsRecurring(true)}
-                  >
-                    <Text
-                      style={[
-                        styles.recurringToggleText,
-                        formIsRecurring && styles.recurringToggleTextActive,
-                      ]}
-                    >
-                      🔄 매주 계속 반복 (정규)
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.recurringToggleBtn,
-                      !formIsRecurring && styles.recurringToggleBtnActiveTemp,
-                    ]}
-                    onPress={() => setFormIsRecurring(false)}
-                  >
-                    <Text
-                      style={[
-                        styles.recurringToggleText,
-                        !formIsRecurring && styles.recurringToggleTextActiveTemp,
-                      ]}
-                    >
-                      ⏱️ 이번주만 적용 (임시/변동)
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
               {/* 학생 선택 버튼 */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>학생 선택 <Text style={styles.reqStar}>*</Text></Text>
@@ -1720,6 +1819,44 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: '700',
   },
+  quickActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F1F5F9',
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outline + '20',
+  },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 6,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '40',
+  },
+  quickActionBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  quickActionAddBtn: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  quickActionAddBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: theme.colors.onPrimary,
+  },
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -2028,6 +2165,41 @@ const styles = StyleSheet.create({
     color: theme.colors.outline,
     marginTop: 4,
     textAlign: 'center',
+  },
+  emptyTimelineBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  emptySubBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '60',
+  },
+  emptySubBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  emptyAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+  },
+  emptyAddBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.onPrimary,
   },
   timelineCard: {
     backgroundColor: theme.colors.surface,
