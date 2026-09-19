@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "expo-start": "expo start",
+    "sync-version": "node scripts/sync-readme-version.js",
     "test": "jest"
   },
   "dependencies": {
