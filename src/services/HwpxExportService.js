@@ -788,7 +788,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
         <hp:startNum pageStartsOn="BOTH" page="0" pic="0" tbl="0" equation="0"/>
         <hp:visibility hideFirstHeader="0" hideFirstFooter="0" hideFirstMasterPage="0" border="HIDE_ALL" fill="HIDE_ALL" hideFirstPageNum="0" hideFirstEmptyLine="0" showLineNumber="0"/>
         <hp:lineNumberShape restartType="0" countBy="0" distance="0" startNumber="0"/>
-        <hp:pagePr landscape="NARROWLY" width="59528" height="84188" gutterType="LEFT_ONLY">
+        <hp:pagePr landscape="WIDELY" width="59528" height="84188" gutterType="LEFT_ONLY">
           <hp:margin header="0" footer="0" gutter="0" left="3764" right="3764" top="3600" bottom="2500"/>
         </hp:pagePr>
         <hp:footNotePr>
