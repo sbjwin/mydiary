@@ -260,8 +260,8 @@ export const buildHeaderXml = () => {
         <hh:outline type="NONE"/>
         <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 1: 문서 대제목 (14pt, Bold, 프리미엄 딥 네이비) -->
-      <hh:charPr id="1" height="1400" textColor="#0F172A" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
+      <!-- 1: 문서 대제목 (16pt, Bold, 프리미엄 딥 네이비) -->
+      <hh:charPr id="1" height="1600" textColor="#0F172A" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
         <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
         <hh:spacing hangul="-2" latin="-2" hanja="-2" japanese="-2" other="-2" symbol="-2" user="-2"/>
@@ -273,13 +273,14 @@ export const buildHeaderXml = () => {
         <hh:outline type="NONE"/>
         <hh:shadow type="NONE" color="#C0C0C0" offsetX="10" offsetY="10"/>
       </hh:charPr>
-      <!-- 2: 문서 부제목 (8pt, 슬레이트 그레이) -->
-      <hh:charPr id="2" height="800" textColor="#64748B" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
+      <!-- 2: 문서 부제목 (9pt, Bold, 차분한 슬레이트 그레이) -->
+      <hh:charPr id="2" height="900" textColor="#475569" shadeColor="none" useFontSpace="0" useKerning="0" symMark="NONE" borderFillIDRef="1">
         <hh:fontRef hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
         <hh:ratio hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
         <hh:spacing hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
         <hh:relSz hangul="100" latin="100" hanja="100" japanese="100" other="100" symbol="100" user="100"/>
         <hh:offset hangul="0" latin="0" hanja="0" japanese="0" other="0" symbol="0" user="0"/>
+        <hh:bold/>
         <hh:underline type="NONE" shape="SOLID" color="#000000"/>
         <hh:strikeout shape="NONE" color="#000000"/>
         <hh:outline type="NONE"/>
@@ -440,39 +441,47 @@ export const buildHeaderXml = () => {
       </hh:charPr>
     </hh:charProperties>
 
-    <!-- 문단 모양 목록 (A4 가로 1장 최적화 줄간격) -->
+    <!-- 문단 모양 목록 (A4 세로 1장 최적화 정렬 및 줄간격) -->
     <hh:paraProperties itemCnt="8">
       <!-- 0: 일반 본문 좌측 정렬 (줄간격 115%) -->
-      <hh:paraPr id="0" align="left">
+      <hh:paraPr id="0">
+        <hh:align horizontal="LEFT" vertical="BASELINE"/>
         <hh:lineSpacing type="percent" value="115"/>
       </hh:paraPr>
       <!-- 1: 일반 본문 중앙 정렬 (줄간격 115%) -->
-      <hh:paraPr id="1" align="center">
+      <hh:paraPr id="1">
+        <hh:align horizontal="CENTER" vertical="BASELINE"/>
         <hh:lineSpacing type="percent" value="115"/>
       </hh:paraPr>
-      <!-- 2: 문서 대제목/부제목 중앙 정렬 (줄간격 115%) -->
-      <hh:paraPr id="2" align="center">
-        <hh:lineSpacing type="percent" value="115"/>
+      <!-- 2: 문서 대제목/부제목 완벽 가로 가운데 정렬 (줄간격 130%) -->
+      <hh:paraPr id="2">
+        <hh:align horizontal="CENTER" vertical="BASELINE"/>
+        <hh:lineSpacing type="percent" value="130"/>
       </hh:paraPr>
       <!-- 3: 표 내부 컴팩트 좌측 정렬 (줄간격 110%) -->
-      <hh:paraPr id="3" align="left">
+      <hh:paraPr id="3">
+        <hh:align horizontal="LEFT" vertical="BASELINE"/>
         <hh:lineSpacing type="percent" value="110"/>
       </hh:paraPr>
       <!-- 4: 표 내부 컴팩트 중앙 정렬 (줄간격 110%) -->
-      <hh:paraPr id="4" align="center">
+      <hh:paraPr id="4">
+        <hh:align horizontal="CENTER" vertical="BASELINE"/>
         <hh:lineSpacing type="percent" value="110"/>
       </hh:paraPr>
       <!-- 5: 하단 섹션 소제목 좌측 정렬 (줄간격 115%) -->
-      <hh:paraPr id="5" align="left">
+      <hh:paraPr id="5">
+        <hh:align horizontal="LEFT" vertical="BASELINE"/>
         <hh:lineSpacing type="percent" value="115"/>
       </hh:paraPr>
-      <!-- 6: 제목 하단 미세 여백 문단 (줄간격 40%) -->
-      <hh:paraPr id="6" align="center">
-        <hh:lineSpacing type="percent" value="40"/>
+      <!-- 6: 제목 상하 미세 여백 문단 (줄간격 80%) -->
+      <hh:paraPr id="6">
+        <hh:align horizontal="CENTER" vertical="BASELINE"/>
+        <hh:lineSpacing type="percent" value="80"/>
       </hh:paraPr>
-      <!-- 7: 표 사이 여백 문단 (줄간격 40%) -->
-      <hh:paraPr id="7" align="center">
-        <hh:lineSpacing type="percent" value="40"/>
+      <!-- 7: 표 사이 여백 문단 (줄간격 60%) -->
+      <hh:paraPr id="7">
+        <hh:align horizontal="CENTER" vertical="BASELINE"/>
+        <hh:lineSpacing type="percent" value="60"/>
       </hh:paraPr>
     </hh:paraProperties>
 
@@ -497,7 +506,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
   const startDate = weeklyPlan?.startDate || '2026-08-17';
   const [year, month, day] = startDate.split('-').map(Number);
   const docTitle = `${year}년 ${month}월 ${day}일 주간의 ${TEACHER_NAME} 업무 보고서`;
-  const docSubTitle = '방문 수업 (팀별, 개별 마케팅 일정 포함)';
+  const docSubTitle = '학원수업 / 방문수업';
 
   // 요일 헤더 계산
   const getDayHeader = (offset, label) => {
@@ -780,7 +789,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
         <hp:visibility hideFirstHeader="0" hideFirstFooter="0" hideFirstMasterPage="0" border="HIDE_ALL" fill="HIDE_ALL" hideFirstPageNum="0" hideFirstEmptyLine="0" showLineNumber="0"/>
         <hp:lineNumberShape restartType="0" countBy="0" distance="0" startNumber="0"/>
         <hp:pagePr landscape="NARROWLY" width="59528" height="84188" gutterType="LEFT_ONLY">
-          <hp:margin header="0" footer="0" gutter="0" left="3764" right="3764" top="2500" bottom="2500"/>
+          <hp:margin header="0" footer="0" gutter="0" left="3764" right="3764" top="3600" bottom="2500"/>
         </hp:pagePr>
         <hp:footNotePr>
           <hp:autoNumFormat type="DIGIT" userChar="" prefixChar="" suffixChar=")" supscript="0"/>
@@ -804,9 +813,11 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
     <hp:run charPrIDRef="0"><hp:t/></hp:run>
   </hp:p>
 
-  <!-- 문서 제목 및 부제목 (품격 있는 헤더) -->
+  <!-- 문서 제목 및 부제목 (품격 있는 가운데 정렬 헤더, 넓어진 머리글 영역) -->
+  ${createParagraph([createRun('', 0)], 6)}
   ${createParagraph([createRun(docTitle, 1)], 2)}
   ${createParagraph([createRun(docSubTitle, 2)], 2)}
+  ${createParagraph([createRun('', 0)], 6)}
   ${createParagraph([createRun('', 0)], 6)}
 
   <!-- 1. 주간 시간표 메인 테이블 (총 너비: 52000 HWPUnit) -->
