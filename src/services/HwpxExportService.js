@@ -43,14 +43,14 @@ const createParagraph = (runs = [], paraPrIDRef = 0) => {
 const createCell = ({
   paragraphs = [],
   width = 6600,
-  height = 450,
+  height = 5670,
   colAddr = 0,
   rowAddr = 0,
   colSpan = 1,
   rowSpan = 1,
   borderFillIDRef = 2,
   vertAlign = 'CENTER',
-  margin = { left: 280, right: 280, top: 80, bottom: 80 },
+  margin = { left: 280, right: 280, top: 280, bottom: 280 },
 }) => {
   const content = Array.isArray(paragraphs) ? paragraphs.join('') : paragraphs;
   const textWidth = Math.max(800, width - (margin.left + margin.right));
@@ -606,26 +606,26 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
   const DAY_COL_WIDTH = 8000; // 8000 * 6 = 48000
   const TOTAL_TABLE_WIDTH = 52000; // 4000 + 48000 = 52000
 
-  // 1. 메인 시간표 헤더 행 (시간, 월~토 - 높이를 현재 2배인 1200으로 시원하게 확장)
+  // 1. 메인 시간표 헤더 행 (시간, 월~토 - 높이 8mm = 2268, 여백 0.99mm = 280)
   const headerCells = [
     createCell({
       paragraphs: [createParagraph([createRun('구 분', 3)], 4)],
       width: TIME_COL_WIDTH,
-      height: 1200,
+      height: 2268,
       colAddr: 0,
       rowAddr: 0,
       borderFillIDRef: 3,
-      margin: { left: 200, right: 200, top: 120, bottom: 120 },
+      margin: { left: 280, right: 280, top: 280, bottom: 280 },
     }),
     ...dayHeaders.map((dh, idx) =>
       createCell({
         paragraphs: [createParagraph([createRun(dh, 3)], 4)],
         width: DAY_COL_WIDTH,
-        height: 1200,
+        height: 2268,
         colAddr: idx + 1,
         rowAddr: 0,
         borderFillIDRef: 3,
-        margin: { left: 200, right: 200, top: 120, bottom: 120 },
+        margin: { left: 280, right: 280, top: 280, bottom: 280 },
       })
     ),
   ];
@@ -635,41 +635,43 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
   timeSlots.forEach((slot, rowIdx) => {
     const currentRow = rowIdx + 1;
 
+    // 12시 점심 및 이동 시간 (높이 5mm = 1417, 여백 0.99mm = 280)
     if (slot.isLunch) {
       const lunchCells = [
         createCell({
           paragraphs: [createParagraph([createRun(slot.label, 13)], 4)],
           width: TIME_COL_WIDTH,
-          height: 520,
+          height: 1417,
           colAddr: 0,
           rowAddr: currentRow,
           borderFillIDRef: 4,
-          margin: { left: 200, right: 200, top: 60, bottom: 60 },
+          margin: { left: 280, right: 280, top: 280, bottom: 280 },
         }),
         createCell({
           paragraphs: [createParagraph([createRun('☕ 12:00 ~ 13:00 점심 및 이동 시간', 8)], 4)],
           width: DAY_COL_WIDTH * 6,
-          height: 520,
+          height: 1417,
           colAddr: 1,
           rowAddr: currentRow,
           colSpan: 6,
           borderFillIDRef: 5,
-          margin: { left: 240, right: 240, top: 60, bottom: 60 },
+          margin: { left: 280, right: 280, top: 280, bottom: 280 },
         }),
       ];
       tableRows.push(createRow(lunchCells));
       return;
     }
 
+    // 9시 ~ 20시 데이터 행 (높이 20mm = 5670, 여백 0.99mm = 280)
     const rowCells = [
       createCell({
         paragraphs: [createParagraph([createRun(slot.label, 13)], 4)],
         width: TIME_COL_WIDTH,
-        height: 450,
+        height: 5670,
         colAddr: 0,
         rowAddr: currentRow,
         borderFillIDRef: 4,
-        margin: { left: 200, right: 200, top: 80, bottom: 80 },
+        margin: { left: 280, right: 280, top: 280, bottom: 280 },
       }),
     ];
 
@@ -680,11 +682,11 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
           createCell({
             paragraphs: [createParagraph([], 3)],
             width: DAY_COL_WIDTH,
-            height: 450,
+            height: 5670,
             colAddr: colIdx + 1,
             rowAddr: currentRow,
             borderFillIDRef: 2,
-            margin: { left: 280, right: 280, top: 80, bottom: 80 },
+            margin: { left: 280, right: 280, top: 280, bottom: 280 },
           })
         );
       } else {
@@ -699,11 +701,11 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
           createCell({
             paragraphs: cellPars,
             width: DAY_COL_WIDTH,
-            height: 450,
+            height: 5670,
             colAddr: colIdx + 1,
             rowAddr: currentRow,
             borderFillIDRef: 2,
-            margin: { left: 280, right: 280, top: 80, bottom: 80 },
+            margin: { left: 280, right: 280, top: 280, bottom: 280 },
           })
         );
       }
@@ -766,7 +768,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
       rowAddr: 0,
       borderFillIDRef: 8,
       vertAlign: 'TOP',
-      margin: { left: 280, right: 280, top: 100, bottom: 100 },
+      margin: { left: 280, right: 280, top: 280, bottom: 280 },
     }),
     createCell({
       paragraphs: colRightPars,
@@ -776,7 +778,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
       rowAddr: 0,
       borderFillIDRef: 8,
       vertAlign: 'TOP',
-      margin: { left: 280, right: 280, top: 100, bottom: 100 },
+      margin: { left: 280, right: 280, top: 280, bottom: 280 },
     }),
   ]);
 
@@ -843,7 +845,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
     rowCnt: timeSlots.length + 1,
     colCnt: 7,
     width: TOTAL_TABLE_WIDTH,
-    height: (timeSlots.length + 1) * 450,
+    height: 2268 + 1417 + (timeSlots.length - 1) * 5670,
     borderFillIDRef: 2,
   })}
 
