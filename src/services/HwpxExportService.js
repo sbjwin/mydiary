@@ -572,14 +572,14 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
     const timeAndName = `${item.startTime || ''} ${item.studentName || ''}`.trim();
     pars.push(createParagraph([createRun(timeAndName, 4)], 3));
 
-    // 2) 과목
+    // 2) 과목 (시간과 나란히 정렬하기 위해 앞쪽 들여쓰기 공백 제거)
     if (item.subject) {
-      pars.push(createParagraph([createRun(`  [${item.subject}]`, 5)], 3));
+      pars.push(createParagraph([createRun(`[${item.subject}]`, 5)], 3));
     }
 
     // 3) 주소
     if (item.address) {
-      pars.push(createParagraph([createRun(`  ${item.address}`, 6)], 3));
+      pars.push(createParagraph([createRun(item.address, 6)], 3));
     }
 
     // 4) 전화번호
@@ -587,7 +587,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
       const phones = formatPhoneInfo(item.phoneInfo).split('\n');
       phones.forEach((p) => {
         if (p.trim()) {
-          pars.push(createParagraph([createRun(`  ${p.trim()}`, 6)], 3));
+          pars.push(createParagraph([createRun(p.trim(), 6)], 3));
         }
       });
     }
@@ -595,7 +595,7 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
     // 5) 특이사항 / 메모
     if (item.statusNote) {
       const noteText = item.statusNote.startsWith('=>') ? item.statusNote : `=> ${item.statusNote}`;
-      pars.push(createParagraph([createRun(`  ※ ${noteText}`, 7)], 3));
+      pars.push(createParagraph([createRun(`※ ${noteText}`, 7)], 3));
     }
 
     return pars;
@@ -606,26 +606,26 @@ export const buildWeeklyPlanHwpxSectionXml = (weeklyPlan) => {
   const DAY_COL_WIDTH = 8000; // 8000 * 6 = 48000
   const TOTAL_TABLE_WIDTH = 52000; // 4000 + 48000 = 52000
 
-  // 1. 메인 시간표 헤더 행 (시간, 월~토 - 높이를 시원하게 확장)
+  // 1. 메인 시간표 헤더 행 (시간, 월~토 - 높이를 현재 2배인 1200으로 시원하게 확장)
   const headerCells = [
     createCell({
       paragraphs: [createParagraph([createRun('구 분', 3)], 4)],
       width: TIME_COL_WIDTH,
-      height: 600,
+      height: 1200,
       colAddr: 0,
       rowAddr: 0,
       borderFillIDRef: 3,
-      margin: { left: 120, right: 120, top: 60, bottom: 60 },
+      margin: { left: 120, right: 120, top: 120, bottom: 120 },
     }),
     ...dayHeaders.map((dh, idx) =>
       createCell({
         paragraphs: [createParagraph([createRun(dh, 3)], 4)],
         width: DAY_COL_WIDTH,
-        height: 600,
+        height: 1200,
         colAddr: idx + 1,
         rowAddr: 0,
         borderFillIDRef: 3,
-        margin: { left: 120, right: 120, top: 60, bottom: 60 },
+        margin: { left: 120, right: 120, top: 120, bottom: 120 },
       })
     ),
   ];
