@@ -224,3 +224,7 @@ expo-credentials.json
 # Local SDK & JDK
 android-sdk/
 jdk/
+
+# HWPX Template Exchange Directory (Local only)
+hwpx-templates/
+*.hwpx
