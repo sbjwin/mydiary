@@ -64,7 +64,7 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
     // 기본 태그 및 제목 검증
     expect(sectionXml).toContain('<hs:sec');
     expect(sectionXml).toContain('2026년 8월 17일 주간의 성백진 업무 보고서');
-    expect(sectionXml).toContain('방문 수업 (팀별, 개별 마케팅 일정 포함)');
+    expect(sectionXml).toContain('학원수업 / 방문수업');
 
     // 한글 2020 필수: 첫 번째 문단 내 용지 설정 secPr 및 다단 colPr 확인 (A4 세로 NARROWLY)
     expect(sectionXml).toContain('<hp:secPr');
