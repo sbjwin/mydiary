@@ -61,22 +61,25 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
 
     const sectionXml = buildWeeklyPlanHwpxSectionXml(mockWeeklyPlan);
 
-    // 기본 태그 및 제목 검증
+    // 기본 태그 및 제목 검증 (템플릿: 제목 앞/뒤 charPr 20, 교사명 charPr 21 분리 런)
     expect(sectionXml).toContain('<hs:sec');
-    expect(sectionXml).toContain('2026년 8월 17일 주간의 성백진 업무 보고서');
+    expect(sectionXml).toContain('2026년 8월 17일 주간의');
+    expect(sectionXml).toContain('성백진');
+    expect(sectionXml).toContain('업무 보고서');
     expect(sectionXml).toContain('학원수업 / 방문수업');
 
-    // 한글 2020 필수: 첫 번째 문단 내 용지 설정 secPr 및 다단 colPr 확인 (A4 세로 NARROWLY)
+    // 한글 2020 필수: 첫 번째 문단 내 용지 설정 secPr 및 다단 colPr 확인 (A4 세로 WIDELY, 여백 2834)
     expect(sectionXml).toContain('<hp:secPr');
-    expect(sectionXml).toContain('landscape="NARROWLY"');
+    expect(sectionXml).toContain('landscape="WIDELY"');
     expect(sectionXml).toContain('<hp:colPr');
 
-    // 한글 2020 필수: 표가 문단(<hp:p><hp:run><hp:tbl>) 내에 올바르게 캡슐화되어야 함
+    // 템플릿 규격 필수: 단 1개의 19행 완결 통합 표(<hp:tbl id="1" ... rowCnt="19" colCnt="9">)로 캡슐화되어야 함
     expect(sectionXml).toContain('<hp:tbl id="1"');
-    expect(sectionXml).toContain('<hp:tbl id="2"');
+    expect(sectionXml).toContain('rowCnt="19"');
+    expect(sectionXml).toContain('colCnt="9"');
 
-    // 표 크기 및 위치 속성 확인 (A4 세로 42520 HWPUnit)
-    expect(sectionXml).toContain('<hp:sz width="42520"');
+    // 표 크기 및 위치 속성 확인 (템플릿 너비 52142 HWPUnit)
+    expect(sectionXml).toContain('<hp:sz width="52142"');
     expect(sectionXml).toContain('<hp:pos treatAsChar="1"');
 
     // 한글 2020 필수: 모든 셀(<hp:tc>) 내부 문단은 <hp:subList>로 감싸져 있어야 함
@@ -88,18 +91,18 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
       expect(cell).toMatch(/<hp:p[^>]*>/);
     });
 
-    // 점심시간 행 포함 확인
+    // 점심시간 행 포함 확인 (8열 병합)
     expect(sectionXml).toContain('점심 및 이동 시간');
-    expect(sectionXml).toContain('colSpan="6"');
+    expect(sectionXml).toContain('colSpan="8"');
 
     // 월요일 학생 정보 렌더링 확인
     expect(sectionXml).toContain('10:00 김철수');
     expect(sectionXml).toContain('수학');
     expect(sectionXml).toContain('서울시 강남구');
     expect(sectionXml).toContain('010-1234-5678 (모)');
-    expect(sectionXml).toContain('=&gt; 교재 3단원 완료');
+    expect(sectionXml).toContain('교재 3단원 완료');
 
-    // 일요일 학생 정보 렌더링 확인
+    // 일요일 학생 정보 렌더링 확인 (14:00 슬롯)
     expect(sectionXml).toContain('14:00 이영희');
     expect(sectionXml).toContain('영어');
 
@@ -116,7 +119,9 @@ describe('HwpxExportService OWPML 한글 문서 생성 단위 테스트', () => 
     };
 
     const sectionXml = buildWeeklyPlanHwpxSectionXml(emptyWeeklyPlan);
-    expect(sectionXml).toContain('일요일 예정된 수업이 없습니다.');
-    expect(sectionXml).toContain('2026년 9월 1일 주간의 성백진 업무 보고서');
+    expect(sectionXml).toContain('2026년 9월 1일 주간의');
+    expect(sectionXml).toContain('성백진');
+    expect(sectionXml).toContain('업무 보고서');
+    expect(sectionXml).toContain('rowCnt="19"');
   });
 });
