@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import React from 'react';
-import { StatusBar, TouchableOpacity } from 'react-native';
+import { StatusBar, TouchableOpacity, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -14,12 +14,14 @@ import ClassRecordScreen from './src/screens/ClassRecordScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import HelpScreen from './src/screens/HelpScreen';
-import { theme } from './src/theme';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs({ navigation }) {
+  const { theme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -50,7 +52,7 @@ function MainTabs({ navigation }) {
           borderBottomWidth: 1,
           borderBottomColor: theme.colors.outline || '#E0E0E0',
         },
-        headerTintColor: '#333333',
+        headerTintColor: theme.colors.textPrimary || '#333333',
         headerTitleStyle: {
           fontWeight: 'bold',
           fontSize: 18,
@@ -86,10 +88,12 @@ function MainTabs({ navigation }) {
   );
 }
 
-export default function App() {
+function AppNavigator() {
+  const { theme } = useTheme();
+
   return (
     <NavigationContainer>
-      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.surfaceVariant || '#f5f5f5'} />
       <Stack.Navigator
         initialRouteName="MainTabs"
         screenOptions={{
@@ -100,12 +104,12 @@ export default function App() {
             borderBottomWidth: 1,
             borderBottomColor: theme.colors.outline || '#E0E0E0',
           },
-          headerTintColor: '#333333',
+          headerTintColor: theme.colors.textPrimary || '#333333',
           headerTitleStyle: {
             fontWeight: 'bold',
             fontSize: 18,
           },
-          cardStyle: { backgroundColor: '#f9f9f9' },
+          cardStyle: { backgroundColor: theme.colors.surfaceVariant || '#f9f9f9' },
         }}
       >
         <Stack.Screen
@@ -138,10 +142,17 @@ export default function App() {
   );
 }
 
-const styles = {
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppNavigator />
+    </ThemeProvider>
+  );
+}
+
+const styles = StyleSheet.create({
   headerRightBtn: {
     marginRight: 16,
     padding: 4,
   },
-};
-
+});

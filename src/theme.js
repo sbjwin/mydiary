@@ -1,6 +1,15 @@
-export const theme = {
-  colors: {
+// MyDiary 모바일 테마 프리셋 및 팔레트 시스템
+
+export const THEME_PRESETS = [
+  {
+    id: 'classic',
+    name: '클래식 슬레이트',
+    subtitle: '기존 오리지널',
+    description: '차분하고 신뢰감 있는 모바일 고유 슬레이트 블루',
     primary: '#4a7c92',
+    primaryLight: '#e0f2f1',
+    primaryDark: '#2e576b',
+    onPrimary: '#ffffff',
     secondaryContainer: '#e0f2f1',
     onSecondaryContainer: '#004d40',
     surface: '#f7fafd',
@@ -8,11 +17,82 @@ export const theme = {
     outline: '#d7dade',
     textPrimary: '#1a1c1e',
     textSecondary: '#44474e',
-    white: '#ffffff',
-    accentGreen: '#d1eadd',
-    accentOrange: '#fbe9e7',
-    error: '#ba1a1a',
   },
+  {
+    id: 'ocean',
+    name: '오션 블루',
+    subtitle: '데스크톱 기본',
+    description: '맑고 선명한 클래식 스카이 블루',
+    primary: '#0284c7',
+    primaryLight: '#e0f2fe',
+    primaryDark: '#075985',
+    onPrimary: '#ffffff',
+    secondaryContainer: '#e0f2fe',
+    onSecondaryContainer: '#0369a1',
+    surface: '#f8fafc',
+    surfaceVariant: '#f1f5f9',
+    outline: '#cbd5e1',
+    textPrimary: '#0f172a',
+    textSecondary: '#475569',
+  },
+  {
+    id: 'sage',
+    name: '포레스트 세이지',
+    subtitle: '눈이 편안한 그린',
+    description: '차분하고 편안한 에메랄드 & 세이지 그린',
+    primary: '#0d9488',
+    primaryLight: '#ccfbf1',
+    primaryDark: '#115e59',
+    onPrimary: '#ffffff',
+    secondaryContainer: '#ccfbf1',
+    onSecondaryContainer: '#0f766e',
+    surface: '#f6faf9',
+    surfaceVariant: '#e6f4f1',
+    outline: '#cce5df',
+    textPrimary: '#132a26',
+    textSecondary: '#406059',
+  },
+  {
+    id: 'lavender',
+    name: '로열 라벤더',
+    subtitle: '세련된 퍼플',
+    description: '우아하고 모던한 바이올렛 & 라벤더',
+    primary: '#7c3aed',
+    primaryLight: '#ede9fe',
+    primaryDark: '#5b21b6',
+    onPrimary: '#ffffff',
+    secondaryContainer: '#ede9fe',
+    onSecondaryContainer: '#6d28d9',
+    surface: '#faf9fd',
+    surfaceVariant: '#f0edf9',
+    outline: '#dcd6f7',
+    textPrimary: '#1e1633',
+    textSecondary: '#5b5072',
+  },
+  {
+    id: 'sunset',
+    name: '웜 선셋',
+    subtitle: '따뜻한 코랄',
+    description: '포근하고 생동감 있는 앰버 & 오렌지',
+    primary: '#ea580c',
+    primaryLight: '#ffedd5',
+    primaryDark: '#9a3412',
+    onPrimary: '#ffffff',
+    secondaryContainer: '#ffedd5',
+    onSecondaryContainer: '#c2410c',
+    surface: '#fffbf7',
+    surfaceVariant: '#fdf0e7',
+    outline: '#fed7aa',
+    textPrimary: '#2c1810',
+    textSecondary: '#6e4c3e',
+  },
+];
+
+const commonTokens = {
+  white: '#ffffff',
+  accentGreen: '#d1eadd',
+  accentOrange: '#fbe9e7',
+  error: '#ba1a1a',
   spacing: {
     xs: 4,
     sm: 8,
@@ -21,3 +101,22 @@ export const theme = {
   },
   roundness: 12,
 };
+
+export const getTheme = (themeId) => {
+  const preset = THEME_PRESETS.find((t) => t.id === themeId) || THEME_PRESETS[0];
+  return {
+    id: preset.id,
+    name: preset.name,
+    subtitle: preset.subtitle,
+    description: preset.description,
+    colors: {
+      ...preset,
+      ...commonTokens,
+    },
+    spacing: commonTokens.spacing,
+    roundness: commonTokens.roundness,
+  };
+};
+
+// 하위 호환용 기본 theme 객체 (기존 import { theme } from '../theme' 지원)
+export const theme = getTheme('classic');

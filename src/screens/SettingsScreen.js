@@ -13,8 +13,10 @@ import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
 import { GoogleDriveService } from '../services/GoogleDriveService';
 import { theme } from '../theme';
+import { useTheme } from '../context/ThemeContext';
 
 export default function SettingsScreen({ navigation }) {
+  const { currentThemeId, setThemeId, presets } = useTheme();
   const [loading, setLoading] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
 
@@ -135,6 +137,60 @@ export default function SettingsScreen({ navigation }) {
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <Text style={styles.headerTitle}>설정</Text>
 
+            {/* 0. 화면 테마 색상 설정 카드 */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Feather name="droplet" size={18} color={theme.colors.primary} style={styles.cardHeaderIcon} />
+          <Text style={styles.cardTitle}>화면 테마 색상 설정</Text>
+        </View>
+        <Text style={styles.cardDescription}>
+          선호하는 테마 색상을 선택하면 상단바, 메뉴 및 앱 전체 화면에 즉시 적용됩니다.
+        </Text>
+
+        <View style={styles.themeGrid}>
+          {presets.map((preset) => {
+            const isSelected = currentThemeId === preset.id;
+            return (
+              <TouchableOpacity
+                key={preset.id}
+                style={[
+                  styles.themeOptionCard,
+                  isSelected && [
+                    styles.themeOptionCardSelected,
+                    {
+                      borderColor: preset.primary,
+                      backgroundColor: (preset.primaryLight || '#e0f2fe') + '35',
+                    },
+                  ],
+                ]}
+                onPress={() => setThemeId(preset.id)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.themeColorChip, { backgroundColor: preset.primary }]} />
+                <View style={styles.themeInfo}>
+                  <View style={styles.themeTitleRow}>
+                    <Text
+                      style={[
+                        styles.themeName,
+                        isSelected && [styles.themeNameSelected, { color: preset.primary }],
+                      ]}
+                    >
+                      {preset.name}
+                    </Text>
+                    {isSelected && (
+                      <Feather name="check" size={16} color={preset.primary} style={styles.themeCheckIcon} />
+                    )}
+                  </View>
+                  <Text style={styles.themeSubtitle}>
+                    {preset.subtitle} • {preset.description}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
       {/* 1. 구글 계정 연결 카드 */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -230,6 +286,51 @@ export default function SettingsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  themeGrid: {
+    gap: 10,
+  },
+  themeOptionCardSelected: {
+    borderWidth: 2,
+  },
+  themeNameSelected: {
+    fontWeight: 'bold',
+  },
+  themeCheckIcon: {
+    marginLeft: 6,
+  },
+  themeOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: theme.roundness,
+    borderWidth: 1,
+    borderColor: theme.colors.outline,
+    backgroundColor: '#FAFAFA',
+  },
+  themeColorChip: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 12,
+  },
+  themeInfo: {
+    flex: 1,
+  },
+  themeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  themeName: {
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  themeSubtitle: {
+    fontSize: 11.5,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+
   container: {
     flex: 1,
     backgroundColor: theme.colors.surfaceVariant,
