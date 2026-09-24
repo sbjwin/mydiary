@@ -139,8 +139,6 @@ export default function SettingsScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <Text style={styles.headerTitle}>설정</Text>
-
       {/* 상단 서브 탭 (세그먼트 컨트롤) */}
       <View style={styles.segmentContainer}>
         <TouchableOpacity
