@@ -178,11 +178,11 @@ git push origin main
    * **보안 격리**: 시크릿(Secrets)을 전혀 주입하지 않아 악의적인 PR로부터 암호 유출 공격을 원천 차단.
    * **동작**: `npm ci` → ESLint 검증(`npm run lint`) → 단위 테스트(`npm test`) 실행.
 2. **Android 릴리즈 빌드 & 배포 (`android-release.yml`)**:
-   * **트리거**: 버전 태그 푸시 (`git push origin v2.3.0`) 또는 Actions 탭에서 수동 실행(`workflow_dispatch`).
+   * **트리거**: 버전 태그 푸시 (`git push origin v2.3.1`) 또는 Actions 탭에서 수동 실행(`workflow_dispatch`).
    * **보안 강화**:
      * GitHub Secrets에서 Keystore 및 비밀번호를 가져와 러너 메모리 상에서 안전하게 복원 (특수문자 및 줄바꿈 보존).
      * 빌드 후 성공/실패 여부와 무관하게 러너 내의 Keystore 및 프로퍼티 파일을 즉시 영구 파기(`rm -f`).
-   * **배포**: 서명된 최적화 APK(`MyDiary-v2.3.0.apk`)를 GitHub Releases에 자동 등록.
+   * **배포**: 서명된 최적화 APK(`MyDiary-v2.3.1.apk`)를 GitHub Releases에 자동 등록.
 
 ### ② 필수 GitHub Repository Secrets 등록 안내
 GitHub 저장소 (`Settings` → `Secrets and variables` → `Actions` → `New repository secret`)에 다음 5개 시크릿을 등록합니다:

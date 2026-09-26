@@ -3,7 +3,7 @@
     "name": "mydiary",
     "slug": "mydiary",
     "icon": "./assets/mydiary_blue.png",
-    "version": "2.3.0",
+    "version": "2.3.1",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "ios": {
@@ -11,7 +11,7 @@
     },
     "android": {
       "package": "com.sbjwin.mydiary",
-      "versionCode": 4
+      "versionCode": 5
     },
     "plugins": [
       "expo-font",
