@@ -165,3 +165,39 @@ git push origin main
 *   외부 API 연동 키, 데이터베이스 암호, 빌드 서명 키 등의 민감 정보는 절대로 소스코드 내에 직접 작성(Hard-coding)하지 마세요.
 *   `react-native-config` 또는 `react-native-dotenv` 같은 패키지를 이용해 `.env` 파일로 환경 변수를 분리하여 관리해야 합니다.
 *   생성된 환경 변수 파일이나 키스토어 파일 등은 **반드시 5장에서 설명된 `.gitignore`를 통해 Git 추적에서 제외**되어야 원격 코드 저장소 해킹이나 유출을 막을 수 있습니다.
+
+---
+
+## 7. GitHub Actions 기반 Android CI/CD 자동 배포 가이드
+
+`mydiary` 프로젝트는 GitHub Actions를 통해 **코드 품질 자동 검증(CI)** 및 **서명된 릴리즈 APK 자동 배포(CD)** 파이프라인이 구축되어 있습니다.
+
+### ① 워크플로우 구성
+1. **코드 품질 검증 (`quality-check.yml`)**:
+   * **트리거**: `main` 브랜치 푸시 및 PR 생성 시 자동 실행.
+   * **보안 격리**: 시크릿(Secrets)을 전혀 주입하지 않아 악의적인 PR로부터 암호 유출 공격을 원천 차단.
+   * **동작**: `npm ci` → ESLint 검증(`npm run lint`) → 단위 테스트(`npm test`) 실행.
+2. **Android 릴리즈 빌드 & 배포 (`android-release.yml`)**:
+   * **트리거**: 버전 태그 푸시 (`git push origin v2.3.0`) 또는 Actions 탭에서 수동 실행(`workflow_dispatch`).
+   * **보안 강화**:
+     * GitHub Secrets에서 Keystore 및 비밀번호를 가져와 러너 메모리 상에서 안전하게 복원 (특수문자 및 줄바꿈 보존).
+     * 빌드 후 성공/실패 여부와 무관하게 러너 내의 Keystore 및 프로퍼티 파일을 즉시 영구 파기(`rm -f`).
+   * **배포**: 서명된 최적화 APK(`MyDiary-v2.3.0.apk`)를 GitHub Releases에 자동 등록.
+
+### ② 필수 GitHub Repository Secrets 등록 안내
+GitHub 저장소 (`Settings` → `Secrets and variables` → `Actions` → `New repository secret`)에 다음 5개 시크릿을 등록합니다:
+
+| 시크릿 이름 | 설명 | 확인/추출 방법 |
+| :--- | :--- | :--- |
+| `ANDROID_KEYSTORE_BASE64` | `android/app/mydiary-release-key.keystore`의 Base64 인코딩 값 | 아래 PowerShell 명령어로 클립보드에 즉시 복사 |
+| `MYDIARY_RELEASE_STORE_PASSWORD` | Keystore 저장소 비밀번호 | 로컬 `~/.gradle/gradle.properties` 참조 |
+| `MYDIARY_RELEASE_KEY_ALIAS` | 키 별칭 (`mydiary-key-alias`) | 로컬 `~/.gradle/gradle.properties` 참조 |
+| `MYDIARY_RELEASE_KEY_PASSWORD` | 키 비밀번호 | 로컬 `~/.gradle/gradle.properties` 참조 |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | 구글 로그인 웹 클라이언트 ID | `.env` 파일의 값 참조 |
+
+#### 📋 Keystore Base64 원클릭 복사 명령어 (Windows PowerShell)
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("android/app/mydiary-release-key.keystore")) | Set-Clipboard
+```
+*(실행 후 GitHub Secrets의 `ANDROID_KEYSTORE_BASE64` 값 입력창에 `Ctrl + V`로 바로 붙여넣기 하시면 됩니다.)*
+
