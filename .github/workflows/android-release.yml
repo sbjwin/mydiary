@@ -95,12 +95,23 @@ jobs:
           "
           chmod 600 android/key.properties
 
-      # 6. Android 릴리즈 APK 빌드
+      # 6. Android 릴리즈 APK 빌드 (클린 머신이므로 clean 없이 assembleRelease 단독 실행하여 Race Condition 원천 차단)
       - name: Build Android Release APK
         run: |
           chmod +x android/gradlew
           cd android
-          ./gradlew clean assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
+
+      # 6-1. 실패 시 CMake 상세 로그 덤프
+      - name: Dump CMake Logs on Failure
+        if: failure()
+        run: |
+          echo "=== Searching for CMake Error Logs ==="
+          find android/app/.cxx -type f \( -name "*.log" -o -name "*.txt" \) | while read -r f; do
+            echo "::group::$f"
+            cat "$f"
+            echo "::endgroup::"
+          done
 
       # 7. 민감 정보 안전 파기 (Secure Ephemeral Cleanup - 빌드 성공/실패 무관하게 항상 실행)
       - name: Secure Cleanup Credentials
