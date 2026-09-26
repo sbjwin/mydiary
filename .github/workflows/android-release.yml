@@ -95,12 +95,18 @@ jobs:
           "
           chmod 600 android/key.properties
 
-      # 6. Android 릴리즈 APK 빌드 (클린 머신이므로 clean 없이 assembleRelease 단독 실행하여 Race Condition 원천 차단)
+      # 5-1. Linux 호스트 링커 오염 방지 (NDK 27 + CMake LTO 호환성 보장)
+      - name: Fix Host Linker Pollution for NDK
+        run: |
+          # NDK 27에서 지원 중단된 gold 링커를 호스트 우분투의 /usr/bin/ld.gold가 가로채어 ELF 불일치 에러를 내는 문제 방지
+          sudo rm -f /usr/bin/ld.gold
+
+      # 6. Android 릴리즈 APK 빌드
       - name: Build Android Release APK
         run: |
           chmod +x android/gradlew
           cd android
-          ./gradlew assembleRelease --no-daemon --info --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
+          ./gradlew assembleRelease --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
 
       # 6-1. 실패 시 CMakeError.log 직접 출력 (접힘 없이 즉시 확인)
       - name: Dump CMake Logs on Failure
