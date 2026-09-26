@@ -157,6 +157,8 @@ android/local.properties
 *.apk
 *.aar
 *.jar
+!android/gradle/wrapper/gradle-wrapper.jar
+!gradle-wrapper.jar
 
 # --- iOS specific ---
 ios/build/
