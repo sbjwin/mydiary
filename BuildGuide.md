@@ -201,3 +201,11 @@ GitHub 저장소 (`Settings` → `Secrets and variables` → `Actions` → `New 
 ```
 *(실행 후 GitHub Secrets의 `ANDROID_KEYSTORE_BASE64` 값 입력창에 `Ctrl + V`로 바로 붙여넣기 하시면 됩니다.)*
 
+### ③ 검증된 CI/CD 빌드 성공 아키텍처 (Troubleshooting & Reliability)
+1. **React Native New Architecture C++ Codegen 의존성 보장**:
+   - 루트 앱의 `configureCMake` 태스크가 네이티브 모듈의 `generateCodegenArtifactsFromSchema`보다 먼저 실행되어 디렉토리 누락 에러가 발생하는 것을 방지하기 위해 `android/app/build.gradle`에 `afterEvaluate` 블록으로 명시적 `dependsOn`을 선언하고 CI 빌드 스텝에서 사전 실행합니다.
+2. **Linux 호스트 링커 오염(`ld.gold`) 차단**:
+   - NDK 27에서 제거된 gold 링커를 호스트 우분투의 `/usr/bin/ld.gold`가 가로채어 ELF 불일치 에러를 유발하는 문제를 `sudo rm -f /usr/bin/ld.gold` 스텝으로 원천 차단했습니다.
+3. **결정론적 순차 빌드**:
+   - 클라우드 러너의 멀티코어 환경에서 레이스 컨디션을 방지하기 위해 `-Dorg.gradle.parallel=false -Dorg.gradle.configureondemand=false`를 적용했습니다.
+
