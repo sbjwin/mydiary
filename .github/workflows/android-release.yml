@@ -106,17 +106,25 @@ jobs:
         run: |
           chmod +x android/gradlew
           cd android
-          ./gradlew assembleRelease --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
+          # 1) React Native New Architecture C++/JNI 코드젠 선행 생성 (레이스 컨디션 원천 차단)
+          ./gradlew generateCodegenArtifactsFromSchema --no-daemon
+          # 2) 서명된 릴리즈 APK 빌드
+          ./gradlew assembleRelease --no-daemon --stacktrace \
+            -Dorg.gradle.parallel=false \
+            -Dorg.gradle.configureondemand=false \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
 
-      # 6-1. 실패 시 CMakeError.log 직접 출력 (접힘 없이 즉시 확인)
+      # 6-1. 실패 시 상세 CMake 및 CXX 에러 로그 출력
       - name: Dump CMake Logs on Failure
         if: failure()
         run: |
-          echo "==================== CMAKE ERROR LOG ===================="
-          for logfile in $(find android/app/.cxx -name "CMakeError.log"); do
-            echo ">>> FILE: $logfile <<<"
-            cat "$logfile"
-            echo "--------------------------------------------------------"
+          echo "==================== CMAKE / CXX CONFIGURE ERROR LOGS ===================="
+          find android/app -type f \( -name "*stderr*.txt" -o -name "CMakeError.log" \) | while read -r f; do
+            if [ -s "$f" ]; then
+              echo ">>> FILE: $f <<<"
+              cat "$f"
+              echo "--------------------------------------------------------"
+            fi
           done
 
       # 7. 민감 정보 안전 파기 (Secure Ephemeral Cleanup - 빌드 성공/실패 무관하게 항상 실행)

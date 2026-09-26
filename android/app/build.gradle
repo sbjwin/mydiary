@@ -141,3 +141,15 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+// React Native New Architecture: CMake configure가 서브모듈의 codegen보다 먼저 실행되어 디렉토리 누락 에러가 나는 것 방지
+afterEvaluate {
+    tasks.matching { it.name.startsWith("configureCMake") }.configureEach { cmakeTask ->
+        rootProject.subprojects.each { subproject ->
+            def codegenTask = subproject.tasks.findByName("generateCodegenArtifactsFromSchema")
+            if (codegenTask) {
+                cmakeTask.dependsOn(codegenTask)
+            }
+        }
+    }
+}
