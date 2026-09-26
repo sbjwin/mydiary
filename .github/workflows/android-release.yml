@@ -100,17 +100,17 @@ jobs:
         run: |
           chmod +x android/gradlew
           cd android
-          ./gradlew assembleRelease --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
+          ./gradlew assembleRelease --no-daemon --info --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
 
-      # 6-1. 실패 시 CMake 상세 로그 덤프
+      # 6-1. 실패 시 CMakeError.log 직접 출력 (접힘 없이 즉시 확인)
       - name: Dump CMake Logs on Failure
         if: failure()
         run: |
-          echo "=== Searching for CMake Error Logs ==="
-          find android/app/.cxx -type f \( -name "*.log" -o -name "*.txt" \) | while read -r f; do
-            echo "::group::$f"
-            cat "$f"
-            echo "::endgroup::"
+          echo "==================== CMAKE ERROR LOG ===================="
+          for logfile in $(find android/app/.cxx -name "CMakeError.log"); do
+            echo ">>> FILE: $logfile <<<"
+            cat "$logfile"
+            echo "--------------------------------------------------------"
           done
 
       # 7. 민감 정보 안전 파기 (Secure Ephemeral Cleanup - 빌드 성공/실패 무관하게 항상 실행)
