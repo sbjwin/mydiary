@@ -9,7 +9,8 @@
     "start": "react-native start",
     "expo-start": "expo start",
     "sync-version": "node scripts/sync-readme-version.js",
-    "test": "jest"
+    "test": "jest",
+    "audit": "node scripts/audit-project.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
