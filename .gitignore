@@ -192,6 +192,7 @@ Thumbs.db
 *.md
 !README.md
 !BuildGuide.md
+PROJECT_AUDIT_REPORT.md
 
 
 
