@@ -18,7 +18,10 @@ import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Database } from '../database/Database';
+import { useTheme } from '../context/ThemeContext';
+import { getTodayFormatted } from '../utils/dateUtils';
 import { theme } from '../theme';
+import Separator from '../components/Separator';
 
 // 달력 한글 설정
 LocaleConfig.locales.ko = {
@@ -62,19 +65,11 @@ const CustomDay = React.memo(({ date, state, marking, onPress }) => {
   );
 });
 
-const Separator = () => <View style={styles.separator} />;
-
 export default function CalendarScreen() {
+  // eslint-disable-next-line no-shadow
+  const { theme } = useTheme();
   const navigation = useNavigation();
   const isFocused = useIsFocused();
-
-  const getTodayFormatted = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const [selectedDate, setSelectedDate] = useState(getTodayFormatted());
   const [records, setRecords] = useState([]);
@@ -106,7 +101,7 @@ export default function CalendarScreen() {
         </View>
       ),
     });
-  }, [navigation]);
+  }, [navigation, theme.colors.primary]);
 
   // 달력 접기 애니메이션 처리 함수
   const collapseCalendar = useCallback(() => {

@@ -15,8 +15,11 @@ import {
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
-import { Database, getMondayOfWeek, getDateFromMondayOffset, formatPhoneInfo } from '../database/Database';
+import { Database } from '../database/Database';
+import { getMondayOfWeek, getDateFromMondayOffset } from '../utils/dateUtils';
+import { formatPhoneInfo } from '../utils/stringUtils';
 import { printWeeklyReport, shareWeeklyReport, shareWeeklyReportDocx, shareWeeklyReportHwpx } from '../services/PrintService';
+import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
@@ -84,6 +87,8 @@ const QUICK_TIME_PRESETS = [
 ];
 
 export default function WeeklyPlanScreen() {
+  // eslint-disable-next-line no-shadow
+  const { theme } = useTheme();
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 

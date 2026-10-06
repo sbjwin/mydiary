@@ -11,11 +11,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Database } from '../database/Database';
+import { useTheme } from '../context/ThemeContext';
+import { DAY_NAMES, getTodayFormatted } from '../utils/dateUtils';
 import { theme } from '../theme';
 
-const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
-
 export default function HomeScreen() {
+  // eslint-disable-next-line no-shadow
+  const { theme } = useTheme();
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 
@@ -23,14 +25,6 @@ export default function HomeScreen() {
   const [dailyItems, setDailyItems] = useState([]);
   const [activeStudentCount, setActiveStudentCount] = useState(0);
   const [pausedStudentCount, setPausedStudentCount] = useState(0);
-
-  const getTodayFormatted = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const loadData = useCallback(async () => {
     setLoading(true);

@@ -1,20 +1,9 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
-import { formatPhoneInfo } from '../database/Database';
+import { escapeHtml, formatDisplayTime, formatPhoneInfo } from '../utils/stringUtils';
 
 const TEACHER_NAME = '성백진';
-
-// HTML 특수문자 이스케이프 헬퍼 (XSS 및 레이아웃 깨짐 방지)
-const escapeHtml = (text) => {
-  if (!text) return '';
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-};
 
 // 오늘 날짜 포맷팅 (YYYY. MM. DD)
 const getFormattedToday = () => {
@@ -23,29 +12,6 @@ const getFormattedToday = () => {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}. ${month}. ${day}`;
-};
-
-// 시간 정규화 (24시간 디지털 형식)
-const formatDisplayTime = (timeStr) => {
-  if (!timeStr || !timeStr.trim()) return '-';
-  const str = timeStr.trim();
-  const digitalMatch = str.match(/^(\d{1,2}):(\d{2})$/);
-  if (digitalMatch) {
-    const h = String(parseInt(digitalMatch[1], 10)).padStart(2, '0');
-    return `${h}:${digitalMatch[2]}`;
-  }
-  const isPM = str.includes('오후') || str.includes('PM') || str.includes('pm');
-  const isAM = str.includes('오전') || str.includes('AM') || str.includes('am');
-  const hourMatch = str.match(/(\d{1,2})\s*시/) || str.match(/(\d{1,2}):/) || str.match(/\b(\d{1,2})\b/);
-  const minMatch = str.match(/(\d{1,2})\s*분/) || str.match(/:(\d{2})/);
-  if (hourMatch) {
-    let hour = parseInt(hourMatch[1], 10);
-    const minute = minMatch ? String(parseInt(minMatch[1], 10)).padStart(2, '0') : '00';
-    if (isPM && hour < 12) hour += 12;
-    else if (isAM && hour === 12) hour = 0;
-    return `${String(hour).padStart(2, '0')}:${minute}`;
-  }
-  return str;
 };
 
 // 공통 인쇄용 CSS 스타일

@@ -3,20 +3,13 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as FileSystemNext from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
-import { formatPhoneInfo } from '../database/Database';
+import { formatPhoneInfo } from '../utils/stringUtils';
+import { escapeXml } from '../utils/stringUtils';
+
+// 하위 호환성 유지
+export { escapeXml };
 
 const TEACHER_NAME = '성백진';
-
-// XML 특수문자 이스케이프 헬퍼
-export const escapeXml = (unsafe) => {
-  if (unsafe == null) return '';
-  return String(unsafe)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-};
 
 /**
  * 텍스트 런(Run) 생성 헬퍼

@@ -22,21 +22,16 @@ import {
   printClassRecords,
   shareClassRecords
 } from '../services/PrintService';
+import { useTheme } from '../context/ThemeContext';
+import { getTodayFormatted } from '../utils/dateUtils';
 import { theme } from '../theme';
-
-const Separator = () => <View style={styles.separator} />;
+import Separator from '../components/Separator';
 
 export default function StudentListScreen() {
+  // eslint-disable-next-line no-shadow
+  const { theme } = useTheme();
   const navigation = useNavigation();
   const isFocused = useIsFocused();
-
-  const getTodayFormatted = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);

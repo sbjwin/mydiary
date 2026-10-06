@@ -18,23 +18,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Database } from '../database/Database';
 import { printStudentProfile, shareStudentProfile } from '../services/PrintService';
 import { Feather } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
+import { getTodayFormatted } from '../utils/dateUtils';
 import { theme } from '../theme';
 
 export default function StudentDetailScreen() {
+  // eslint-disable-next-line no-shadow
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const { studentId } = route.params || {};
 
   const isEditMode = !!studentId;
-
-  const getTodayFormatted = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   // 수강 상태 및 차수 관련 상태
   const [status, setStatus] = useState('active'); // 'active' | 'paused'
@@ -112,7 +108,7 @@ export default function StudentDetailScreen() {
         ),
       });
     }
-  }, [navigation, isEditMode]);
+  }, [navigation, isEditMode, theme.colors.primary]);
 
   // 입력 자동 포맷팅 핸들러
   const formatPhoneNumber = (text) => {

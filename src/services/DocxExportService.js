@@ -3,21 +3,10 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as FileSystemNext from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
-import { formatPhoneInfo } from '../database/Database';
+import { formatPhoneInfo, escapeXml } from '../utils/stringUtils';
 
 // 개발자 정보 지침 준수: Sung Baekjin (성백진)
 const TEACHER_NAME = '성백진';
-
-// XML 특수문자 이스케이프
-const escapeXml = (unsafe) => {
-  if (unsafe == null) return '';
-  return String(unsafe)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-};
 
 /**
  * 텍스트 런(Run) 생성 헬퍼
@@ -412,7 +401,7 @@ export const buildWeeklyPlanDocxXml = (weeklyPlan) => {
   const parseNotesToParagraphs = (notesStr, defaultStr) => {
     const text = (notesStr || defaultStr || '').trim();
     if (!text) return [];
-    const lines = text.split('\n').map((l) => l.replace(/^[#•\-\*]\s*/, '').trim()).filter(Boolean);
+    const lines = text.split('\n').map((l) => l.replace(/^[#•\-*]\s*/, '').trim()).filter(Boolean);
     return lines.map((l) =>
       createParagraph([createRun({ text: `• ${l}`, size: 14, color: '000000' })], { line: 160, firstLine: 140 })
     );
