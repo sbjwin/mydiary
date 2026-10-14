@@ -25,6 +25,8 @@ export default function HomeScreen() {
   const [dailyItems, setDailyItems] = useState([]);
   const [activeStudentCount, setActiveStudentCount] = useState(0);
   const [pausedStudentCount, setPausedStudentCount] = useState(0);
+  const [backupNudge, setBackupNudge] = useState(null);
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -47,6 +49,19 @@ export default function HomeScreen() {
       setDailyItems(items || []);
       setActiveStudentCount(active);
       setPausedStudentCount(paused);
+
+      // 마지막 백업 시점 확인 (스마트 백업 넛지)
+      const lastBackupStr = await Database.getLastBackupTime();
+      if (!lastBackupStr) {
+        setBackupNudge({ show: true, isNever: true, days: 0 });
+      } else {
+        const diffDays = Math.floor((Date.now() - new Date(lastBackupStr).getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays >= 7) {
+          setBackupNudge({ show: true, isNever: false, days: diffDays });
+        } else {
+          setBackupNudge(null);
+        }
+      }
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -131,6 +146,45 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+
+        {/* 1-1. 스마트 클라우드 백업 권장 넛지 카드 */}
+        {backupNudge && backupNudge.show && !nudgeDismissed && (
+          <TouchableOpacity
+            style={styles.backupNudgeCard}
+            activeOpacity={0.88}
+            onPress={() => navigation.navigate('Settings')}
+          >
+            <View style={styles.nudgeIconWrap}>
+              <Feather name="cloud-off" size={20} color="#D97706" />
+            </View>
+            <View style={styles.nudgeTextWrap}>
+              <View style={styles.nudgeHeaderRow}>
+                <Text style={styles.nudgeTitle}>
+                  {backupNudge.isNever
+                    ? '클라우드 백업이 필요합니다'
+                    : `마지막 백업 후 ${backupNudge.days}일이 지났습니다`}
+                </Text>
+                <View style={styles.nudgeActionPill}>
+                  <Text style={styles.nudgeActionPillText}>백업하기</Text>
+                  <Feather name="chevron-right" size={13} color="#D97706" />
+                </View>
+              </View>
+              <Text style={styles.nudgeDesc}>
+                기기 분실이나 변경에 대비해 소중한 수업 일지와 학생 데이터를 구글 드라이브에 안전하게 백업하세요.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.nudgeCloseBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={(e) => {
+                e.stopPropagation();
+                setNudgeDismissed(true);
+              }}
+            >
+              <Feather name="x" size={16} color="#94A3B8" />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
         {/* 2. 3단 통계 & 숏컷 메트릭 카드 */}
         <View style={styles.metricCardRow}>
@@ -840,5 +894,69 @@ const styles = StyleSheet.create({
   },
   tileIconAmber: {
     backgroundColor: '#D97706',
+  },
+  backupNudgeCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 14,
+    padding: 14,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  nudgeIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  nudgeTextWrap: {
+    flex: 1,
+    paddingRight: 6,
+  },
+  nudgeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  nudgeTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#92400E',
+    flex: 1,
+  },
+  nudgeActionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  nudgeActionPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  nudgeDesc: {
+    fontSize: 12,
+    color: '#B45309',
+    lineHeight: 16,
+  },
+  nudgeCloseBtn: {
+    padding: 4,
+    marginLeft: 2,
   },
 });

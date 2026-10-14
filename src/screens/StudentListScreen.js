@@ -10,10 +10,7 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
-  ScrollView,
-  Platform,
-  KeyboardAvoidingView,
-  Keyboard
+  ScrollView
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
@@ -28,6 +25,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { getTodayFormatted } from '../utils/dateUtils';
 import { theme } from '../theme';
+import StudentStatusModal from '../components/modals/StudentStatusModal';
 import Separator from '../components/Separator';
 
 export default function StudentListScreen() {
@@ -589,142 +587,30 @@ export default function StudentListScreen() {
       </Modal>
 
       {/* 휴회 처리 입력 모달 */}
-      <Modal
-        animationType="fade"
-        transparent={true}
+      <StudentStatusModal
         visible={pauseModalVisible}
-        onRequestClose={() => setPauseModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalKeyboardAvoid}
-        >
-          <TouchableOpacity
-            style={styles.centerModalOverlay}
-            activeOpacity={1}
-            onPress={() => {
-              Keyboard.dismiss();
-              setPauseModalVisible(false);
-            }}
-          >
-            <TouchableOpacity
-              style={styles.dialogCard}
-              activeOpacity={1}
-              onPress={(e) => e.stopPropagation()}
-            >
-              <View style={styles.dialogHeader}>
-                <Feather name="pause-circle" size={24} color="#EA580C" style={styles.dialogHeaderIcon} />
-                <Text style={styles.dialogTitle}>학생 휴회 처리</Text>
-              </View>
-              <Text style={styles.dialogSubtitle}>
-                {`${selectedStudent?.name} 학생을 휴회 상태로 전환합니다.`}
-              </Text>
-
-              <Text style={styles.inputLabel}>마지막 수업일 (종료일)</Text>
-              <TextInput
-                style={styles.dialogInput}
-                value={pauseEndDate}
-                onChangeText={setPauseEndDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={theme.colors.outline}
-              />
-
-              <Text style={styles.inputLabel}>휴회 사유 (선택 입력)</Text>
-              <TextInput
-                style={styles.dialogInput}
-                value={pauseReason}
-                onChangeText={setPauseReason}
-                placeholder="예: 여름방학 휴회, 개인 사정 등"
-                placeholderTextColor={theme.colors.outline}
-              />
-
-              <View style={styles.dialogBtnRow}>
-                <TouchableOpacity
-                  style={styles.dialogCancelBtn}
-                  onPress={() => setPauseModalVisible(false)}
-                >
-                  <Text style={styles.dialogCancelBtnText}>취소</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.dialogConfirmBtn, styles.dialogPauseBtn]}
-                  onPress={handleConfirmPause}
-                >
-                  <Text style={styles.dialogConfirmBtnText}>휴회 확정</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </Modal>
+        type="pause"
+        studentName={selectedStudent?.name}
+        date={pauseEndDate}
+        onDateChange={setPauseEndDate}
+        reason={pauseReason}
+        onReasonChange={setPauseReason}
+        onConfirm={handleConfirmPause}
+        onClose={() => setPauseModalVisible(false)}
+      />
 
       {/* 재수강 시작 입력 모달 */}
-      <Modal
-        animationType="fade"
-        transparent={true}
+      <StudentStatusModal
         visible={resumeModalVisible}
-        onRequestClose={() => setResumeModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalKeyboardAvoid}
-        >
-          <TouchableOpacity
-            style={styles.centerModalOverlay}
-            activeOpacity={1}
-            onPress={() => {
-              Keyboard.dismiss();
-              setResumeModalVisible(false);
-            }}
-          >
-            <TouchableOpacity
-              style={styles.dialogCard}
-              activeOpacity={1}
-              onPress={(e) => e.stopPropagation()}
-            >
-              <View style={styles.dialogHeader}>
-                <Feather name="play-circle" size={24} color="#16A34A" style={styles.dialogHeaderIcon} />
-                <Text style={styles.dialogTitle}>재수강(복귀) 시작</Text>
-              </View>
-              <Text style={styles.dialogSubtitle}>
-                {`${selectedStudent?.name} 학생의 새로운 수강 차수를 시작합니다.`}
-              </Text>
-
-              <Text style={styles.inputLabel}>재수강 시작일</Text>
-              <TextInput
-                style={styles.dialogInput}
-                value={resumeStartDate}
-                onChangeText={setResumeStartDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={theme.colors.outline}
-              />
-
-              <Text style={styles.inputLabel}>재등록 사유/메모 (선택 입력)</Text>
-              <TextInput
-                style={styles.dialogInput}
-                value={resumeReason}
-                onChangeText={setResumeReason}
-                placeholder="예: 2학기 재등록"
-                placeholderTextColor={theme.colors.outline}
-              />
-
-              <View style={styles.dialogBtnRow}>
-                <TouchableOpacity
-                  style={styles.dialogCancelBtn}
-                  onPress={() => setResumeModalVisible(false)}
-                >
-                  <Text style={styles.dialogCancelBtnText}>취소</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.dialogConfirmBtn, styles.dialogResumeBtn]}
-                  onPress={handleConfirmResume}
-                >
-                  <Text style={styles.dialogConfirmBtnText}>재수강 시작</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </Modal>
+        type="resume"
+        studentName={selectedStudent?.name}
+        date={resumeStartDate}
+        onDateChange={setResumeStartDate}
+        reason={resumeReason}
+        onReasonChange={setResumeReason}
+        onConfirm={handleConfirmResume}
+        onClose={() => setResumeModalVisible(false)}
+      />
 
       {/* 인쇄 및 PDF 공유 방식 선택 모달 */}
       <Modal

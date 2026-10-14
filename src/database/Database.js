@@ -23,6 +23,7 @@ export {
 const STUDENTS_KEY = '@mydiary:students';
 const RECORDS_KEY = '@mydiary:records';
 const WEEKLY_PLANS_KEY = '@mydiary:weekly_plans';
+const LAST_BACKUP_KEY = '@mydiary:last_backup';
 
 /**
  * 기존 학생 데이터 하위 호환 및 수강 차수(terms) 정규화 헬퍼
@@ -798,6 +799,25 @@ export const Database = {
     } catch (e) {
       console.error('Failed to import all data:', e);
       throw e;
+    }
+  },
+
+  // 마지막 백업 일시(ISO String) 조회
+  getLastBackupTime: async () => {
+    try {
+      return await AsyncStorage.getItem(LAST_BACKUP_KEY);
+    } catch (e) {
+      console.error('Failed to get last backup time:', e);
+      return null;
+    }
+  },
+
+  // 마지막 백업 일시 저장
+  setLastBackupTime: async (isoString = new Date().toISOString()) => {
+    try {
+      await AsyncStorage.setItem(LAST_BACKUP_KEY, isoString);
+    } catch (e) {
+      console.error('Failed to set last backup time:', e);
     }
   },
 };

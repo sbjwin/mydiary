@@ -89,6 +89,9 @@ export default function SettingsScreen({ navigation }) {
       // 2. 구글 드라이브에 업로드
       await GoogleDriveService.uploadBackup(allDataString);
 
+      // 3. 마지막 백업 성공 일시 로컬 저장
+      await Database.setLastBackupTime(new Date().toISOString());
+
       // 성공 후 로그인 사용자 정보 갱신
       await checkLoginStatus();
 

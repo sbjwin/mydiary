@@ -23,6 +23,8 @@ import { formatPhoneInfo } from '../utils/stringUtils';
 import { printWeeklyReport, shareWeeklyReport, shareWeeklyReportDocx, shareWeeklyReportHwpx } from '../services/PrintService';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
+import CallManageModal from '../components/modals/CallManageModal';
+import WeeklyExportModal from '../components/modals/WeeklyExportModal';
 
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -1463,158 +1465,26 @@ export default function WeeklyPlanScreen() {
       </Modal>
 
       {/* ======================= 모달 3: 전화관리 추가 모달 ======================= */}
-      <Modal
-        animationType="fade"
-        transparent={true}
+      <CallManageModal
         visible={callModalVisible}
-        onRequestClose={() => setCallModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalKeyboardAvoid}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => {
-              if (isKeyboardVisible) {
-                Keyboard.dismiss();
-              } else {
-                setCallModalVisible(false);
-              }
-            }}
-          >
-            <View style={styles.callModalContent} onStartShouldSetResponder={() => true}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>전화 관리 상담 추가</Text>
-                <TouchableOpacity onPress={() => setCallModalVisible(false)}>
-                  <Feather name="x" size={20} color={theme.colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>회원 이름</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={callName}
-                  onChangeText={setCallName}
-                  placeholder="예: 홍길동"
-                  placeholderTextColor={theme.colors.outline}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>통화 요일 및 내용</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={callContent}
-                  onChangeText={setCallContent}
-                  placeholder="예: 화요일 통화, 교재 변경 안내"
-                  placeholderTextColor={theme.colors.outline}
-                />
-              </View>
-
-              <TouchableOpacity style={styles.modalSaveBtn} onPress={handleAddCallItem}>
-                <Text style={styles.modalSaveBtnText}>추가하기</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </Modal>
+        onClose={() => setCallModalVisible(false)}
+        callName={callName}
+        onChangeCallName={setCallName}
+        callContent={callContent}
+        onChangeCallContent={setCallContent}
+        onAdd={handleAddCallItem}
+      />
 
       {/* ======================= 모달 4: PDF 출력 / 공유 선택 모달 ======================= */}
-      <Modal
-        animationType="slide"
-        transparent={true}
+      <WeeklyExportModal
         visible={pdfModalVisible}
-        onRequestClose={() => setPdfModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setPdfModalVisible(false)}
-        >
-          <View style={styles.pdfModalContent}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>주간 업무 보고서 출력 및 내보내기</Text>
-                <Text style={styles.modalSubtitle}>{weekTitleInfo.title} ({weekTitleInfo.range})</Text>
-              </View>
-              <TouchableOpacity onPress={() => setPdfModalVisible(false)}>
-                <Feather name="x" size={22} color={theme.colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              style={styles.actionMenuItem}
-              onPress={async () => {
-                setPdfModalVisible(false);
-                await printWeeklyReport(activeWeeklyPlan);
-              }}
-            >
-              <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
-                <Feather name="printer" size={22} color={theme.colors.primary} />
-              </View>
-              <View style={styles.actionMenuTextContainer}>
-                <Text style={styles.actionMenuTitle}>프린터로 인쇄 (A4 세로 양식)</Text>
-                <Text style={styles.actionMenuSub}>Wi-Fi 프린터 또는 시스템 인쇄 화면을 엽니다</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionMenuItem}
-              onPress={async () => {
-                setPdfModalVisible(false);
-                await shareWeeklyReport(activeWeeklyPlan);
-              }}
-            >
-              <View style={[styles.actionIconBadge, styles.pdfShareIconBadge]}>
-                <Feather name="share-2" size={22} color="#0284C7" />
-              </View>
-              <View style={styles.actionMenuTextContainer}>
-                <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡 / 이메일)</Text>
-                <Text style={styles.actionMenuSub}>카카오톡, 메신저 등으로 보고서 PDF를 전송합니다</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionMenuItem}
-              onPress={async () => {
-                setPdfModalVisible(false);
-                await shareWeeklyReportDocx(activeWeeklyPlan);
-              }}
-            >
-              <View style={[styles.actionIconBadge, styles.docxShareIconBadge]}>
-                <MaterialCommunityIcons name="file-word-box-outline" size={22} color="#2563EB" />
-              </View>
-              <View style={styles.actionMenuTextContainer}>
-                <Text style={styles.actionMenuTitle}>구글 문서 / 워드 (.docx) 파일 공유</Text>
-                <Text style={styles.actionMenuSub}>구글 드라이브, 카톡 등으로 전송하여 수정/편집</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionMenuItem}
-              onPress={async () => {
-                setPdfModalVisible(false);
-                await shareWeeklyReportHwpx(activeWeeklyPlan);
-              }}
-            >
-              <View style={[styles.actionIconBadge, styles.hwpxShareIconBadge]}>
-                <MaterialCommunityIcons name="file-document-outline" size={22} color="#EA580C" />
-              </View>
-              <View style={styles.actionMenuTextContainer}>
-                <Text style={styles.actionMenuTitle}>한글 문서 (.hwpx) 파일 공유</Text>
-                <Text style={styles.actionMenuSub}>한컴오피스 한글, 한컴독스 등으로 전송하여 수정/편집</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setPdfModalVisible(false)}
+        weekTitleInfo={weekTitleInfo}
+        onPrint={() => printWeeklyReport(activeWeeklyPlan)}
+        onSharePdf={() => shareWeeklyReport(activeWeeklyPlan)}
+        onShareDocx={() => shareWeeklyReportDocx(activeWeeklyPlan)}
+        onShareHwpx={() => shareWeeklyReportHwpx(activeWeeklyPlan)}
+      />
 
       {/* ======================= 모달 5: 시작 시간 GUI 선택 팝업 ======================= */}
       <Modal
