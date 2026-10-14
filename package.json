@@ -11,7 +11,9 @@
     "expo-start": "expo start",
     "sync-version": "node scripts/sync-readme-version.js",
     "test": "jest",
-    "audit": "node scripts/audit-project.js"
+    "audit": "node scripts/audit-project.js",
+    "git:pr": "node scripts/git-achievement.js pr",
+    "git:commit": "node scripts/git-achievement.js direct"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
