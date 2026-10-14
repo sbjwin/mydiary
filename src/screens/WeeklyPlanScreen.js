@@ -11,7 +11,9 @@ import {
   Modal,
   Alert,
   Linking,
-  Platform
+  Platform,
+  KeyboardAvoidingView,
+  Keyboard
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
@@ -125,6 +127,22 @@ export default function WeeklyPlanScreen() {
   const [studentPickerVisible, setStudentPickerVisible] = useState(false);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // 시작 시간 파싱 헬퍼 (HH:mm 포맷)
   const parsedStartTime = useMemo(() => {
@@ -1183,12 +1201,28 @@ export default function WeeklyPlanScreen() {
         visible={editModalVisible}
         onRequestClose={() => setEditModalVisible(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setEditModalVisible(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalKeyboardAvoid}
         >
-          <View style={styles.editModalContent} onStartShouldSetResponder={() => true}>
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => {
+              if (isKeyboardVisible) {
+                Keyboard.dismiss();
+              } else {
+                setEditModalVisible(false);
+              }
+            }}
+          >
+            <View
+              style={[
+                styles.editModalContent,
+                isKeyboardVisible && styles.editModalContentKeyboard,
+              ]}
+              onStartShouldSetResponder={() => true}
+            >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {selectedItem ? '수업 일정 변경 / 메모' : '새 주간 수업 등록'}
@@ -1364,6 +1398,7 @@ export default function WeeklyPlanScreen() {
             </View>
           </View>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ======================= 모달 2: 학생 선택 팝업 ======================= */}
@@ -1373,12 +1408,22 @@ export default function WeeklyPlanScreen() {
         visible={studentPickerVisible}
         onRequestClose={() => setStudentPickerVisible(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setStudentPickerVisible(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalKeyboardAvoid}
         >
-          <View style={styles.pickerModalContent} onStartShouldSetResponder={() => true}>
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => {
+              if (isKeyboardVisible) {
+                Keyboard.dismiss();
+              } else {
+                setStudentPickerVisible(false);
+              }
+            }}
+          >
+            <View style={styles.pickerModalContent} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>학생 선택</Text>
               <TouchableOpacity onPress={() => setStudentPickerVisible(false)}>
@@ -1414,6 +1459,7 @@ export default function WeeklyPlanScreen() {
             </ScrollView>
           </View>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ======================= 모달 3: 전화관리 추가 모달 ======================= */}
@@ -1423,46 +1469,57 @@ export default function WeeklyPlanScreen() {
         visible={callModalVisible}
         onRequestClose={() => setCallModalVisible(false)}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setCallModalVisible(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalKeyboardAvoid}
         >
-          <View style={styles.callModalContent} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>전화 관리 상담 추가</Text>
-              <TouchableOpacity onPress={() => setCallModalVisible(false)}>
-                <Feather name="x" size={20} color={theme.colors.textSecondary} />
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => {
+              if (isKeyboardVisible) {
+                Keyboard.dismiss();
+              } else {
+                setCallModalVisible(false);
+              }
+            }}
+          >
+            <View style={styles.callModalContent} onStartShouldSetResponder={() => true}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>전화 관리 상담 추가</Text>
+                <TouchableOpacity onPress={() => setCallModalVisible(false)}>
+                  <Feather name="x" size={20} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>회원 이름</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={callName}
+                  onChangeText={setCallName}
+                  placeholder="예: 홍길동"
+                  placeholderTextColor={theme.colors.outline}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>통화 요일 및 내용</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={callContent}
+                  onChangeText={setCallContent}
+                  placeholder="예: 화요일 통화, 교재 변경 안내"
+                  placeholderTextColor={theme.colors.outline}
+                />
+              </View>
+
+              <TouchableOpacity style={styles.modalSaveBtn} onPress={handleAddCallItem}>
+                <Text style={styles.modalSaveBtnText}>추가하기</Text>
               </TouchableOpacity>
             </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>회원 이름</Text>
-              <TextInput
-                style={styles.formInput}
-                value={callName}
-                onChangeText={setCallName}
-                placeholder="예: 홍길동"
-                placeholderTextColor={theme.colors.outline}
-              />
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>통화 요일 및 내용</Text>
-              <TextInput
-                style={styles.formInput}
-                value={callContent}
-                onChangeText={setCallContent}
-                placeholder="예: 화요일 통화, 교재 변경 안내"
-                placeholderTextColor={theme.colors.outline}
-              />
-            </View>
-
-            <TouchableOpacity style={styles.modalSaveBtn} onPress={handleAddCallItem}>
-              <Text style={styles.modalSaveBtnText}>추가하기</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ======================= 모달 4: PDF 출력 / 공유 선택 모달 ======================= */}
@@ -2451,6 +2508,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'flex-end',
   },
+  modalKeyboardAvoid: {
+    flex: 1,
+  },
   editModalContent: {
     backgroundColor: theme.colors.white,
     borderTopLeftRadius: 20,
@@ -2459,6 +2519,10 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: Platform.OS === 'android' ? 56 : 36,
     maxHeight: '88%',
+  },
+  editModalContentKeyboard: {
+    paddingBottom: 16,
+    maxHeight: '94%',
   },
   modalHeader: {
     flexDirection: 'row',
