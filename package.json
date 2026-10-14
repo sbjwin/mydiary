@@ -2,6 +2,7 @@
   "name": "mydiary",
   "version": "2.4.1",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "android": "expo run:android",
     "ios": "expo run:ios",

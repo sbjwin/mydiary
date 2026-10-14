@@ -1,7 +1,20 @@
 # MyDiary (내 일상 수업 다이어리) - v2.4.1
 
+[![Release](https://img.shields.io/badge/Release-v2.4.1-blue.svg)](https://github.com/sbjwin/mydiary/releases)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green.svg)](#)
+[![React Native](https://img.shields.io/badge/React%20Native-0.86.0-61dafb.svg)](https://reactnative.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 **MyDiary**는 방문 강사 및 교사를 위해 제작된 통합 수업 관리 모바일 애플리케이션입니다.  
 단순한 사후 기록을 넘어 **"주간 수업 계획(스케줄링) ➔ 방문 수업 이동 ➔ 수업 일지 기록 ➔ 주간 업무 보고서(PDF / 한글 문서 .hwpx / 구글 문서 .docx) 자동 출력"**에 이르는 전 과정을 하나로 완벽하게 일원화한 올인원 솔루션입니다.
+
+---
+
+## 📱 최신 정식 버전 다운로드
+
+최신 정규 릴리즈 APK는 아래 링크의 GitHub Releases 페이지에서 즉시 다운로드하여 안드로이드 기기에 설치하실 수 있습니다.
+
+👉 **[GitHub Releases에서 최신 MyDiary 다운로드](https://github.com/sbjwin/mydiary/releases)**
 
 ---
 
@@ -11,10 +24,10 @@
     *   상단 헤더와 환영 문구 사이 및 최하단 스크롤 영역의 중복 시스템 안전영역(SafeArea) 패딩을 제거하고 스크롤 여백을 정돈하여, 시각적 균형감과 매끄러운 스크롤 경험을 제공합니다.
 *   **동적 테마 시스템 전면 연동 (v2.4.0)**:
     *   앱 설정의 5가지 테마 프리셋(클래식 슬레이트, 오션 블루, 포레스트 세이지, 로열 라벤더, 웜 선셋)이 앱 내 모든 화면(홈, 시간표, 학생, 일지, 달력, 설정, 도움말)에 실시간으로 완벽하게 동기화 반영됩니다.
-*   **공통 유틸리티 및 컴포넌트 아키텍처 모듈화 (신규 v2.4.0)**:
+*   **공통 유틸리티 및 컴포넌트 아키텍처 모듈화 (v2.4.0)**:
     *   `src/utils/dateUtils.js` 및 `src/utils/stringUtils.js`를 신설하여 산재해 있던 날짜·시간 포맷팅 및 XML/HTML 이스케이프 함수를 완벽히 일원화했습니다.
     *   `src/components/`에 공통 구분선(`Separator`), 확인 다이얼로그(`ConfirmModal`)를 구축하여 일관된 UI/UX를 제공합니다.
-*   **정기 프로젝트 건전성 정밀 감사 하네스 도입 (신규 v2.4.0)**:
+*   **정기 프로젝트 건전성 정밀 감사 하네스 도입 (v2.4.0)**:
     *   `npm run audit` 명령어로 ESLint, 단위 테스트, 파일 규모, 디자인 토큰 준수, 공통 함수 중복 여부를 원클릭으로 점검하고 종합 건전성 점수(96점 달성)를 산출하는 감사 하네스를 구축했습니다.
 
 *   **주간 시간표 & 수업 계획**:
@@ -23,7 +36,7 @@
     *   **불규칙한 일정 변동 완벽 지원**: 이번 주만 시간 변경, 임시 보강, 휴일/결석 처리, 특이사항 메모(`=> 이번주만`, `=> 8/15일 수업함`, `=> 아픔` 등)를 터치 몇 번으로 손쉽게 조율합니다.
     *   **주간 전체 타임테이블(PDF 서식 뷰)** 및 **요일별 상세 타임라인 뷰** 동시 지원.
 *   **주간 업무 보고서 한글 문서(.hwpx), 구글 문서(.docx) & PDF 원클릭 출력**:
-    *   **한글 문서 (.hwpx / OWPML 표준) 내보내기 지원 (신규 v2.3.0)**: 한컴오피스 한글 표준 OWPML 양식의 `.hwpx` 파일을 생성하여 스마트폰 및 PC의 한글 프로그램에서 자유롭게 편집 및 출력이 가능합니다.
+    *   **한글 문서 (.hwpx / OWPML 표준) 내보내기 지원**: 한컴오피스 한글 표준 OWPML 양식의 `.hwpx` 파일을 생성하여 스마트폰 및 PC의 한글 프로그램에서 자유롭게 편집 및 출력이 가능합니다.
     *   **구글 문서 / MS 워드 (.docx) 내보내기 지원**: 정규 A4 양식 그대로 `.docx` 워드 파일을 생성하여 **구글 드라이브(Google Drive) 및 구글 문서(Google Docs)**로 열어 PC나 스마트폰에서 자유롭게 내용을 수정·편집하고 카카오톡/이메일로 공유할 수 있습니다.
     *   **정규 A4 PDF 출력 & 인쇄**: 월~토 6열 방문 수업 타임테이블 + 일요일 시간표 분리 블록 + 하단 전화 관리 & 주요사항 메모가 포함된 **정규 A4 주간 업무 보고서 양식을 100% 동일하게 자동 렌더링**하여 Wi-Fi 무선 프린터 인쇄 및 고화질 PDF 공유를 지원합니다.
 *   **계획 ➔ 수업 일지 원클릭 연동**:
@@ -39,109 +52,32 @@
 
 ---
 
-## 개발자 정보
+## 🚀 빠른 시작 (Quick Start for Developers)
+
+이 프로젝트를 로컬 개발 환경에서 빠르게 실행해 보려면 아래 명령어를 순서대로 실행하세요:
+
+```bash
+# 1. 저장소 클론 및 패키지 설치
+git clone https://github.com/sbjwin/mydiary.git
+cd mydiary
+npm install
+
+# 2. Metro 번들러 서버 실행 (별도 터미널)
+npm run start
+
+# 3. Android 앱 구동
+npm run android
+```
+
+> **📖 상세 개발 및 빌드 가이드**:  
+> 로컬 기기 디버깅, Android APK/AAB 수동 빌드, iOS 빌드, 서명 키(Keystore) 설정, GitHub Actions CI/CD 자동 배포 등에 대한 모든 상세 엔지니어링 가이드는 **[BuildGuide.md](./BuildGuide.md)** 문서에 체계적으로 정리되어 있습니다.
+
+---
+
+## 👨‍💻 개발자 정보
+
 * **제작자**: Sung Baekjin (성백진)
 * **이메일**: sbjwin4271@gmail.com
-
----
-
-## 개발 환경 및 npm 활용법
-
-이 프로젝트는 **React Native CLI**를 기반으로 구성되어 있습니다. `npm` 명령어를 사용하여 패키지를 관리하고 앱을 실행합니다.
-
-### 1. 필수 사전 준비
-*   **Node.js**: v22 이상 권장
-*   **JDK**: v17 이상 (안드로이드 빌드용)
-*   **Ruby**: v2.7 이상 (iOS 빌드 및 CocoaPods용)
-
-### 2. 패키지 설치
-프로젝트를 처음 클론(Clone) 받거나 새로운 의존성 패키지가 추가되었을 때 실행합니다.
-```bash
-npm install
-```
-
-### 3. 메트로 번들러(Metro Bundler) 실행
-React Native 앱을 구동하기 위한 로컬 JavaScript 서버를 켭니다. 앱을 실행할 때 항상 백그라운드에 켜져 있어야 합니다.
-```bash
-npm run start
-```
-> **Tip**: 캐시로 인해 오류가 발생한다면 `npm run start -- --reset-cache` 명령어를 사용하여 캐시를 초기화하며 시작할 수 있습니다.
-
----
-
-## Android 빌드 및 실행 요령
-
-Android 환경에서 앱을 구동하고 빌드하는 가이드입니다. (Android Studio 및 Android SDK가 설치되어 있어야 합니다.)
-
-### 1. 로컬 기기 연결 확인 (`adb devices`)
-앱을 실제 안드로이드 기기에 설치하고 테스트하기 전, 기기가 PC와 제대로 연결되었는지 확인해야 합니다.
-```bash
-adb devices
-```
-*   명령어 실행 후 `List of devices attached` 아래에 기기 식별자(예: `R3CX...`)와 `device`라는 문구가 나타나면 정상적으로 연결된 것입니다.
-*   만약 `unauthorized` 상태로 뜬다면, 스마트폰 화면을 켜고 **'USB 디버깅 허용'** 팝업에서 확인을 눌러주세요.
-
-### 2. 안드로이드 기기에 앱 빌드 및 실행 (`--variant`)
-기기가 정상적으로 연결된 상태에서, 아래 명령어를 통해 앱을 빌드하고 기기에 직접 설치하여 실행할 수 있습니다.
-
-*   **디버그(Debug) 모드 실행** (개발 및 테스트용)
-```bash
-npm run android -- --variant debug
-```
-> 기본 명령어인 `npm run android`를 입력해도 디버그 모드로 구동됩니다.
-
-*   **릴리즈(Release) 모드 실행** (실제 배포 환경과 동일한 최적화 모드)
-개발용 서버(Metro) 없이, 실제 스토어에 출시되었을 때와 똑같은 성능과 환경으로 기기에서 테스트할 때 사용합니다.
-```bash
-npm run android -- --variant release
-```
-
-### 3. 안드로이드 APK 수동 빌드 (파일 추출용)
-기기에 바로 실행하지 않고, 주변 사람들에게 전달하거나 따로 보관하기 위해 `.apk` 파일만 추출하는 방법입니다.
-```bash
-cd android
-./gradlew assembleDebug
-```
-*   **결과물 경로**: `android/app/build/outputs/apk/debug/app-debug.apk`
-
-### 4. 안드로이드 AAB/APK 릴리즈 빌드 (배포용)
-구글 플레이스토어에 배포하기 위해서는 정식 서명 키(Keystore) 설정이 필요합니다. 서명 키가 적용된 후 아래 명령어로 릴리즈 빌드를 진행합니다.
-```bash
-cd android
-./gradlew bundleRelease   # AAB 포맷 (플레이스토어 업로드용 권장)
-./gradlew assembleRelease # APK 포맷 (직접 배포용)
-```
-
----
-
-## iOS 빌드 및 실행 요령
-
-iOS 환경은 반드시 **macOS** 운영체제와 **Xcode**가 설치되어 있어야 빌드가 가능합니다.
-
-### 1. iOS 전용 패키지(CocoaPods) 설치
-iOS 네이티브 모듈을 연동하기 위해 `ios` 폴더 내부에서 Pod을 설치해야 합니다. 최초 실행 전이나 새로운 패키지를 설치했을 때 필수입니다.
-```bash
-cd ios
-pod install
-cd ..
-```
-> **Tip**: M1/M2 등 Apple Silicon 칩 맥을 사용 중이고 pod install에 에러가 난다면 `arch -x86_64 pod install`을 시도하거나 Ruby 버전을 점검해 보세요.
-
-### 2. 로컬 시뮬레이터/기기에서 실행
-아래 명령어를 통해 iOS 시뮬레이터에서 앱을 바로 실행할 수 있습니다.
-```bash
-npm run ios
-```
-*   특정 기기에서 실행하고 싶다면: `npm run ios -- --simulator="iPhone 15"`
-
-### 3. iOS 릴리즈 빌드 (TestFlight 및 App Store 배포용)
-iOS는 터미널 명령어보다는 **Xcode**를 직접 사용하는 것이 안정적이고 관리가 수월합니다.
-1.  `ios/mydiary.xcworkspace` (주의: `.xcodeproj`가 아닙니다) 파일을 Xcode로 엽니다.
-2.  Xcode 상단 메뉴바에서 **Product > Scheme > Edit Scheme**으로 이동 후 Build Configuration을 **Release**로 변경합니다.
-3.  상단 메뉴바에서 타겟 기기를 **Any iOS Device (arm64)** 로 설정합니다.
-4.  **Product > Archive** 메뉴를 클릭하여 빌드를 진행합니다.
-5.  아카이빙이 완료되면 Organizer 창이 뜨며, 여기서 **Distribute App** 버튼을 눌러 App Store Connect로 업로드할 수 있습니다.
-
----
-
-> 참고: 더 자세한 트러블슈팅 및 팁은 프로젝트 내 [BuildGuide.md](./BuildGuide.md) 문서를 확인해 주세요.
+* **저장소**: [https://github.com/sbjwin/mydiary](https://github.com/sbjwin/mydiary)
+* **기술 문서**: [개발 및 빌드 상세 가이드 (BuildGuide.md)](./BuildGuide.md)
+* **라이선스**: [MIT License](./LICENSE)

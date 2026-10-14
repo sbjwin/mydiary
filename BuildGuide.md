@@ -32,48 +32,80 @@
 터미널을 열고 아래 명령어를 차례대로 실행합니다.
 
 ```bash
-# 1. 의존성 패키지 설치 (설치되어 있지 않은 경우)
+# 1. 의존성 패키지 설치
 npm install
 
 # 2. Metro 번들러 서버 시작 (다른 터미널 창에서 켜두기)
 npm run start
+# 캐시 오류 시: npm run start -- --reset-cache
 
-# 3. Android 디바이스/에뮬레이터에 앱 실행
+# 3. Android 실제 기기 연결 확인 (선택 사항)
+adb devices
+
+# 4. Android 디바이스/에뮬레이터에 앱 실행
 npm run android
+# 릴리즈 환경으로 로컬 테스트 시: npm run android -- --variant release
 ```
 
 ---
 
-## 3. APK 빌드 방법 (Android Package)
+## 3. Android APK 및 AAB 빌드 방법
 
-실제 기기에 직접 설치하여 테스트하거나 배포하기 위해 APK 파일로 빌드하는 방법입니다.
+실제 기기에 직접 설치하여 테스트하거나 스토어 배포용 패키지를 추출하는 방법입니다.
 
 ### ① 디버그용 APK 빌드 (단순 설치/테스트용)
-서명 키 설정 없이 빠르게 APK를 생성하여 폰에 직접 넣어서 설치해 보고 싶을 때 사용합니다.
+서명 키 설정 없이 빠르게 APK를 생성하여 스마트폰에 직접 넣어서 설치해 보고 싶을 때 사용합니다.
 
 ```bash
-# android 폴더로 이동하여 빌드 명령어 수행
 cd android
 ./gradlew assembleDebug
 ```
 *   **결과물 경로**: `android/app/build/outputs/apk/debug/app-debug.apk`
-*   이 APK는 디버그 서명이 되어 있어, USB 전송 등으로 기기에 넣어서 바로 설치 및 실행할 수 있습니다.
 
-### ② 배포/릴리즈용 APK 빌드 (배포 및 프로덕션용)
-구글 플레이스토어에 업로드하거나 실제 서비스 형태로 배포하기 위한 최적화 빌드입니다.
-
-현재 `android/app/build.gradle` 설정 상 `release` 빌드 타입도 임시로 디버그 서명 키(`signingConfigs.debug`)를 사용하도록 매핑되어 있어, 바로 빌드가 가능합니다.
+### ② 릴리즈용 APK 및 AAB 빌드 (배포 및 프로덕션용)
+구글 플레이스토어 업로드용(AAB) 또는 수동 배포용 서명 APK를 빌드하는 방법입니다.
 
 ```bash
 cd android
-./gradlew assembleRelease
+./gradlew bundleRelease   # AAB 포맷 (구글 플레이스토어 업로드 권장)
+./gradlew assembleRelease # APK 포맷 (직접 설치 및 배포용)
 ```
-*   **결과물 경로**: `android/app/build/outputs/apk/release/app-release.apk`
-*   **주의**: 임시 디버그 서명 키로 생성된 릴리즈 APK이므로 내부 테스트용으로 실제 기기에서 구동은 가능하지만, **구글 플레이스토어 등록은 불가능**합니다. 실제 배포를 위해서는 아래 4장의 **정식 서명 키 설정**이 필요합니다.
+*   **결과물 경로**:
+    *   AAB: `android/app/build/outputs/bundle/release/app-release.aab`
+    *   APK: `android/app/build/outputs/apk/release/app-release.apk`
+*   **주의**: 공식 배포를 위해서는 아래 5장의 **정식 서명 키(Keystore) 설정** 또는 8장의 **GitHub Actions CI/CD 파이프라인**을 활용하세요.
 
 ---
 
-## 4. 잠재적인 문제점 분석 및 개선 가이드
+## 4. iOS 개발 및 빌드 요령 (macOS 전용)
+
+iOS 환경은 반드시 **macOS** 운영체제와 **Xcode**가 설치되어 있어야 빌드가 가능합니다.
+
+### ① iOS 전용 패키지(CocoaPods) 설치
+iOS 네이티브 모듈 연동을 위해 최초 1회 또는 네이티브 라이브러리 추가 시 Pod을 설치합니다.
+```bash
+cd ios
+pod install
+cd ..
+```
+> **Tip**: Apple Silicon (M1/M2/M3) 맥에서 에러 발생 시 `arch -x86_64 pod install`을 시도합니다.
+
+### ② 로컬 시뮬레이터에서 실행
+```bash
+npm run ios
+# 특정 기기 지정: npm run ios -- --simulator="iPhone 15"
+```
+
+### ③ iOS 릴리즈 빌드 (TestFlight 및 App Store 배포)
+1. `ios/mydiary.xcworkspace` (주의: `.xcodeproj`가 아닙니다) 파일을 Xcode로 엽니다.
+2. Xcode 상단 메뉴 **Product > Scheme > Edit Scheme**에서 Build Configuration을 **Release**로 변경합니다.
+3. 타겟 기기를 **Any iOS Device (arm64)** 로 설정합니다.
+4. **Product > Archive** 메뉴를 클릭하여 아카이빙을 진행합니다.
+5. 빌드 완료 후 Organizer 창에서 **Distribute App** 버튼을 통해 App Store Connect에 업로드합니다.
+
+---
+
+## 5. 잠재적인 문제점 분석 및 개선 가이드
 
 프로젝트 초기 단계에서 인지하고 있어야 할 중요한 기술적 검토 사항들입니다.
 
@@ -114,7 +146,7 @@ cd android
 
 ---
 
-## 5. Git 관련 주의사항 (.gitignore 및 캐시 정리)
+## 6. Git 관련 주의사항 (.gitignore 및 캐시 정리)
 
 `.gitignore`에 뒤늦게 무거운 빌드 파일이나 캐시 폴더를 추가한 경우, 이전에 이미 커밋되어 원격 저장소에 올라가버린 파일들은 Git이 계속 추적하게 됩니다.
 이러한 파일들의 추적 기록(캐시)을 일괄적으로 지우고 `.gitignore`를 제대로 적용하려면 터미널에서 아래 명령어를 순서대로 실행하세요.
@@ -136,7 +168,7 @@ git push origin main
 
 ---
 
-## 6. 보안 점검 및 강화 가이드 (Security Guide)
+## 7. 보안 점검 및 강화 가이드 (Security Guide)
 
 프로젝트를 안전하게 유지하기 위해 주기적인 보안 취약점 점검 및 강화가 필수적입니다. 아래의 모범 사례를 참고하여 프로젝트 보안을 관리하세요.
 
@@ -164,11 +196,11 @@ git push origin main
 ### ③ 시크릿 정보 보호 (환경 변수 분리)
 *   외부 API 연동 키, 데이터베이스 암호, 빌드 서명 키 등의 민감 정보는 절대로 소스코드 내에 직접 작성(Hard-coding)하지 마세요.
 *   `react-native-config` 또는 `react-native-dotenv` 같은 패키지를 이용해 `.env` 파일로 환경 변수를 분리하여 관리해야 합니다.
-*   생성된 환경 변수 파일이나 키스토어 파일 등은 **반드시 5장에서 설명된 `.gitignore`를 통해 Git 추적에서 제외**되어야 원격 코드 저장소 해킹이나 유출을 막을 수 있습니다.
+*   생성된 환경 변수 파일이나 키스토어 파일 등은 **반드시 6장에서 설명된 `.gitignore`를 통해 Git 추적에서 제외**되어야 원격 코드 저장소 해킹이나 유출을 막을 수 있습니다.
 
 ---
 
-## 7. GitHub Actions 기반 Android CI/CD 자동 배포 가이드
+## 8. GitHub Actions 기반 Android CI/CD 자동 배포 가이드
 
 `mydiary` 프로젝트는 GitHub Actions를 통해 **코드 품질 자동 검증(CI)** 및 **서명된 릴리즈 APK 자동 배포(CD)** 파이프라인이 구축되어 있습니다.
 
