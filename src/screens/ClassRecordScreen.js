@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,6 +11,7 @@ import {
   FlatList,
   Modal,
   KeyboardAvoidingView,
+  Keyboard,
   Platform
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -176,6 +177,8 @@ export default function ClassRecordScreen() {
   }, [allRecords, periodFilter, customStartDate, customEndDate]);
 
   // 개별 기록 작성/수정 모달 관련 상태
+  const modalScrollRef = useRef(null);
+  const focusedFieldRef = useRef(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [editingDate, setEditingDate] = useState('');
@@ -184,6 +187,83 @@ export default function ClassRecordScreen() {
   const [editingCourse, setEditingCourse] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // 안드로이드/iOS 키보드 노출 감지 및 높이 추적
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setIsKeyboardVisible(true);
+        if (e?.endCoordinates?.height) {
+          setKeyboardHeight(e.endCoordinates.height);
+        }
+        // 키보드가 화면에 완전히 올라온 시점에 최적 위치 스크롤 재보장
+        if (focusedFieldRef.current === 'content') {
+          setTimeout(() => {
+            modalScrollRef.current?.scrollToEnd({ animated: true });
+          }, 80);
+        } else if (focusedFieldRef.current === 'course') {
+          setTimeout(() => {
+            modalScrollRef.current?.scrollTo({ y: 120, animated: true });
+          }, 80);
+        }
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setIsKeyboardVisible(false);
+        setKeyboardHeight(0);
+        focusedFieldRef.current = null;
+        modalScrollRef.current?.scrollTo({ y: 0, animated: true });
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // 모달 오픈 시 스크롤 위치 초기화
+  useEffect(() => {
+    if (modalVisible) {
+      setTimeout(() => {
+        modalScrollRef.current?.scrollTo({ y: 0, animated: false });
+      }, 50);
+    }
+  }, [modalVisible]);
+
+  // 입력 필드 포커스 시 키보드 위로 최적 위치 자동 스크롤 (이중 타이밍 보장)
+  const handleContentFocus = () => {
+    focusedFieldRef.current = 'content';
+    setTimeout(() => {
+      modalScrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+    setTimeout(() => {
+      modalScrollRef.current?.scrollToEnd({ animated: true });
+    }, 300);
+  };
+
+  const handleCourseFocus = () => {
+    focusedFieldRef.current = 'course';
+    setTimeout(() => {
+      modalScrollRef.current?.scrollTo({ y: 120, animated: true });
+    }, 120);
+    setTimeout(() => {
+      modalScrollRef.current?.scrollTo({ y: 120, animated: true });
+    }, 300);
+  };
+
+  // 키보드 노출 시 동적 하단 패딩 및 상단 정렬 스타일 (ESLint 인라인 스타일 규칙 준수)
+  const modalScrollContentStyle = useMemo(() => [
+    styles.modalScroll,
+    isKeyboardVisible && styles.modalScrollWithKeyboard,
+    isKeyboardVisible && {
+      paddingBottom: Platform.OS === 'android' ? keyboardHeight + 36 : 36,
+    },
+  ], [isKeyboardVisible, keyboardHeight]);
 
   // 시간 파싱 헬퍼 (HH:mm 포맷)
   const parsedTime = useMemo(() => {
@@ -483,282 +563,314 @@ export default function ClassRecordScreen() {
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => {
+          if (isKeyboardVisible) {
+            Keyboard.dismiss();
+          } else {
+            setModalVisible(false);
+          }
+        }}
+        statusBarTranslucent
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
+          style={styles.keyboardAvoidContainer}
         >
-          <ScrollView
-            contentContainerStyle={styles.modalScroll}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {editingRecord ? '수업 일지 수정' : '새 수업 일지 등록'}
-                </Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Feather name="x" size={24} color={theme.colors.outline} />
-                </TouchableOpacity>
-              </View>
-
-              {/* 날짜 선택 필드 */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>수업 날짜 *</Text>
-                <TouchableOpacity
-                  style={[styles.dateSelector, showDatePicker && styles.dateSelectorActive]}
-                  onPress={() => {
-                    setShowDatePicker(!showDatePicker);
-                    if (!showDatePicker) setShowTimePicker(false);
-                  }}
-                >
-                  <View style={styles.selectorContentRow}>
-                    <Text style={styles.dateSelectorText}>
-                      📅 {editingDate || '날짜 선택'}
-                    </Text>
-                    <Feather
-                      name={showDatePicker ? 'chevron-up' : 'chevron-down'}
-                      size={18}
-                      color={theme.colors.outline}
-                    />
-                  </View>
-                </TouchableOpacity>
-
-                {showDatePicker && (
-                  <View style={styles.inlineCalendar}>
-                    <Calendar
-                      current={editingDate}
-                      onDayPress={(day) => {
-                        setEditingDate(day.dateString);
-                        setShowDatePicker(false);
-                      }}
-                      theme={{
-                        selectedDayBackgroundColor: theme.colors.primary,
-                        todayTextColor: theme.colors.primary,
-                        arrowColor: theme.colors.primary,
-                      }}
-                    />
-                  </View>
-                )}
-              </View>
-
-              {/* 수업 시간 선택 필드 (GUI 피커) */}
-              <View style={styles.inputGroup}>
-                <View style={styles.fieldLabelRow}>
-                  <Text style={styles.fieldLabel}>수업 시간</Text>
-                  {editingTime ? (
-                    <TouchableOpacity
-                      onPress={() => setEditingTime('')}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.clearBtnText}>시간 비우기</Text>
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
-                <TouchableOpacity
-                  style={[styles.dateSelector, showTimePicker && styles.dateSelectorActive]}
-                  onPress={() => {
-                    setShowTimePicker(!showTimePicker);
-                    if (!showTimePicker) setShowDatePicker(false);
-                  }}
-                >
-                  <View style={styles.selectorContentRow}>
-                    <Text style={[styles.dateSelectorText, !editingTime && styles.placeholderText]}>
-                      ⏰ {editingTime || '수업 시간 선택'}
-                    </Text>
-                    <Feather
-                      name={showTimePicker ? 'chevron-up' : 'chevron-down'}
-                      size={18}
-                      color={theme.colors.outline}
-                    />
-                  </View>
-                </TouchableOpacity>
-
-                {showTimePicker && (
-                  <View style={styles.inlineTimePicker}>
-                    {/* 1. 빠른 프리셋 */}
-                    <Text style={styles.timePickerSectionTitle}>⚡ 빠른 선택</Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.quickPresetScroll}
-                    >
-                      {QUICK_TIME_PRESETS.map((preset) => {
-                        const isSelected = editingTime === preset;
-                        return (
-                          <TouchableOpacity
-                            key={preset}
-                            style={[
-                              styles.quickPresetChip,
-                              isSelected && styles.quickPresetChipActive,
-                            ]}
-                            onPress={() => {
-                              setEditingTime(preset);
-                            }}
-                          >
-                            <Text
-                              style={[
-                                styles.quickPresetText,
-                                isSelected && styles.quickPresetTextActive,
-                              ]}
-                            >
-                              {preset}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-
-                    {/* 2. 오전/오후 탭 */}
-                    <View style={styles.timeAmpmRow}>
-                      <TouchableOpacity
-                        style={[
-                          styles.timeAmpmTab,
-                          parsedTime.ampm === '오전' && styles.timeAmpmTabActive,
-                        ]}
-                        onPress={() => handleTimeAmpmChange('오전')}
-                      >
-                        <Text
-                          style={[
-                            styles.timeAmpmTabText,
-                            parsedTime.ampm === '오전' && styles.timeAmpmTabTextActive,
-                          ]}
-                        >
-                          오전 (AM)
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.timeAmpmTab,
-                          parsedTime.ampm === '오후' && styles.timeAmpmTabActive,
-                        ]}
-                        onPress={() => handleTimeAmpmChange('오후')}
-                      >
-                        <Text
-                          style={[
-                            styles.timeAmpmTabText,
-                            parsedTime.ampm === '오후' && styles.timeAmpmTabTextActive,
-                          ]}
-                        >
-                          오후 (PM)
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* 3. 시간(시) 선택 그리드 */}
-                    <Text style={styles.timePickerSectionTitle}>
-                      {parsedTime.ampm === '오전' ? '오전 시간 (시)' : '오후 시간 (시)'}
-                    </Text>
-                    <View style={styles.timeGridRow}>
-                      {(parsedTime.ampm === '오전' ? MORNING_HOURS : AFTERNOON_HOURS).map((h) => {
-                        const isSelected = parsedTime.hour24 === h.hour24 && !parsedTime.isEmpty;
-                        return (
-                          <TouchableOpacity
-                            key={h.hour24}
-                            style={[
-                              styles.timeGridBtn,
-                              isSelected && styles.timeGridBtnActive,
-                            ]}
-                            onPress={() => handleTimeHourChange(h.hour24)}
-                          >
-                            <Text
-                              style={[
-                                styles.timeGridBtnText,
-                                isSelected && styles.timeGridBtnTextActive,
-                              ]}
-                            >
-                              {h.label}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-
-                    {/* 4. 분(Minute) 선택 그리드 */}
-                    <Text style={styles.timePickerSectionTitle}>분 (Min)</Text>
-                    <View style={styles.timeGridRow}>
-                      {MINUTE_OPTIONS.map((minStr) => {
-                        const isSelected = parsedTime.minute === minStr && !parsedTime.isEmpty;
-                        return (
-                          <TouchableOpacity
-                            key={minStr}
-                            style={[
-                              styles.timeGridBtn,
-                              isSelected && styles.timeGridBtnActive,
-                            ]}
-                            onPress={() => handleTimeMinuteChange(minStr)}
-                          >
-                            <Text
-                              style={[
-                                styles.timeGridBtnText,
-                                isSelected && styles.timeGridBtnTextActive,
-                              ]}
-                            >
-                              {minStr}분
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-
-                    {/* 선택 완료 버튼 */}
-                    <TouchableOpacity
-                      style={styles.timeConfirmBtn}
-                      onPress={() => setShowTimePicker(false)}
-                    >
-                      <Text style={styles.timeConfirmBtnText}>
-                        {editingTime ? `${editingTime} 선택 완료` : '선택 완료'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>수업과정</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={editingCourse}
-                  onChangeText={setEditingCourse}
-                  placeholder="예: 파이썬 기초, 리액트 심화 등"
-                  placeholderTextColor={theme.colors.outline}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>수업 내용 기록 *</Text>
-                <TextInput
-                  style={[styles.modalInput, styles.contentTextArea]}
-                  value={editingContent}
-                  onChangeText={setEditingContent}
-                  placeholder="오늘 진행한 수업 내용을 기록하세요."
-                  placeholderTextColor={theme.colors.outline}
-                  multiline={true}
-                  numberOfLines={6}
-                  textAlignVertical="top"
-                />
-              </View>
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={[styles.modalBtn, styles.saveModalBtn]}
-                  onPress={handleSaveRecord}
-                >
-                  <Text style={styles.saveModalBtnText}>저장하기</Text>
-                </TouchableOpacity>
-
-                {editingRecord && (
+          <View style={styles.modalOverlay}>
+            <ScrollView
+              ref={modalScrollRef}
+              contentContainerStyle={modalScrollContentStyle}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              <View
+                style={styles.modalContent}
+                onStartShouldSetResponder={() => true}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    {editingRecord ? '수업 일지 수정' : '새 수업 일지 등록'}
+                  </Text>
                   <TouchableOpacity
-                    style={[styles.modalBtn, styles.deleteModalBtn]}
-                    onPress={() => handleDeleteRecord(editingRecord.id)}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setModalVisible(false);
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Text style={styles.deleteModalBtnText}>일지 삭제</Text>
+                    <Feather name="x" size={24} color={theme.colors.outline} />
                   </TouchableOpacity>
-                )}
+                </View>
+
+                {/* 날짜 선택 필드 */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>수업 날짜 *</Text>
+                  <TouchableOpacity
+                    style={[styles.dateSelector, showDatePicker && styles.dateSelectorActive]}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setShowDatePicker(!showDatePicker);
+                      if (!showDatePicker) setShowTimePicker(false);
+                    }}
+                  >
+                    <View style={styles.selectorContentRow}>
+                      <Text style={styles.dateSelectorText}>
+                        📅 {editingDate || '날짜 선택'}
+                      </Text>
+                      <Feather
+                        name={showDatePicker ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={theme.colors.outline}
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  {showDatePicker && (
+                    <View style={styles.inlineCalendar}>
+                      <Calendar
+                        current={editingDate}
+                        onDayPress={(day) => {
+                          setEditingDate(day.dateString);
+                          setShowDatePicker(false);
+                        }}
+                        theme={{
+                          selectedDayBackgroundColor: theme.colors.primary,
+                          todayTextColor: theme.colors.primary,
+                          arrowColor: theme.colors.primary,
+                        }}
+                      />
+                    </View>
+                  )}
+                </View>
+
+                {/* 수업 시간 선택 필드 (GUI 피커) */}
+                <View style={styles.inputGroup}>
+                  <View style={styles.fieldLabelRow}>
+                    <Text style={styles.fieldLabel}>수업 시간</Text>
+                    {editingTime ? (
+                      <TouchableOpacity
+                        onPress={() => setEditingTime('')}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={styles.clearBtnText}>시간 비우기</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.dateSelector, showTimePicker && styles.dateSelectorActive]}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setShowTimePicker(!showTimePicker);
+                      if (!showTimePicker) setShowDatePicker(false);
+                    }}
+                  >
+                    <View style={styles.selectorContentRow}>
+                      <Text style={[styles.dateSelectorText, !editingTime && styles.placeholderText]}>
+                        ⏰ {editingTime || '수업 시간 선택'}
+                      </Text>
+                      <Feather
+                        name={showTimePicker ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={theme.colors.outline}
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  {showTimePicker && (
+                    <View style={styles.inlineTimePicker}>
+                      {/* 1. 빠른 프리셋 */}
+                      <Text style={styles.timePickerSectionTitle}>⚡ 빠른 선택</Text>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.quickPresetScroll}
+                      >
+                        {QUICK_TIME_PRESETS.map((preset) => {
+                          const isSelected = editingTime === preset;
+                          return (
+                            <TouchableOpacity
+                              key={preset}
+                              style={[
+                                styles.quickPresetChip,
+                                isSelected && styles.quickPresetChipActive,
+                              ]}
+                              onPress={() => {
+                                setEditingTime(preset);
+                              }}
+                            >
+                              <Text
+                                style={[
+                                  styles.quickPresetText,
+                                  isSelected && styles.quickPresetTextActive,
+                                ]}
+                              >
+                                {preset}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+
+                      {/* 2. 오전/오후 탭 */}
+                      <View style={styles.timeAmpmRow}>
+                        <TouchableOpacity
+                          style={[
+                            styles.timeAmpmTab,
+                            parsedTime.ampm === '오전' && styles.timeAmpmTabActive,
+                          ]}
+                          onPress={() => handleTimeAmpmChange('오전')}
+                        >
+                          <Text
+                            style={[
+                              styles.timeAmpmTabText,
+                              parsedTime.ampm === '오전' && styles.timeAmpmTabTextActive,
+                            ]}
+                          >
+                            오전 (AM)
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.timeAmpmTab,
+                            parsedTime.ampm === '오후' && styles.timeAmpmTabActive,
+                          ]}
+                          onPress={() => handleTimeAmpmChange('오후')}
+                        >
+                          <Text
+                            style={[
+                              styles.timeAmpmTabText,
+                              parsedTime.ampm === '오후' && styles.timeAmpmTabTextActive,
+                            ]}
+                          >
+                            오후 (PM)
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* 3. 시간(시) 선택 그리드 */}
+                      <Text style={styles.timePickerSectionTitle}>
+                        {parsedTime.ampm === '오전' ? '오전 시간 (시)' : '오후 시간 (시)'}
+                      </Text>
+                      <View style={styles.timeGridRow}>
+                        {(parsedTime.ampm === '오전' ? MORNING_HOURS : AFTERNOON_HOURS).map((h) => {
+                          const isSelected = parsedTime.hour24 === h.hour24 && !parsedTime.isEmpty;
+                          return (
+                            <TouchableOpacity
+                              key={h.hour24}
+                              style={[
+                                styles.timeGridBtn,
+                                isSelected && styles.timeGridBtnActive,
+                              ]}
+                              onPress={() => handleTimeHourChange(h.hour24)}
+                            >
+                              <Text
+                                style={[
+                                  styles.timeGridBtnText,
+                                  isSelected && styles.timeGridBtnTextActive,
+                                ]}
+                              >
+                                {h.label}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+
+                      {/* 4. 분(Minute) 선택 그리드 */}
+                      <Text style={styles.timePickerSectionTitle}>분 (Min)</Text>
+                      <View style={styles.timeGridRow}>
+                        {MINUTE_OPTIONS.map((minStr) => {
+                          const isSelected = parsedTime.minute === minStr && !parsedTime.isEmpty;
+                          return (
+                            <TouchableOpacity
+                              key={minStr}
+                              style={[
+                                styles.timeGridBtn,
+                                isSelected && styles.timeGridBtnActive,
+                              ]}
+                              onPress={() => handleTimeMinuteChange(minStr)}
+                            >
+                              <Text
+                                style={[
+                                  styles.timeGridBtnText,
+                                  isSelected && styles.timeGridBtnTextActive,
+                                ]}
+                              >
+                                {minStr}분
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+
+                      {/* 선택 완료 버튼 */}
+                      <TouchableOpacity
+                        style={styles.timeConfirmBtn}
+                        onPress={() => setShowTimePicker(false)}
+                      >
+                        <Text style={styles.timeConfirmBtnText}>
+                          {editingTime ? `${editingTime} 선택 완료` : '선택 완료'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>수업과정</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={editingCourse}
+                    onChangeText={setEditingCourse}
+                    onFocus={handleCourseFocus}
+                    onBlur={() => {
+                      if (focusedFieldRef.current === 'course') focusedFieldRef.current = null;
+                    }}
+                    placeholder="예: 파이썬 기초, 리액트 심화 등"
+                    placeholderTextColor={theme.colors.outline}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>수업 내용 기록 *</Text>
+                  <TextInput
+                    style={[styles.modalInput, styles.contentTextArea]}
+                    value={editingContent}
+                    onChangeText={setEditingContent}
+                    onFocus={handleContentFocus}
+                    onBlur={() => {
+                      if (focusedFieldRef.current === 'content') focusedFieldRef.current = null;
+                    }}
+                    placeholder="오늘 진행한 수업 내용을 기록하세요."
+                    placeholderTextColor={theme.colors.outline}
+                    multiline={true}
+                    numberOfLines={6}
+                    textAlignVertical="top"
+                  />
+                </View>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalBtn, styles.saveModalBtn]}
+                    onPress={handleSaveRecord}
+                  >
+                    <Text style={styles.saveModalBtnText}>저장하기</Text>
+                  </TouchableOpacity>
+
+                  {editingRecord && (
+                    <TouchableOpacity
+                      style={[styles.modalBtn, styles.deleteModalBtn]}
+                      onPress={() => handleDeleteRecord(editingRecord.id)}
+                    >
+                      <Text style={styles.deleteModalBtnText}>일지 삭제</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1170,15 +1282,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 15,
   },
+  keyboardAvoidContainer: {
+    flex: 1,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    padding: theme.spacing.lg,
   },
   modalScroll: {
     flexGrow: 1,
     justifyContent: 'center',
+    padding: theme.spacing.lg,
+  },
+  modalScrollWithKeyboard: {
+    justifyContent: 'flex-start',
+    paddingTop: 36,
   },
   modalContent: {
     backgroundColor: theme.colors.white,
