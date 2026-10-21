@@ -12,6 +12,8 @@
     "sync-version": "node scripts/sync-readme-version.js",
     "test": "jest",
     "audit": "node scripts/audit-project.js",
+    "gate": "npm run lint && npm test && npm run audit",
+    "gate:quick": "npm run lint && npm run audit",
     "git:pr": "node scripts/git-achievement.js pr",
     "git:commit": "node scripts/git-achievement.js direct"
   },

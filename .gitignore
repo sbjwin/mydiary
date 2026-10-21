@@ -188,10 +188,13 @@ Thumbs.db
 *.sln
 *.sw?
 
-# --- Markdown Files ---
+# --- Markdown Files & Public Harness ---
 *.md
 !README.md
 !BuildGuide.md
+!AGENTS.md
+!docs/**
+!log/**
 PROJECT_AUDIT_REPORT.md
 
 
