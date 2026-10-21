@@ -21,6 +21,7 @@
     * [docs/decisions.md](file:///d:/development/mydiary/docs/decisions.md): 주요 아키텍처 결정 기록(ADR)
     * [docs/cross-platform-sync.md](file:///d:/development/mydiary/docs/cross-platform-sync.md): 모바일 ↔ 데스크톱 상호 동기화 표준
     * [docs/release-playbook.md](file:///d:/development/mydiary/docs/release-playbook.md): 버전 동기화 5개 파일 및 릴리즈 파이프라인
+  * **[.coderabbit.yaml](file:///d:/development/mydiary/.coderabbit.yaml) AI PR 코드 리뷰 하네스 도입**: 한국어 전문 리뷰어 톤, AsyncStorage 데이터 무결성/Cascade Delete, HWPX KS X 6101 XML 유효성, theme.js 디자인 토큰 준수 여부 정밀 감사 지침 설정.
   * **[package.json](file:///d:/development/mydiary/package.json) 올인원 게이트 스크립트 추가**: `"gate": "npm run lint && npm test && npm run audit"`
   * **[.agents/AGENTS.md](file:///d:/development/mydiary/.agents/AGENTS.md) 개인 하네스 슬림화**: 루트 공용 하네스 상속 선언 및 성백진 개발자님 전용 1:1 페어 프로그래밍 규칙 집중.
 

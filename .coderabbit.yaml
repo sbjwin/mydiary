@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "ko-KR"
+tone_instructions: "당신은 MyDiary 모바일(React Native 0.86 + Expo 57) 프로젝트의 수석 모바일 아키텍트입니다. 한국어로 전문적이고 친절하며 명확하게 PR 코드 리뷰를 제공하십시오."
+early_access: false
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_usernames:
+      - "dependabot[bot]"
+  path_instructions:
+    - path: "src/database/**"
+      instructions: "데이터 무결성을 최우선으로 검토하십시오. 학생 정보 삭제 시 연결된 수업 일지(@class_records)와 주간 시간표가 반드시 원자적으로 연쇄 삭제(Cascade Delete)되는지, AsyncStorage 키 표준(@students, @class_records, @weekly_schedule)을 준수하는지, Google Drive 백업/복원 JSON(mydiary_backup.json)의 구버전 호환용 fallback 기본값이 존재하는지 확인하십시오."
+    - path: "src/services/**"
+      instructions: "HWPX 생성(HwpxExportService.js) 시 국가 표준 KS X 6101 OWPML XML 마크업의 유효성(닫는 태그 누락 방지, 유효한 속성값)을 철저히 검토하십시오. 파일 I/O 및 외부 API 연동 시 try-catch 예외 처리와 크래시 방지(Never Crash) 원칙이 준수되었는지 확인하십시오."
+    - path: "src/screens/**"
+      instructions: "useTheme() 훅을 통한 theme.js 디자인 토큰(색상, 모서리 roundness: 12) 준수 여부를 확인하십시오. 임의의 16진수 색상 하드코딩을 지양하고, 터치 가능한 모든 요소가 최소 44x44 dp 크기를 확보했는지, Safe Area가 적절히 대응되었는지 검토하십시오."
+    - path: "src/components/**"
+      instructions: "재사용 컴포넌트가 특정 화면의 상태에 강하게 결합되지 않고 독립적인지 검토하십시오. 공용 팝업은 ConfirmModal.js, 구분선은 Separator.js를 우선 활용했는지 확인하십시오."
+    - path: "src/utils/**"
+      instructions: "DRY(Don't Repeat Yourself) 원칙을 준수하여 날짜 관련 로직은 dateUtils.js, 문자열/포맷 처리는 stringUtils.js의 공용 순수 함수를 재사용했는지 확인하십시오."
+    - path: "docs/**"
+      instructions: "프로젝트 공식 엔지니어링 표준(docs/INDEX.md, docs/gaps.md, docs/architecture.md 등)의 단일 진실 공급원(SSOT) 원칙과 상호 링크 무결성을 검토하십시오."
+
+chat:
+  auto_reply: true

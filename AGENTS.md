@@ -41,6 +41,7 @@ docs/               [공용 SSOT] 엔지니어링 지식 허브 & 하네스
 log/                [공용 세션 인계장] devlog.md
 scripts/            하네스 자동화 도구 (git-achievement.js, audit-project.js)
 .agents/            [성백진 개발자 전용] 1:1 개인 하네스 및 6대 메타 스킬
+.coderabbit.yaml    [PR 코드 리뷰] AI 기반 자동 코드 리뷰 및 무결성 감사 하네스
 ```
 
 ---
