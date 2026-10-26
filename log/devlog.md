@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-10-27: 공통 UI 컴포넌트화(src/components/) 및 화면 간 중복 스타일/데드 코드 전면 정리 (by Antigravity)
+
+* **반영 내역 (What landed)**:
+  * **신규 재사용 공통 컴포넌트 3종 구축**:
+    * [src/components/ActionMenuItem.js](file:///d:/development/mydiary/src/components/ActionMenuItem.js): 바텀시트 및 모달에서 쓰이는 리스트 아이템 UI(아이콘 뱃지, 타이틀, 설명, chevron) 통합.
+    * [src/components/StatusBadge.js](file:///d:/development/mydiary/src/components/StatusBadge.js): 수업 상태(예정/완료) 및 학생 재원 상태(재원/휴원)를 일관되게 표현하는 시맨틱 토큰 기반 뱃지 컴포넌트.
+    * [src/components/FloatingActionButton.js](file:///d:/development/mydiary/src/components/FloatingActionButton.js): 우측 하단 플로팅 버튼으로, 56×56 원형 및 라벨 텍스트가 포함된 확장형(Extended) FAB를 모두 지원.
+  * **스크린 컴포넌트 리팩토링 및 중복 스타일 제거**:
+    * [src/screens/StudentDetailScreen.js](file:///d:/development/mydiary/src/screens/StudentDetailScreen.js): 인쇄/공유 메뉴에 `ActionMenuItem` 적용, 기존 컴포넌트 분리 후 잔존하던 미사용 데드 스타일(`dialogCard`, `centerModalOverlay` 등 93줄) 완전 제거 (총 라인 수 1,509줄 → 1,378줄로 대폭 감축).
+    * [src/screens/StudentListScreen.js](file:///d:/development/mydiary/src/screens/StudentListScreen.js): 학생 관리 6종 액션 메뉴에 `ActionMenuItem` 적용, 새 학생 등록에 `FloatingActionButton` 적용, 학생 상태 표시에 `StatusBadge` 적용 및 미사용 데드 스타일 100여 줄 제거 (총 라인 수 1,332줄 → 1,118줄로 대폭 감축).
+    * [src/screens/ClassRecordScreen.js](file:///d:/development/mydiary/src/screens/ClassRecordScreen.js): 인쇄/공유 메뉴에 `ActionMenuItem` 적용, 플로팅 버튼에 `FloatingActionButton` 적용 및 중복 스타일 제거 (총 라인 수 1,729줄 → 1,662줄로 감축).
+    * [src/screens/CalendarScreen.js](file:///d:/development/mydiary/src/screens/CalendarScreen.js): 플로팅 버튼에 `FloatingActionButton` 적용 및 중복 `fabButton` 스타일 제거.
+    * [src/screens/HomeScreen.js](file:///d:/development/mydiary/src/screens/HomeScreen.js): 미사용 `statusBadge` 잔여 데드 스타일 21줄 정리.
+  * **단위 테스트 스위트 확장**:
+    * [__tests__/Components.test.js](file:///d:/development/mydiary/__tests__/Components.test.js): 신규 컴포넌트 3종에 대한 단위 테스트 추가 (총 테스트 수 27개 → 30개로 확장).
+
+* **검증 수치 (Numbers)**:
+  * 올인원 품질 게이트 (`npm run gate`): 100% 통과
+  * ESLint 무결성: 에러 0건, 경고 0건
+  * Jest 단위 테스트: 6개 스위트, 30개 테스트 전체 통과 (100% PASS)
+  * 정기 프로젝트 건전성 정밀 감사: 96점 / 100점 달성 (StudentDetailScreen 대형 화면 경고 해제, 하드코딩 색상 287건 → 270건으로 감소)
+
+* **미해결 과제 (Still open)**:
+  * [docs/gaps.md](file:///d:/development/mydiary/docs/gaps.md)의 `[G1]` HWPX 복수 표 서식 레이아웃 프리셋(표준형, 서술형, 결재란 포함형) 다변화 작업 대기 중.
+
+---
+
 ## 2026-10-27: 주간시간표 학생 선택 모달 키보드 가림 및 검색 UX 전면 개선 (by Antigravity)
 
 * **반영 내역 (What landed)**:

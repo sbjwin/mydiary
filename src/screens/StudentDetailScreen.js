@@ -22,6 +22,7 @@ import { useTheme } from '../context/ThemeContext';
 import { getTodayFormatted } from '../utils/dateUtils';
 import { theme } from '../theme';
 import StudentStatusModal from '../components/modals/StudentStatusModal';
+import ActionMenuItem from '../components/ActionMenuItem';
 
 export default function StudentDetailScreen() {
   // eslint-disable-next-line no-shadow
@@ -778,40 +779,30 @@ export default function StudentDetailScreen() {
               </View>
 
               {/* 메뉴 1: 무선/유선 프린터로 인쇄 */}
-              <TouchableOpacity
-                style={styles.actionMenuItem}
+              <ActionMenuItem
+                icon="printer"
+                iconColor={theme.colors.primary}
+                iconBgColor={theme.colors.primary + '1F'}
+                title="프린터로 인쇄 (A4)"
+                subtitle="Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다"
                 onPress={async () => {
                   setPrintModalVisible(false);
                   await printStudentProfile(getCurrentStudentData());
                 }}
-              >
-                <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
-                  <Feather name="printer" size={22} color={theme.colors.primary} />
-                </View>
-                <View style={styles.actionMenuTextContainer}>
-                  <Text style={styles.actionMenuTitle}>프린터로 인쇄 (A4)</Text>
-                  <Text style={styles.actionMenuSub}>Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다</Text>
-                </View>
-                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-              </TouchableOpacity>
+              />
 
               {/* 메뉴 2: PDF 파일 공유 (카톡/메시지) */}
-              <TouchableOpacity
-                style={styles.actionMenuItem}
+              <ActionMenuItem
+                icon="share-2"
+                iconColor="#0284C7"
+                iconBgColor="#E0F2FE"
+                title="PDF 파일 공유 (카톡/메시지)"
+                subtitle="카카오톡, 문자, 이메일로 PDF 문서를 전송합니다"
                 onPress={async () => {
                   setPrintModalVisible(false);
                   await shareStudentProfile(getCurrentStudentData());
                 }}
-              >
-                <View style={[styles.actionIconBadge, styles.pdfShareIconBadge]}>
-                  <Feather name="share-2" size={22} color="#0284C7" />
-                </View>
-                <View style={styles.actionMenuTextContainer}>
-                  <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡/메시지)</Text>
-                  <Text style={styles.actionMenuSub}>카카오톡, 문자, 이메일로 PDF 문서를 전송합니다</Text>
-                </View>
-                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-              </TouchableOpacity>
+              />
             </View>
           </TouchableOpacity>
         </Modal>
@@ -1125,36 +1116,6 @@ const styles = StyleSheet.create({
   modalCloseBtn: {
     padding: 4,
   },
-  actionMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: theme.roundness,
-    backgroundColor: theme.colors.surfaceVariant + '80',
-    marginBottom: 12,
-  },
-  actionIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  actionMenuTextContainer: {
-    flex: 1,
-  },
-  actionMenuTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  actionMenuSub: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
   headerBtnIcon: {
     marginRight: 4,
   },
@@ -1411,98 +1372,5 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: 4,
     paddingLeft: 4,
-  },
-  modalKeyboardAvoid: {
-    flex: 1,
-  },
-  centerModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  dialogCard: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: theme.colors.white,
-    borderRadius: 18,
-    padding: 22,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  dialogHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  dialogHeaderIcon: {
-    marginRight: 8,
-  },
-  dialogTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
-  },
-  dialogSubtitle: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-    marginTop: 6,
-  },
-  dialogInput: {
-    backgroundColor: theme.colors.surfaceVariant + '60',
-    borderWidth: 1,
-    borderColor: theme.colors.outline + '60',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-    marginBottom: 10,
-  },
-  dialogBtnRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
-  dialogCancelBtn: {
-    flex: 1,
-    backgroundColor: theme.colors.surfaceVariant,
-    paddingVertical: 11,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  dialogCancelBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  dialogConfirmBtn: {
-    flex: 1,
-    paddingVertical: 11,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  dialogPauseBtn: {
-    backgroundColor: '#EA580C',
-  },
-  dialogResumeBtn: {
-    backgroundColor: '#16A34A',
-  },
-  dialogConfirmBtnText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: theme.colors.white,
   },
 });

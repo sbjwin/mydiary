@@ -745,27 +745,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0F172A',
   },
-  statusBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  statusBadgePlanned: {
-    backgroundColor: '#FEF3C7',
-  },
-  statusBadgeDone: {
-    backgroundColor: '#DCFCE7',
-  },
-  statusBadgeText: {
-    fontSize: 9.5,
-    fontWeight: '700',
-  },
-  statusBadgeTextPlanned: {
-    color: '#D97706',
-  },
-  statusBadgeTextDone: {
-    color: '#15803D',
-  },
   courseTagRow: {
     flexDirection: 'row',
     alignItems: 'center',

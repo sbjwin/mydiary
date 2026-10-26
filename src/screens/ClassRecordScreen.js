@@ -23,6 +23,8 @@ import { getTodayFormatted } from '../utils/dateUtils';
 import { formatDisplayTime } from '../utils/stringUtils';
 import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
+import ActionMenuItem from '../components/ActionMenuItem';
+import FloatingActionButton from '../components/FloatingActionButton';
 
 export { formatDisplayTime };
 
@@ -549,13 +551,11 @@ export default function ClassRecordScreen() {
 
       {/* 우측 하단 플로팅 버튼 */}
       {allRecords.length > 0 && (
-        <TouchableOpacity
-          style={styles.fabButton}
+        <FloatingActionButton
+          icon="plus"
+          label="일지 추가"
           onPress={() => openAddModal()}
-        >
-          <Feather name="plus" size={20} color={theme.colors.onPrimary} style={styles.fabPlusIcon} />
-          <Text style={styles.fabButtonText}>일지 추가</Text>
-        </TouchableOpacity>
+        />
       )}
 
       {/* 일지 등록/수정 모달 */}
@@ -1045,40 +1045,30 @@ export default function ClassRecordScreen() {
               </View>
 
               {/* 메뉴 1: 무선/유선 프린터로 인쇄 */}
-              <TouchableOpacity
-                style={styles.actionMenuItem}
+              <ActionMenuItem
+                icon="printer"
+                iconColor={theme.colors.primary}
+                iconBgColor={theme.colors.primary + '1F'}
+                title="프린터로 인쇄 (A4)"
+                subtitle="Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다"
                 onPress={async () => {
                   setPrintModalVisible(false);
                   await printClassRecords(student, filteredRecordsForPrint, periodTitle);
                 }}
-              >
-                <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
-                  <Feather name="printer" size={22} color={theme.colors.primary} />
-                </View>
-                <View style={styles.actionMenuTextContainer}>
-                  <Text style={styles.actionMenuTitle}>프린터로 인쇄 (A4)</Text>
-                  <Text style={styles.actionMenuSub}>Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다</Text>
-                </View>
-                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-              </TouchableOpacity>
+              />
 
               {/* 메뉴 2: PDF 파일 공유 (카톡/메시지) */}
-              <TouchableOpacity
-                style={styles.actionMenuItem}
+              <ActionMenuItem
+                icon="share-2"
+                iconColor="#0284C7"
+                iconBgColor="#E0F2FE"
+                title="PDF 파일 공유 (카톡/메시지)"
+                subtitle="학부모님 카톡, 문자, 이메일로 보고서를 발송합니다"
                 onPress={async () => {
                   setPrintModalVisible(false);
                   await shareClassRecords(student, filteredRecordsForPrint, periodTitle);
                 }}
-              >
-                <View style={[styles.actionIconBadge, styles.pdfShareIconBadge]}>
-                  <Feather name="share-2" size={22} color="#0284C7" />
-                </View>
-                <View style={styles.actionMenuTextContainer}>
-                  <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡/메시지)</Text>
-                  <Text style={styles.actionMenuSub}>학부모님 카톡, 문자, 이메일로 보고서를 발송합니다</Text>
-                </View>
-                <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-              </TouchableOpacity>
+              />
             </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -1260,27 +1250,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.primary,
     fontWeight: '600',
-  },
-  fabButton: {
-    position: 'absolute',
-    bottom: 60,
-    right: 24,
-    backgroundColor: theme.colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 28,
-    elevation: 4,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
-  fabButtonText: {
-    color: theme.colors.onPrimary,
-    fontWeight: 'bold',
-    fontSize: 15,
   },
   keyboardAvoidContainer: {
     flex: 1,
@@ -1674,36 +1643,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.primary,
   },
-  actionMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: theme.roundness,
-    backgroundColor: theme.colors.surfaceVariant + '80',
-    marginBottom: 12,
-  },
-  actionIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  actionMenuTextContainer: {
-    flex: 1,
-  },
-  actionMenuTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  actionMenuSub: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
   studentBarLeft: {
     flex: 1,
   },
@@ -1713,16 +1652,10 @@ const styles = StyleSheet.create({
   emptyFolderIcon: {
     marginBottom: 16,
   },
-  fabPlusIcon: {
-    marginRight: 4,
-  },
   modalScrollContent: {
     paddingBottom: 10,
   },
   summaryBadgeIcon: {
     marginRight: 6,
-  },
-  pdfShareIconBadge: {
-    backgroundColor: '#E0F2FE',
   },
 });

@@ -27,6 +27,9 @@ import { getTodayFormatted } from '../utils/dateUtils';
 import { theme } from '../theme';
 import StudentStatusModal from '../components/modals/StudentStatusModal';
 import Separator from '../components/Separator';
+import ActionMenuItem from '../components/ActionMenuItem';
+import FloatingActionButton from '../components/FloatingActionButton';
+import StatusBadge from '../components/StatusBadge';
 
 export default function StudentListScreen() {
   // eslint-disable-next-line no-shadow
@@ -348,21 +351,11 @@ export default function StudentListScreen() {
             {item.school_grade ? (
               <Text style={styles.schoolGrade}>{item.school_grade}</Text>
             ) : null}
-            <View
-              style={[
-                styles.statusChip,
-                isPaused ? styles.statusChipPaused : styles.statusChipActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusChipText,
-                  isPaused ? styles.statusChipTextPaused : styles.statusChipTextActive,
-                ]}
-              >
-                {isPaused ? '휴회' : '재원'}
-              </Text>
-            </View>
+            <StatusBadge
+              status={isPaused ? 'paused' : 'active'}
+              size="sm"
+              style={styles.statusChipMargin}
+            />
           </View>
           <Text style={styles.termSummaryText}>{termSummary}</Text>
           <Text style={styles.mobilePhone}>
@@ -455,13 +448,11 @@ export default function StudentListScreen() {
       )}
 
       {/* 새 학생 등록 FAB */}
-      <TouchableOpacity
-        style={styles.fabButton}
+      <FloatingActionButton
+        icon="user-plus"
+        label="학생 추가"
         onPress={() => navigation.navigate('StudentDetail')}
-      >
-        <Feather name="user-plus" size={18} color={theme.colors.onPrimary} style={styles.fabUserIcon} />
-        <Text style={styles.fabButtonText}>학생 추가</Text>
-      </TouchableOpacity>
+      />
 
       {/* 학생 메뉴 선택 모달 (수업일지 보기 vs 정보 수정) */}
       <Modal
@@ -491,94 +482,64 @@ export default function StudentListScreen() {
                 </View>
 
                 {/* 메뉴 1: 수업일지 보기 / 작성 */}
-                <TouchableOpacity
-                  style={styles.actionMenuItem}
+                <ActionMenuItem
+                  icon="book-open"
+                  iconColor={theme.colors.primary}
+                  iconBgColor={theme.colors.primary + '1F'}
+                  title="수업일지 보기 / 작성"
+                  subtitle="학생의 수업 기록과 일지를 관리합니다"
                   onPress={handleNavigateToRecord}
-                >
-                  <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
-                    <Feather name="book-open" size={20} color={theme.colors.primary} />
-                  </View>
-                  <View style={styles.actionMenuTextContainer}>
-                    <Text style={styles.actionMenuTitle}>수업일지 보기 / 작성</Text>
-                    <Text style={styles.actionMenuSub}>학생의 수업 기록과 일지를 관리합니다</Text>
-                  </View>
-                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-                </TouchableOpacity>
+                />
 
                 {/* 메뉴 2: 학생 정보 수정 */}
-                <TouchableOpacity
-                  style={styles.actionMenuItem}
+                <ActionMenuItem
+                  icon="edit-3"
+                  iconColor="#0284C7"
+                  iconBgColor="#E0F2FE"
+                  title="학생 정보 수정"
+                  subtitle="연락처, 주소, 학부모 정보를 수정합니다"
                   onPress={handleNavigateToDetail}
-                >
-                  <View style={[styles.actionIconBadge, styles.editIconBadge]}>
-                    <Feather name="edit-3" size={20} color="#0284C7" />
-                  </View>
-                  <View style={styles.actionMenuTextContainer}>
-                    <Text style={styles.actionMenuTitle}>학생 정보 수정</Text>
-                    <Text style={styles.actionMenuSub}>연락처, 주소, 학부모 정보를 수정합니다</Text>
-                  </View>
-                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-                </TouchableOpacity>
+                />
 
                 {/* 메뉴 3: 학생 카드 출력 */}
-                <TouchableOpacity
-                  style={styles.actionMenuItem}
+                <ActionMenuItem
+                  icon="user-check"
+                  iconColor="#059669"
+                  iconBgColor="#ECFDF5"
+                  title="학생 카드 출력"
+                  subtitle="인적사항 및 학부모 정보 카드를 인쇄/공유합니다"
                   onPress={handleOpenStudentPrint}
-                >
-                  <View style={[styles.actionIconBadge, styles.studentCardIconBadge]}>
-                    <Feather name="user-check" size={20} color="#059669" />
-                  </View>
-                  <View style={styles.actionMenuTextContainer}>
-                    <Text style={styles.actionMenuTitle}>학생 카드 출력</Text>
-                    <Text style={styles.actionMenuSub}>인적사항 및 학부모 정보 카드를 인쇄/공유합니다</Text>
-                  </View>
-                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-                </TouchableOpacity>
+                />
 
                 {/* 메뉴 4: 수업일지 보고서 출력 */}
-                <TouchableOpacity
-                  style={styles.actionMenuItem}
+                <ActionMenuItem
+                  icon="printer"
+                  iconColor="#DB2777"
+                  iconBgColor="#FDF2F8"
+                  title="수업일지 보고서 출력"
+                  subtitle="전체 수업 기록 일지를 인쇄하거나 PDF로 공유합니다"
                   onPress={handleOpenRecordsPrint}
-                >
-                  <View style={[styles.actionIconBadge, styles.recordsPrintIconBadge]}>
-                    <Feather name="printer" size={20} color="#DB2777" />
-                  </View>
-                  <View style={styles.actionMenuTextContainer}>
-                    <Text style={styles.actionMenuTitle}>수업일지 보고서 출력</Text>
-                    <Text style={styles.actionMenuSub}>전체 수업 기록 일지를 인쇄하거나 PDF로 공유합니다</Text>
-                  </View>
-                  <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-                </TouchableOpacity>
+                />
 
                 {/* 메뉴 5: 상태에 따른 휴회 처리 또는 재수강 시작 */}
                 {selectedStudent.status === 'paused' ? (
-                  <TouchableOpacity
-                    style={styles.actionMenuItem}
+                  <ActionMenuItem
+                    icon="play-circle"
+                    iconColor="#16A34A"
+                    iconBgColor="#DCFCE7"
+                    title="재수강(복귀) 시작"
+                    subtitle="학생의 새로운 수강 차수를 시작하고 재원생으로 전환합니다"
                     onPress={handleOpenResumeModal}
-                  >
-                    <View style={[styles.actionIconBadge, styles.resumeIconBadge]}>
-                      <Feather name="play-circle" size={20} color="#16A34A" />
-                    </View>
-                    <View style={styles.actionMenuTextContainer}>
-                      <Text style={styles.actionMenuTitle}>재수강(복귀) 시작</Text>
-                      <Text style={styles.actionMenuSub}>학생의 새로운 수강 차수를 시작하고 재원생으로 전환합니다</Text>
-                    </View>
-                    <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-                  </TouchableOpacity>
+                  />
                 ) : (
-                  <TouchableOpacity
-                    style={styles.actionMenuItem}
+                  <ActionMenuItem
+                    icon="pause-circle"
+                    iconColor="#EA580C"
+                    iconBgColor="#FFEDD5"
+                    title="휴회 처리"
+                    subtitle="현재 수강 차수를 마감하고 휴회 상태로 전환합니다"
                     onPress={handleOpenPauseModal}
-                  >
-                    <View style={[styles.actionIconBadge, styles.pauseIconBadge]}>
-                      <Feather name="pause-circle" size={20} color="#EA580C" />
-                    </View>
-                    <View style={styles.actionMenuTextContainer}>
-                      <Text style={styles.actionMenuTitle}>휴회 처리</Text>
-                      <Text style={styles.actionMenuSub}>현재 수강 차수를 마감하고 휴회 상태로 전환합니다</Text>
-                    </View>
-                    <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-                  </TouchableOpacity>
+                  />
                 )}
               </>
             )}
@@ -793,38 +754,28 @@ export default function StudentListScreen() {
                   )}
 
                   {/* 옵션 1: 무선/유선 프린터로 인쇄 */}
-                  <TouchableOpacity
-                    style={styles.actionMenuItem}
+                  <ActionMenuItem
+                    icon="printer"
+                    iconColor={theme.colors.primary}
+                    iconBgColor={theme.colors.primary + '1F'}
+                    title="프린터로 인쇄 (A4)"
+                    subtitle="Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다"
                     onPress={handleExecutePrint}
-                  >
-                    <View style={[styles.actionIconBadge, { backgroundColor: theme.colors.primary + '1F' }]}>
-                      <Feather name="printer" size={22} color={theme.colors.primary} />
-                    </View>
-                    <View style={styles.actionMenuTextContainer}>
-                      <Text style={styles.actionMenuTitle}>프린터로 인쇄 (A4)</Text>
-                      <Text style={styles.actionMenuSub}>Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다</Text>
-                    </View>
-                    <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-                  </TouchableOpacity>
+                  />
 
                   {/* 옵션 2: PDF 파일 공유 (카톡/메시지) */}
-                  <TouchableOpacity
-                    style={styles.actionMenuItem}
+                  <ActionMenuItem
+                    icon="share-2"
+                    iconColor="#0284C7"
+                    iconBgColor="#E0F2FE"
+                    title="PDF 파일 공유 (카톡/메시지)"
+                    subtitle={
+                      printType === 'student'
+                        ? '카카오톡, 문자, 이메일로 PDF 문서를 전송합니다'
+                        : '학부모님 카톡, 문자, 이메일로 보고서를 발송합니다'
+                    }
                     onPress={handleExecuteShare}
-                  >
-                    <View style={[styles.actionIconBadge, styles.pdfShareIconBadge]}>
-                      <Feather name="share-2" size={22} color="#0284C7" />
-                    </View>
-                    <View style={styles.actionMenuTextContainer}>
-                      <Text style={styles.actionMenuTitle}>PDF 파일 공유 (카톡/메시지)</Text>
-                      <Text style={styles.actionMenuSub}>
-                        {printType === 'student'
-                          ? '카카오톡, 문자, 이메일로 PDF 문서를 전송합니다'
-                          : '학부모님 카톡, 문자, 이메일로 보고서를 발송합니다'}
-                      </Text>
-                    </View>
-                    <Feather name="chevron-right" size={20} color={theme.colors.outline} />
-                  </TouchableOpacity>
+                  />
                 </>
               )}
             </ScrollView>
@@ -932,27 +883,6 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: theme.colors.surfaceVariant,
-  },
-  fabButton: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    backgroundColor: theme.colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  fabButtonText: {
-    color: theme.colors.onPrimary,
-    fontWeight: 'bold',
-    fontSize: 15,
   },
   modalOverlay: {
     flex: 1,
@@ -1109,68 +1039,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.primary,
   },
-  actionMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: theme.roundness,
-    backgroundColor: theme.colors.surfaceVariant + '80',
-    marginBottom: 12,
-  },
-  actionIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  actionMenuTextContainer: {
-    flex: 1,
-  },
-  actionMenuTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  actionMenuSub: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
   searchIcon: {
     marginRight: 8,
   },
   addBtnIcon: {
     marginRight: 4,
   },
-  fabUserIcon: {
-    marginRight: 6,
-  },
-  editIconBadge: {
-    backgroundColor: '#E0F2FE',
-  },
-  studentCardIconBadge: {
-    backgroundColor: '#ECFDF5',
-  },
-  recordsPrintIconBadge: {
-    backgroundColor: '#FDF2F8',
-  },
   modalScrollContent: {
     paddingBottom: 10,
   },
   summaryBadgeIcon: {
     marginRight: 6,
-  },
-  pdfShareIconBadge: {
-    backgroundColor: '#E0F2FE',
-  },
-  resumeIconBadge: {
-    backgroundColor: '#DCFCE7',
-  },
-  pauseIconBadge: {
-    backgroundColor: '#FFEDD5',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -1203,129 +1082,13 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: '700',
   },
-  statusChip: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 4,
+  statusChipMargin: {
     marginLeft: 6,
-  },
-  statusChipActive: {
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  statusChipPaused: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  statusChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  statusChipTextActive: {
-    color: '#2563EB',
-  },
-  statusChipTextPaused: {
-    color: '#6B7280',
   },
   termSummaryText: {
     fontSize: 12,
     color: theme.colors.textSecondary,
     marginBottom: 3,
     fontWeight: '500',
-  },
-  modalKeyboardAvoid: {
-    flex: 1,
-  },
-  centerModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  dialogCard: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: theme.colors.white,
-    borderRadius: 18,
-    padding: 22,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  dialogHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  dialogHeaderIcon: {
-    marginRight: 8,
-  },
-  dialogTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
-  },
-  dialogSubtitle: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-    marginTop: 6,
-  },
-  dialogInput: {
-    backgroundColor: theme.colors.surfaceVariant + '60',
-    borderWidth: 1,
-    borderColor: theme.colors.outline + '60',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-    marginBottom: 10,
-  },
-  dialogBtnRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
-  dialogCancelBtn: {
-    flex: 1,
-    backgroundColor: theme.colors.surfaceVariant,
-    paddingVertical: 11,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  dialogCancelBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  dialogConfirmBtn: {
-    flex: 1,
-    paddingVertical: 11,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  dialogPauseBtn: {
-    backgroundColor: '#EA580C',
-  },
-  dialogResumeBtn: {
-    backgroundColor: '#16A34A',
-  },
-  dialogConfirmBtnText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: theme.colors.white,
   },
 });

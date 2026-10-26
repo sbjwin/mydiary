@@ -22,6 +22,7 @@ import { useTheme } from '../context/ThemeContext';
 import { getTodayFormatted } from '../utils/dateUtils';
 import { theme } from '../theme';
 import Separator from '../components/Separator';
+import FloatingActionButton from '../components/FloatingActionButton';
 
 // 달력 한글 설정
 LocaleConfig.locales.ko = {
@@ -469,12 +470,10 @@ export default function CalendarScreen() {
 
       {/* 플로팅 버튼 */}
       {records.length > 0 && (
-        <TouchableOpacity
-          style={styles.fabButton}
+        <FloatingActionButton
+          icon="plus"
           onPress={handleOpenStudentSelect}
-        >
-          <Feather name="plus" size={24} color={theme.colors.white} />
-        </TouchableOpacity>
+        />
       )}
 
       {/* 학생 선택 모달 */}
@@ -742,22 +741,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 80,
-  },
-  fabButton: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    backgroundColor: theme.colors.primary,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   modalOverlay: {
     flex: 1,
