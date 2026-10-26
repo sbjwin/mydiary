@@ -13,7 +13,8 @@ import {
   Linking,
   Platform,
   KeyboardAvoidingView,
-  Keyboard
+  Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
@@ -125,20 +126,30 @@ export default function WeeklyPlanScreen() {
   const [formPhoneInfo, setFormPhoneInfo] = useState('');
   const [formDayOfWeek, setFormDayOfWeek] = useState(1);
   const [formStartTime, setFormStartTime] = useState('10:00');
+  const { height: screenHeight } = useWindowDimensions();
   const [formStatusNote, setFormStatusNote] = useState('');
   const [studentPickerVisible, setStudentPickerVisible] = useState(false);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => setIsKeyboardVisible(true)
+      (e) => {
+        setIsKeyboardVisible(true);
+        if (e?.endCoordinates?.height) {
+          setKeyboardHeight(e.endCoordinates.height);
+        }
+      }
     );
     const hideSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setIsKeyboardVisible(false)
+      () => {
+        setIsKeyboardVisible(false);
+        setKeyboardHeight(0);
+      }
     );
     return () => {
       showSub.remove();
@@ -665,6 +676,35 @@ export default function WeeklyPlanScreen() {
       (s.name || '').toLowerCase().includes(studentSearchQuery.toLowerCase())
     );
   }, [students, studentSearchQuery]);
+
+  // 키보드 상태 및 화면 크기에 따른 학생 선택 모달 동적 스타일 (키보드 가림 방지)
+  const studentPickerContainerStyle = useMemo(() => {
+    if (!isKeyboardVisible) {
+      return [styles.studentPickerOverlay, styles.studentPickerOverlayCentered];
+    }
+    return [
+      styles.studentPickerOverlay,
+      styles.studentPickerOverlayKeyboard,
+    ];
+  }, [isKeyboardVisible]);
+
+  const studentPickerContentStyle = useMemo(() => {
+    if (!isKeyboardVisible) {
+      return [
+        styles.pickerModalContent,
+        styles.pickerModalContentCentered,
+        { maxHeight: Math.min(screenHeight * 0.75, 520) },
+      ];
+    }
+    // 키보드가 올라왔을 때는 화면 상단에 안정적으로 위치하고, 키보드 바로 위까지 최대 높이 확보
+    const safeTop = Platform.OS === 'android' ? 36 : 48;
+    const availableHeight = screenHeight - keyboardHeight - safeTop - 20;
+    return [
+      styles.pickerModalContent,
+      styles.pickerModalContentKeyboard,
+      { maxHeight: Math.max(availableHeight, 240) },
+    ];
+  }, [isKeyboardVisible, keyboardHeight, screenHeight]);
 
   // 시간표에는 재원생만 표기: 휴회 중인 학생의 수업은 시간표 렌더링에서 제외
   const activeScheduleItems = useMemo(() => {
@@ -1245,7 +1285,10 @@ export default function WeeklyPlanScreen() {
                 <Text style={styles.formLabel}>학생 선택 <Text style={styles.reqStar}>*</Text></Text>
                 <TouchableOpacity
                   style={styles.studentPickerBtn}
-                  onPress={() => setStudentPickerVisible(true)}
+                  onPress={() => {
+                    setStudentSearchQuery('');
+                    setStudentPickerVisible(true);
+                  }}
                 >
                   <Text style={formStudentName ? styles.studentPickerText : styles.studentPickerPlaceholder}>
                     {formStudentName || '학생 주소록에서 선택하기'}
@@ -1408,14 +1451,19 @@ export default function WeeklyPlanScreen() {
         animationType="fade"
         transparent={true}
         visible={studentPickerVisible}
-        onRequestClose={() => setStudentPickerVisible(false)}
+        onRequestClose={() => {
+          if (isKeyboardVisible) {
+            Keyboard.dismiss();
+          } else {
+            setStudentPickerVisible(false);
+          }
+        }}
+        statusBarTranslucent
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalKeyboardAvoid}
-        >
+        <View style={studentPickerContainerStyle}>
+          {/* 바깥 배경 터치 시 키보드 닫기 또는 모달 닫기 */}
           <TouchableOpacity
-            style={styles.modalOverlay}
+            style={StyleSheet.absoluteFillObject}
             activeOpacity={1}
             onPress={() => {
               if (isKeyboardVisible) {
@@ -1424,44 +1472,82 @@ export default function WeeklyPlanScreen() {
                 setStudentPickerVisible(false);
               }
             }}
-          >
-            <View style={styles.pickerModalContent} onStartShouldSetResponder={() => true}>
+          />
+
+          <View style={studentPickerContentStyle} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>학생 선택</Text>
-              <TouchableOpacity onPress={() => setStudentPickerVisible(false)}>
+              <View style={styles.studentPickerTitleRow}>
+                <Feather name="users" size={18} color={theme.colors.primary} />
+                <Text style={styles.modalTitle}>학생 선택</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setStudentPickerVisible(false);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Feather name="x" size={20} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.searchBar}>
-              <Feather name="search" size={16} color={theme.colors.outline} />
+              <Feather name="search" size={16} color={theme.colors.primary} />
               <TextInput
                 style={styles.searchInput}
                 value={studentSearchQuery}
                 onChangeText={setStudentSearchQuery}
-                placeholder="학생 이름 검색"
+                placeholder="학생 이름으로 검색..."
                 placeholderTextColor={theme.colors.outline}
+                autoCorrect={false}
+                returnKeyType="search"
               />
+              {studentSearchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setStudentSearchQuery('')}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Feather name="x-circle" size={16} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              )}
             </View>
 
-            <ScrollView style={styles.studentListScroll}>
-              {filteredStudents.map((s) => (
-                <TouchableOpacity
-                  key={s.id}
-                  style={styles.studentItemRow}
-                  onPress={() => handleSelectStudent(s)}
-                >
-                  <View>
-                    <Text style={styles.studentItemName}>{s.name}</Text>
-                    <Text style={styles.studentItemSub}>{s.school_grade || '학년 미지정'} | {s.study_method || '방문'}</Text>
-                  </View>
-                  <Feather name="chevron-right" size={18} color={theme.colors.outline} />
-                </TouchableOpacity>
-              ))}
+            <ScrollView
+              style={styles.studentListScroll}
+              contentContainerStyle={styles.studentListScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={true}
+            >
+              {filteredStudents.length === 0 ? (
+                <View style={styles.studentPickerEmpty}>
+                  <Feather name="search" size={24} color={theme.colors.outline} />
+                  <Text style={styles.studentPickerEmptyText}>
+                    {studentSearchQuery ? '일치하는 학생이 없습니다.' : '등록된 학생이 없습니다.'}
+                  </Text>
+                </View>
+              ) : (
+                filteredStudents.map((s) => (
+                  <TouchableOpacity
+                    key={s.id}
+                    style={styles.studentItemRow}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      handleSelectStudent(s);
+                    }}
+                  >
+                    <View style={styles.studentItemInfo}>
+                      <Text style={styles.studentItemName}>{s.name}</Text>
+                      <Text style={styles.studentItemSub}>
+                        {s.school_grade || '학년 미지정'} | {s.study_method || '방문'}
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={18} color={theme.colors.outline} />
+                  </TouchableOpacity>
+                ))
+              )}
             </ScrollView>
           </View>
-        </TouchableOpacity>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       {/* ======================= 모달 3: 전화관리 추가 모달 ======================= */}
@@ -2564,12 +2650,40 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.onPrimary,
   },
+  studentPickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingHorizontal: 18,
+  },
+  studentPickerOverlayCentered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  studentPickerOverlayKeyboard: {
+    justifyContent: 'flex-start',
+    paddingTop: Platform.OS === 'android' ? 36 : 48,
+  },
   pickerModalContent: {
+    width: '100%',
     backgroundColor: theme.colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '80%',
+    borderRadius: 16,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  pickerModalContentCentered: {
+    borderRadius: 16,
+  },
+  pickerModalContentKeyboard: {
+    borderRadius: 16,
+  },
+  studentPickerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   searchBar: {
     flexDirection: 'row',
@@ -2577,17 +2691,30 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceVariant + '60',
     borderRadius: 8,
     paddingHorizontal: 10,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 9,
     paddingHorizontal: 8,
-    fontSize: 13,
+    fontSize: 14,
     color: theme.colors.textPrimary,
   },
   studentListScroll: {
-    maxHeight: 300,
+    flexShrink: 1,
+  },
+  studentListScrollContent: {
+    paddingBottom: 8,
+  },
+  studentPickerEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+    gap: 8,
+  },
+  studentPickerEmptyText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
   },
   studentItemRow: {
     flexDirection: 'row',
@@ -2596,6 +2723,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.surfaceVariant,
+  },
+  studentItemInfo: {
+    flex: 1,
   },
   studentItemName: {
     fontSize: 14,

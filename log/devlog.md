@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-10-27: 주간시간표 학생 선택 모달 키보드 가림 및 검색 UX 전면 개선 (by Antigravity)
+
+* **반영 내역 (What landed)**:
+  * **[src/screens/WeeklyPlanScreen.js](file:///d:/development/mydiary/src/screens/WeeklyPlanScreen.js) 학생 선택 모달 반응형 레이아웃 전환**:
+    * 기존 바텀시트(`justifyContent: 'flex-end'`)로 고정되어 키보드가 올라올 때 검색창과 학생 목록 전체가 가려지던 문제를 해결.
+    * `useWindowDimensions` 및 안드로이드/iOS 실시간 키보드 높이 추적(`keyboardHeight`)을 도입하여, 키보드 노출 시 화면 상단으로 안정적으로 위치하고 키보드 바로 위까지 남은 화면 전체를 학생 목록 스크롤 영역으로 동적 확보.
+    * 비노출 시에는 화면 중앙 정렬 팝업 카드 다이얼로그(`borderRadius: 16`, 가로 여백 18dp)로 표시하여 시각적 위계 확립.
+    * 검색창 내 검색어 즉시 삭제(원클릭 초기화) 버튼(`x-circle`) 추가 및 검색 결과 0건 시 안내 메시지 제공.
+    * 학생 선택 모달 열릴 때 이전 검색어 자동 초기화 및 학생 선택 시 키보드 자동 닫기(`Keyboard.dismiss()`) 적용.
+
+* **검증 수치 (Numbers)**:
+  * 올인원 품질 게이트 (`npm run gate`): 100% 통과
+  * ESLint 무결성: 에러 0건, 경고 0건
+  * Jest 단위 테스트: 6개 스위트, 27개 테스트 전체 통과 (100% PASS)
+  * 정기 프로젝트 건전성 정밀 감사: 96점 / 100점 달성
+
+* **미해결 과제 (Still open)**:
+  * [docs/gaps.md](file:///d:/development/mydiary/docs/gaps.md)의 `[G1]` HWPX 복수 표 서식 레이아웃 프리셋(표준형, 서술형, 결재란 포함형) 다변화 작업 대기 중.
+
+---
+
 ## 2026-10-21: AI 중립적 전체 하네스 구축 및 .agents/ 개인화 분리 (by Gemini / Antigravity)
 
 * **반영 내역 (What landed)**:
