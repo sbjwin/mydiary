@@ -1,6 +1,6 @@
-# MyDiary (내 일상 수업 다이어리) - v2.4.1
+# MyDiary (내 일상 수업 다이어리) - v2.4.2
 
-[![Release](https://img.shields.io/badge/Release-v2.4.1-blue.svg)](https://github.com/sbjwin/mydiary/releases)
+[![Release](https://img.shields.io/badge/Release-v2.4.2-blue.svg)](https://github.com/sbjwin/mydiary/releases)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green.svg)](#)
 [![React Native](https://img.shields.io/badge/React%20Native-0.86.0-61dafb.svg)](https://reactnative.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
@@ -18,9 +18,14 @@
 
 ---
 
-## 🌟 v2.4.1 주요 기능 및 특징
+## 🌟 v2.4.2 주요 기능 및 특징
 
-*   **홈 화면 상하단 레이아웃 및 여백 최적화 (신규 v2.4.1)**:
+*   **주간시간표 학생 선택 모달 반응형 레이아웃 및 검색 UX 개선 (신규 v2.4.2)**:
+    *   소프트웨어 키보드 노출 시 학생 검색창과 목록이 가려지던 문제를 해결하고, 실시간 키보드 높이를 추적하여 화면 중앙 다이얼로그와 상단 스크롤 뷰로 부드럽게 동적 전환되는 반응형 레이아웃을 도입했습니다.
+    *   검색창 내 원클릭 검색어 즉시 삭제(`x-circle`) 버튼 및 자동 초기화 기능을 추가하여 더욱 쾌적한 입력 환경을 제공합니다.
+*   **공통 UI 컴포넌트 3종 신설 및 화면 간 중복 스타일 대규모 슬림화 (신규 v2.4.2)**:
+    *   `src/components/`에 액션 메뉴 아이템(`ActionMenuItem`), 시맨틱 상태 뱃지(`StatusBadge`), 플로팅 버튼(`FloatingActionButton`)을 신규 구축하여 화면별 중복 코드 586줄을 제거하고 컴포넌트 일관성을 완성했습니다.
+*   **홈 화면 상하단 레이아웃 및 여백 최적화 (v2.4.1)**:
     *   상단 헤더와 환영 문구 사이 및 최하단 스크롤 영역의 중복 시스템 안전영역(SafeArea) 패딩을 제거하고 스크롤 여백을 정돈하여, 시각적 균형감과 매끄러운 스크롤 경험을 제공합니다.
 *   **동적 테마 시스템 전면 연동 (v2.4.0)**:
     *   앱 설정의 5가지 테마 프리셋(클래식 슬레이트, 오션 블루, 포레스트 세이지, 로열 라벤더, 웜 선셋)이 앱 내 모든 화면(홈, 시간표, 학생, 일지, 달력, 설정, 도움말)에 실시간으로 완벽하게 동기화 반영됩니다.
