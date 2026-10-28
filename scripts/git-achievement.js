@@ -43,6 +43,11 @@ function getCommitMessage() {
   if (!msg) {
     msg = 'chore: MyDiary 기능 업데이트 및 코드 품질 개선';
   }
+  if (!/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(msg)) {
+    console.error(`\n❌ [커밋 차단] 커밋 메시지("${msg}")에 한국어가 포함되어 있지 않습니다.`);
+    console.error('   MyDiary 헌장에 따라 모든 Git 커밋 메시지는 100% 한국어로 작성해야 합니다.\n');
+    process.exit(1);
+  }
   return msg;
 }
 

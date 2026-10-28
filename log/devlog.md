@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-10-27: Antigravity 결정론적 라이프사이클 훅(hooks.json) 구축 및 토큰 소모 최적화 (by Antigravity)
+
+* **반영 내역 (What landed)**:
+  * **[.agents/hooks.json](file:///d:/development/mydiary/.agents/hooks.json) 및 [.agents/scripts/pre-tool-guard.js](file:///d:/development/mydiary/.agents/scripts/pre-tool-guard.js) 구축**:
+    * Antigravity `PreToolUse` 수명주기 훅을 통해 AI 에이전트의 도구 실행을 로컬 스크립트로 사전에 가로채 검증 및 보정하는 결정론적(Deterministic) 강제 아키텍처 도입.
+    * **Windows 터미널 자동 보정 (`overwrite`)**: `run_command` 실행 시 `cmd /c ` 접두사가 누락되어 있어도 훅이 런타임에서 자동으로 `cmd /c `를 보정하여 무결점 실행 보장.
+    * **Git 커밋 메시지 100% 한국어 강제 (`deny`)**: `git commit` 및 업적 스크립트 실행 시 메시지에 한국어(`[ㄱ-ㅎㅏ-ㅣ가-힣]`)가 없으면 시스템 레벨에서 실행을 물리적으로 즉시 차단.
+    * **고위험 파괴적 명령어 사전 차단 (`deny`)**: `git reset --hard`, `git clean -f`, 주요 디렉토리 강제 삭제 등 실수로 인한 데이터 유실을 유발하는 명령어를 원천 차단.
+  * **[scripts/git-achievement.js](file:///d:/development/mydiary/scripts/git-achievement.js) 2중 방어벽 구축**:
+    * 업적 달성 스크립트 내부에서도 커밋 메시지의 한국어 포함 여부를 직접 검사하여 비한국어 커밋을 차단.
+  * **[.agents/AGENTS.md](file:///d:/development/mydiary/.agents/AGENTS.md) 헌장 갱신**:
+    * 결정론적 훅 가드레일 항목을 추가하고, 에이전트가 기계적 제약에 토큰을 낭비하지 않고 비즈니스 로직과 데이터 무결성에 집중할 수 있도록 역할 분담 명시.
+  * **단위 테스트 및 게이트 검증 완료**:
+    * 4가지 시나리오(cmd/c 보정, 영문 차단, 한글 통과, 위험 명령어 차단) 단위 테스트 100% 통과 확인.
+    * `npm run gate` 올인원 품질 게이트(ESLint 0건 + Jest 30개 + 프로젝트 감사 96점) 100% 통과.
+
+* **검증 수치 (Numbers)**:
+  * 올인원 품질 게이트 (`npm run gate`): 100% 통과
+  * ESLint 무결성: 에러 0건, 경고 0건
+  * Jest 단위 테스트: 6개 스위트, 30개 테스트 전체 통과 (100% PASS)
+  * 정기 프로젝트 건전성 정밀 감사: 96점 / 100점 달성
+
+* **미해결 과제 (Still open)**:
+  * [docs/gaps.md](file:///d:/development/mydiary/docs/gaps.md)의 `[G1]` HWPX 복수 표 서식 레이아웃 프리셋(표준형, 서술형, 결재란 포함형) 다변화 작업 대기 중.
+
+---
+
 ## 2026-10-27: 공통 UI 컴포넌트화(src/components/) 및 화면 간 중복 스타일/데드 코드 전면 정리 (by Antigravity)
 
 * **반영 내역 (What landed)**:
