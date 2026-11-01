@@ -483,6 +483,7 @@ export default function StudentDetailScreen() {
                 <View style={styles.inlineCalendar}>
                   <Calendar
                     current={firstEnrolledDate || undefined}
+                    markedDates={firstEnrolledDate ? { [firstEnrolledDate]: { selected: true } } : undefined}
                     onDayPress={(day) => {
                       setFirstEnrolledDate(day.dateString);
                       setShowEnrolledDatePicker(false);
@@ -779,6 +780,7 @@ export default function StudentDetailScreen() {
                         value={sched.subject || ''}
                         onChangeText={(val) => handleUpdateDefaultSchedule(sched.id, 'subject', val)}
                         onFocus={() => {
+                          if (idx !== defaultSchedules.length - 1) return;
                           setTimeout(() => {
                             scrollRef.current?.scrollToEnd({ animated: true });
                           }, 150);
@@ -1350,6 +1352,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   schedTimeSelectorBtn: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

@@ -1801,6 +1801,8 @@ const styles = StyleSheet.create({
     color: '#92400E',
   },
   cellItemBox: {
+    minHeight: 44,
+    justifyContent: 'center',
     backgroundColor: '#EFF6FF',
     borderRadius: 4,
     padding: 3,

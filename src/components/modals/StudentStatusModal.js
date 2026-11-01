@@ -157,6 +157,7 @@ export default function StudentStatusModal({
                 <View style={[styles.inlineCalendar, { borderColor: theme.colors.secondaryContainer }]}>
                   <Calendar
                     current={date || undefined}
+                    markedDates={date ? { [date]: { selected: true } } : undefined}
                     onDayPress={(day) => {
                       onDateChange(day.dateString);
                       setShowDatePicker(false);

@@ -18,10 +18,10 @@ export const MORNING_HOURS = [
   { hour24: 9, label: '09시' },
   { hour24: 10, label: '10시' },
   { hour24: 11, label: '11시' },
-  { hour24: 12, label: '12시' },
 ];
 
 export const AFTERNOON_HOURS = [
+  { hour24: 12, label: '12시' },
   { hour24: 13, label: '13시 (1시)' },
   { hour24: 14, label: '14시 (2시)' },
   { hour24: 15, label: '15시 (3시)' },
@@ -97,15 +97,31 @@ export default function TimePickerModal({
 
   /**
    * 오전/오후(AM/PM) 전환 시 24시간제 시간을 계산하여 반영합니다.
+   * 변환된 시각이 대상 오전/오후 목록에 없을 경우에만 기본 시각으로 대체하며,
+   * 이미 선택된 탭을 다시 눌렀을 때 유효한 현재 시각은 그대로 유지합니다.
    * @param {'오전'|'오후'} newAmpm - 변경할 오전/오후 구분값
    */
   const handleAmpmChange = (newAmpm) => {
+    const targetHours = newAmpm === '오전' ? MORNING_HOURS : AFTERNOON_HOURS;
+    const defaultHour = newAmpm === '오전' ? 10 : 14;
     let targetHour = parsedTime.hour24;
-    if (newAmpm === '오전' && targetHour >= 12) {
-      targetHour = targetHour === 12 ? 0 : targetHour - 12;
-    } else if (newAmpm === '오후' && targetHour < 12) {
-      targetHour = targetHour === 0 ? 12 : targetHour + 12;
+
+    if (parsedTime.ampm === newAmpm) {
+      if (targetHours.some((h) => h.hour24 === targetHour)) {
+        return;
+      }
+      targetHour = defaultHour;
+    } else {
+      if (newAmpm === '오전' && targetHour >= 12) {
+        targetHour = targetHour === 12 ? 0 : targetHour - 12;
+      } else if (newAmpm === '오후' && targetHour < 12) {
+        targetHour = targetHour === 0 ? 12 : targetHour + 12;
+      }
+      if (!targetHours.some((h) => h.hour24 === targetHour)) {
+        targetHour = defaultHour;
+      }
     }
+
     const m = parsedTime.minute || '00';
     onSelectTime(`${String(targetHour).padStart(2, '0')}:${m}`);
   };
