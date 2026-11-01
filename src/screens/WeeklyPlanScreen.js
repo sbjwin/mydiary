@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -26,6 +26,7 @@ import { useTheme } from '../context/ThemeContext';
 import { theme } from '../theme';
 import CallManageModal from '../components/modals/CallManageModal';
 import WeeklyExportModal from '../components/modals/WeeklyExportModal';
+import TimePickerModal from '../components/modals/TimePickerModal';
 
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -44,53 +45,10 @@ const TIME_SLOTS = [
   { label: '8시', hour: 20 },
 ];
 
-// 시작 시간 GUI 선택 팝업용 상수
-const MORNING_HOURS = [
-  { hour24: 6, label: '06시' },
-  { hour24: 7, label: '07시' },
-  { hour24: 8, label: '08시' },
-  { hour24: 9, label: '09시' },
-  { hour24: 10, label: '10시' },
-  { hour24: 11, label: '11시' },
-  { hour24: 12, label: '12시' },
-];
-
-const AFTERNOON_HOURS = [
-  { hour24: 13, label: '13시 (1시)' },
-  { hour24: 14, label: '14시 (2시)' },
-  { hour24: 15, label: '15시 (3시)' },
-  { hour24: 16, label: '16시 (4시)' },
-  { hour24: 17, label: '17시 (5시)' },
-  { hour24: 18, label: '18시 (6시)' },
-  { hour24: 19, label: '19시 (7시)' },
-  { hour24: 20, label: '20시 (8시)' },
-  { hour24: 21, label: '21시 (9시)' },
-  { hour24: 22, label: '22시 (10시)' },
-  { hour24: 23, label: '23시 (11시)' },
-];
-
-const MINUTE_OPTIONS = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
-
-const QUICK_TIME_PRESETS = [
-  '09:00',
-  '10:00',
-  '10:30',
-  '11:00',
-  '11:30',
-  '13:00',
-  '13:30',
-  '14:00',
-  '14:30',
-  '15:00',
-  '15:30',
-  '16:00',
-  '16:30',
-  '17:00',
-  '18:00',
-  '19:00',
-  '20:00',
-];
-
+/**
+ * 주간 시간표(전체 표 및 요일별 타임라인) 조회, 수업 일정 추가·편집, 전화관리 및 부가 업무를 수행하는 화면 컴포넌트
+ * @returns {React.JSX.Element} 주간 시간표 화면 요소
+ */
 export default function WeeklyPlanScreen() {
   // eslint-disable-next-line no-shadow
   const { theme } = useTheme();
@@ -133,6 +91,9 @@ export default function WeeklyPlanScreen() {
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const mainScrollRef = useRef(null);
+  const editModalScrollRef = useRef(null);
+  const focusedModalFieldRef = useRef(null);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -142,6 +103,11 @@ export default function WeeklyPlanScreen() {
         if (e?.endCoordinates?.height) {
           setKeyboardHeight(e.endCoordinates.height);
         }
+        if (focusedModalFieldRef.current === 'bottom') {
+          setTimeout(() => {
+            editModalScrollRef.current?.scrollToEnd({ animated: true });
+          }, 80);
+        }
       }
     );
     const hideSub = Keyboard.addListener(
@@ -149,6 +115,7 @@ export default function WeeklyPlanScreen() {
       () => {
         setIsKeyboardVisible(false);
         setKeyboardHeight(0);
+        focusedModalFieldRef.current = null;
       }
     );
     return () => {
@@ -157,48 +124,19 @@ export default function WeeklyPlanScreen() {
     };
   }, []);
 
-  // 시작 시간 파싱 헬퍼 (HH:mm 포맷)
-  const parsedStartTime = useMemo(() => {
-    if (!formStartTime) {
-      return { ampm: '오전', hour24: 10, minute: '00', isEmpty: true };
-    }
-    const match = formStartTime.match(/^(\d{1,2}):(\d{2})/);
-    if (match) {
-      const h = parseInt(match[1], 10);
-      const m = match[2];
-      return {
-        ampm: h >= 12 ? '오후' : '오전',
-        hour24: h,
-        minute: m,
-        isEmpty: false,
-      };
-    }
-    return { ampm: '오전', hour24: 10, minute: '00', isEmpty: false };
-  }, [formStartTime]);
+  const mainScrollContentDynamicStyle = useMemo(() => [
+    styles.mainScrollContent,
+    isKeyboardVisible && {
+      paddingBottom: Platform.OS === 'android' ? keyboardHeight + 40 : 120,
+    },
+  ], [isKeyboardVisible, keyboardHeight]);
 
-  // 오전/오후 변경 핸들러
-  const handleStartTimeAmpmChange = (newAmpm) => {
-    let targetHour = parsedStartTime.hour24;
-    if (newAmpm === '오전' && targetHour >= 12) {
-      targetHour = targetHour === 12 ? 0 : targetHour - 12;
-    } else if (newAmpm === '오후' && targetHour < 12) {
-      targetHour = targetHour === 0 ? 12 : targetHour + 12;
-    }
-    const m = parsedStartTime.minute || '00';
-    setFormStartTime(`${String(targetHour).padStart(2, '0')}:${m}`);
-  };
-
-  // 시(Hour) 선택 핸들러
-  const handleStartTimeHourChange = (h24) => {
-    const m = parsedStartTime.minute || '00';
-    setFormStartTime(`${String(h24).padStart(2, '0')}:${m}`);
-  };
-
-  // 분(Minute) 선택 핸들러
-  const handleStartTimeMinuteChange = (mStr) => {
-    const h24 = parsedStartTime.hour24;
-    setFormStartTime(`${String(h24).padStart(2, '0')}:${mStr}`);
-  };
+  const editModalScrollContentDynamicStyle = useMemo(() => [
+    styles.modalScrollContent,
+    isKeyboardVisible && {
+      paddingBottom: Platform.OS === 'android' ? Math.max(keyboardHeight * 0.6, 120) : 48,
+    },
+  ], [isKeyboardVisible, keyboardHeight]);
 
   // 작성된 수업 일지 목록 (실시간 완료 매핑용)
   const [allRecords, setAllRecords] = useState([]);
@@ -840,7 +778,13 @@ export default function WeeklyPlanScreen() {
           <Text style={styles.loaderText}>주간 시간표를 불러오는 중입니다...</Text>
         </View>
       ) : (
-        <ScrollView style={styles.mainScrollView} contentContainerStyle={styles.mainScrollContent}>
+        <ScrollView
+          ref={mainScrollRef}
+          style={styles.mainScrollView}
+          contentContainerStyle={mainScrollContentDynamicStyle}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           {/* ======================= 보기 1: 주간 전체 타임테이블 (PDF 서식) ======================= */}
           {viewMode === 'table' && (
             <View style={styles.tableCard}>
@@ -891,19 +835,18 @@ export default function WeeklyPlanScreen() {
                               key={dayVal}
                               style={styles.scheduleCell}
                               activeOpacity={0.7}
-                              onPress={() => {
-                                if (items.length > 0) {
-                                  openEditModal(items[0]);
-                                } else {
-                                  openAddModal(dayVal, slot.hour);
-                                }
-                              }}
+                              onPress={() => openAddModal(dayVal, slot.hour)}
                             >
                               {items.map((item) => {
                                 const matchedRec = getMatchedRecord(item);
                                 const isDone = Boolean(matchedRec);
                                 return (
-                                  <View key={item.id} style={[styles.cellItemBox, isDone && styles.cellItemBoxDone]}>
+                                  <TouchableOpacity
+                                    key={item.id}
+                                    style={[styles.cellItemBox, isDone && styles.cellItemBoxDone]}
+                                    activeOpacity={0.75}
+                                    onPress={() => openEditModal(item)}
+                                  >
                                     <View style={styles.cellItemHeaderRow}>
                                       <Text style={[styles.cellItemTitle, isDone && styles.cellItemTitleDone]} numberOfLines={1}>
                                         {item.startTime} {item.studentName}
@@ -920,7 +863,7 @@ export default function WeeklyPlanScreen() {
                                         {item.statusNote}
                                       </Text>
                                     ) : null}
-                                  </View>
+                                  </TouchableOpacity>
                                 );
                               })}
                               {items.length === 0 && (
@@ -1165,6 +1108,11 @@ export default function WeeklyPlanScreen() {
                     style={styles.noteTextInput}
                     value={weeklyPlan?.mainNotes || ''}
                     onChangeText={(val) => handleSaveNotes('mainNotes', val)}
+                    onFocus={() => {
+                      setTimeout(() => {
+                        mainScrollRef.current?.scrollToEnd({ animated: true });
+                      }, 150);
+                    }}
                     placeholder="#개학후 시간변동 체크&#10;#마감보고서 제출"
                     placeholderTextColor={theme.colors.outline}
                     multiline={true}
@@ -1179,6 +1127,11 @@ export default function WeeklyPlanScreen() {
                     style={styles.noteTextInput}
                     value={weeklyPlan?.prevAbsentNotes || ''}
                     onChangeText={(val) => handleSaveNotes('prevAbsentNotes', val)}
+                    onFocus={() => {
+                      setTimeout(() => {
+                        mainScrollRef.current?.scrollToEnd({ animated: true });
+                      }, 150);
+                    }}
                     placeholder="#유귀일: 개인사정"
                     placeholderTextColor={theme.colors.outline}
                     multiline={true}
@@ -1193,6 +1146,11 @@ export default function WeeklyPlanScreen() {
                     style={styles.noteTextInput}
                     value={weeklyPlan?.specialNotes || ''}
                     onChangeText={(val) => handleSaveNotes('specialNotes', val)}
+                    onFocus={() => {
+                      setTimeout(() => {
+                        mainScrollRef.current?.scrollToEnd({ animated: true });
+                      }, 150);
+                    }}
                     placeholder="공지사항이나 전달사항을 입력하세요"
                     placeholderTextColor={theme.colors.outline}
                     multiline={true}
@@ -1275,9 +1233,11 @@ export default function WeeklyPlanScreen() {
             </View>
 
             <ScrollView
+              ref={editModalScrollRef}
               style={styles.modalScroll}
-              contentContainerStyle={styles.modalScrollContent}
+              contentContainerStyle={editModalScrollContentDynamicStyle}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={true}
             >
               {/* 학생 선택 버튼 */}
@@ -1358,6 +1318,12 @@ export default function WeeklyPlanScreen() {
                   style={[styles.formInput, styles.multilineInput]}
                   value={formAddress}
                   onChangeText={setFormAddress}
+                  onFocus={() => {
+                    focusedModalFieldRef.current = 'bottom';
+                    setTimeout(() => {
+                      editModalScrollRef.current?.scrollTo({ y: 160, animated: true });
+                    }, 120);
+                  }}
                   placeholder="거주지 주소"
                   placeholderTextColor={theme.colors.outline}
                   multiline={true}
@@ -1370,6 +1336,12 @@ export default function WeeklyPlanScreen() {
                   style={[styles.formInput, styles.multilineInput]}
                   value={formPhoneInfo}
                   onChangeText={setFormPhoneInfo}
+                  onFocus={() => {
+                    focusedModalFieldRef.current = 'bottom';
+                    setTimeout(() => {
+                      editModalScrollRef.current?.scrollToEnd({ animated: true });
+                    }, 120);
+                  }}
                   placeholder="(모)010-0000-0000&#10;(본)010-0000-0000"
                   placeholderTextColor={theme.colors.outline}
                   multiline={true}
@@ -1394,6 +1366,12 @@ export default function WeeklyPlanScreen() {
                   style={styles.formInput}
                   value={formStatusNote}
                   onChangeText={setFormStatusNote}
+                  onFocus={() => {
+                    focusedModalFieldRef.current = 'bottom';
+                    setTimeout(() => {
+                      editModalScrollRef.current?.scrollToEnd({ animated: true });
+                    }, 120);
+                  }}
                   placeholder="예: => 이번주만, => 보강"
                   placeholderTextColor={theme.colors.outline}
                 />
@@ -1573,176 +1551,13 @@ export default function WeeklyPlanScreen() {
       />
 
       {/* ======================= 모달 5: 시작 시간 GUI 선택 팝업 ======================= */}
-      <Modal
-        animationType="fade"
-        transparent={true}
+      <TimePickerModal
         visible={timePickerVisible}
-        onRequestClose={() => setTimePickerVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setTimePickerVisible(false)}
-        >
-          <View style={styles.timePickerModalContent} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <View style={styles.timeModalTitleRow}>
-                <Feather name="clock" size={20} color={theme.colors.primary} />
-                <Text style={styles.modalTitle}>시작 시간 선택</Text>
-              </View>
-              <TouchableOpacity onPress={() => setTimePickerVisible(false)}>
-                <Feather name="x" size={20} color={theme.colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {/* 현재 선택된 시간 디스플레이 */}
-              <View style={styles.currentTimeDisplayBox}>
-                <Text style={styles.currentTimeDisplayText}>
-                  {formStartTime || '10:00'}
-                </Text>
-                <Text style={styles.currentTimeDisplaySub}>
-                  {parsedStartTime.ampm} {parsedStartTime.hour24 >= 12 ? (parsedStartTime.hour24 === 12 ? 12 : parsedStartTime.hour24 - 12) : (parsedStartTime.hour24 === 0 ? 12 : parsedStartTime.hour24)}시 {parsedStartTime.minute}분
-                </Text>
-              </View>
-
-              {/* 1. 빠른 프리셋 */}
-              <Text style={styles.timePickerSectionTitle}>⚡ 추천 / 빠른 선택</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.quickPresetScroll}
-              >
-                {QUICK_TIME_PRESETS.map((preset) => {
-                  const isSelected = formStartTime === preset;
-                  return (
-                    <TouchableOpacity
-                      key={preset}
-                      style={[
-                        styles.quickPresetChip,
-                        isSelected && styles.quickPresetChipActive,
-                      ]}
-                      onPress={() => setFormStartTime(preset)}
-                    >
-                      <Text
-                        style={[
-                          styles.quickPresetText,
-                          isSelected && styles.quickPresetTextActive,
-                        ]}
-                      >
-                        {preset}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-
-              {/* 2. 오전/오후 탭 */}
-              <View style={styles.timeAmpmRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.timeAmpmTab,
-                    parsedStartTime.ampm === '오전' && styles.timeAmpmTabActive,
-                  ]}
-                  onPress={() => handleStartTimeAmpmChange('오전')}
-                >
-                  <Text
-                    style={[
-                      styles.timeAmpmTabText,
-                      parsedStartTime.ampm === '오전' && styles.timeAmpmTabTextActive,
-                    ]}
-                  >
-                    오전 (AM)
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.timeAmpmTab,
-                    parsedStartTime.ampm === '오후' && styles.timeAmpmTabActive,
-                  ]}
-                  onPress={() => handleStartTimeAmpmChange('오후')}
-                >
-                  <Text
-                    style={[
-                      styles.timeAmpmTabText,
-                      parsedStartTime.ampm === '오후' && styles.timeAmpmTabTextActive,
-                    ]}
-                  >
-                    오후 (PM)
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* 3. 시(Hour) 선택 */}
-              <Text style={styles.timePickerSectionTitle}>
-                {parsedStartTime.ampm === '오전' ? '오전 시간 (시)' : '오후 시간 (시)'}
-              </Text>
-              <View style={styles.timeGridRow}>
-                {(parsedStartTime.ampm === '오전' ? MORNING_HOURS : AFTERNOON_HOURS).map((h) => {
-                  const isSelected = parsedStartTime.hour24 === h.hour24 && !parsedStartTime.isEmpty;
-                  return (
-                    <TouchableOpacity
-                      key={h.hour24}
-                      style={[
-                        styles.timeGridBtn,
-                        isSelected && styles.timeGridBtnActive,
-                      ]}
-                      onPress={() => handleStartTimeHourChange(h.hour24)}
-                    >
-                      <Text
-                        style={[
-                          styles.timeGridBtnText,
-                          isSelected && styles.timeGridBtnTextActive,
-                        ]}
-                      >
-                        {h.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* 4. 분(Minute) 선택 */}
-              <Text style={styles.timePickerSectionTitle}>분 (Min)</Text>
-              <View style={styles.timeGridRow}>
-                {MINUTE_OPTIONS.map((minStr) => {
-                  const isSelected = parsedStartTime.minute === minStr && !parsedStartTime.isEmpty;
-                  return (
-                    <TouchableOpacity
-                      key={minStr}
-                      style={[
-                        styles.timeGridBtn,
-                        isSelected && styles.timeGridBtnActive,
-                      ]}
-                      onPress={() => handleStartTimeMinuteChange(minStr)}
-                    >
-                      <Text
-                        style={[
-                          styles.timeGridBtnText,
-                          isSelected && styles.timeGridBtnTextActive,
-                        ]}
-                      >
-                        {minStr}분
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* 확인 완료 버튼 */}
-              <TouchableOpacity
-                style={styles.timeConfirmBtn}
-                onPress={() => setTimePickerVisible(false)}
-              >
-                <Feather name="check" size={16} color={theme.colors.onPrimary} />
-                <Text style={styles.timeConfirmBtnText}>
-                  {formStartTime ? `${formStartTime} 선택 완료` : '선택 완료'}
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        time={formStartTime}
+        title="시작 시간 선택"
+        onSelectTime={setFormStartTime}
+        onClose={() => setTimePickerVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -1986,6 +1801,8 @@ const styles = StyleSheet.create({
     color: '#92400E',
   },
   cellItemBox: {
+    minHeight: 44,
+    justifyContent: 'center',
     backgroundColor: '#EFF6FF',
     borderRadius: 4,
     padding: 3,
@@ -2944,146 +2761,5 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-  },
-  timePickerModalContent: {
-    backgroundColor: theme.colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '85%',
-  },
-  timeModalTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  currentTimeDisplayBox: {
-    backgroundColor: theme.colors.secondaryContainer,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '30',
-  },
-  currentTimeDisplayText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: theme.colors.primary,
-    letterSpacing: 2,
-  },
-  currentTimeDisplaySub: {
-    fontSize: 12.5,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  timePickerSectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.textSecondary,
-    marginBottom: 6,
-    marginTop: 8,
-  },
-  quickPresetScroll: {
-    paddingVertical: 2,
-    marginBottom: 10,
-  },
-  quickPresetChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surfaceVariant,
-    marginRight: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.outline + '40',
-  },
-  quickPresetChipActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  quickPresetText: {
-    fontSize: 12.5,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  quickPresetTextActive: {
-    color: theme.colors.onPrimary,
-    fontWeight: 'bold',
-  },
-  timeAmpmRow: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.surfaceVariant,
-    borderRadius: 8,
-    padding: 3,
-    marginBottom: 8,
-    marginTop: 4,
-  },
-  timeAmpmTab: {
-    flex: 1,
-    paddingVertical: 7,
-    alignItems: 'center',
-    borderRadius: 6,
-  },
-  timeAmpmTabActive: {
-    backgroundColor: theme.colors.white,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    elevation: 2,
-  },
-  timeAmpmTabText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  timeAmpmTabTextActive: {
-    color: theme.colors.primary,
-    fontWeight: 'bold',
-  },
-  timeGridRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 10,
-  },
-  timeGridBtn: {
-    flexBasis: '22.5%',
-    flexGrow: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: theme.colors.surfaceVariant + '80',
-    borderWidth: 1,
-    borderColor: theme.colors.outline + '40',
-  },
-  timeGridBtnActive: {
-    backgroundColor: theme.colors.secondaryContainer,
-    borderColor: theme.colors.primary,
-  },
-  timeGridBtnText: {
-    fontSize: 12,
-    color: theme.colors.textPrimary,
-    fontWeight: '500',
-  },
-  timeGridBtnTextActive: {
-    color: theme.colors.onSecondaryContainer,
-    fontWeight: 'bold',
-  },
-  timeConfirmBtn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-    marginBottom: 16,
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  timeConfirmBtnText: {
-    color: theme.colors.onPrimary,
-    fontSize: 14,
-    fontWeight: 'bold',
   },
 });

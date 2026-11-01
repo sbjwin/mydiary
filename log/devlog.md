@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-11-01: 전체 화면/모달 키보드 가림 방지 및 날짜·시간 피커 / 주간표 다중 학생 터치 UX 개선 (by Antigravity)
+
+* **반영 내역 (What landed)**:
+  * **공통 시간 선택 모달([src/components/modals/TimePickerModal.js](../src/components/modals/TimePickerModal.js)) 분리 신설**:
+    * 주간 시간표에 내장되어 있던 시작 시간 GUI 선택 팝업(빠른 프리셋, 오전/오후 탭, 시/분 그리드)을 재사용 가능한 공통 모달로 모듈화하여 [WeeklyPlanScreen.js](file:///d:/development/mydiary/src/screens/WeeklyPlanScreen.js) 라인 수를 3,089줄에서 2,760줄로 329줄 감축.
+  * **1번 과제 — 키보드 가림 현상 5곳 및 하단 탭바 자동 숨김 완비**:
+    * [App.js](file:///d:/development/mydiary/App.js): 하단 탭 네비게이터에 `tabBarHideOnKeyboard: true`를 적용하여 키보드 노출 시 하단 탭바가 입력 영역을 침범하지 않도록 개선.
+    * [src/screens/WeeklyPlanScreen.js](file:///d:/development/mydiary/src/screens/WeeklyPlanScreen.js): 하단 부가 업무(금주 주요사항, 전주 결석, 특이사항) 멀티라인 입력창 및 수업 추가/편집 모달의 하단 입력창(주소, 연락처, 변동 메모) 포커스 시 키보드 높이 연동 패딩 및 자동 스크롤(`scrollToEnd`) 적용.
+    * [src/screens/StudentDetailScreen.js](file:///d:/development/mydiary/src/screens/StudentDetailScreen.js): 키보드 노출 시 하단 고정 저장 바(`bottomFixedBar`)를 자동 숨김 처리하여 가용 화면을 확보하고, 정규 수업 과목 및 기타 사항(`notesInput`) 포커스 시 자동 스크롤 연동.
+    * [src/screens/CalendarScreen.js](file:///d:/development/mydiary/src/screens/CalendarScreen.js): 학생 선택 검색 모달에서 키보드 노출 시 모달을 화면 상단으로 배치하고 키보드 위쪽까지 가용 높이를 동적 계산하도록 개선.
+    * [src/components/modals/CallManageModal.js](file:///d:/development/mydiary/src/components/modals/CallManageModal.js) & [src/components/modals/StudentStatusModal.js](file:///d:/development/mydiary/src/components/modals/StudentStatusModal.js): 중앙 정렬 다이얼로그가 안드로이드 키보드에 가려지지 않도록 키보드 노출 시 상단 배치 전환.
+  * **2번 과제 — 날짜/시간 GUI 피커 일원화 및 주간 전체 표 다중 학생 터치 개선**:
+    * [src/screens/StudentDetailScreen.js](file:///d:/development/mydiary/src/screens/StudentDetailScreen.js): 수동 타이핑하던 '최초 수강 시작일(입회일)'에 인라인 달력(`Calendar`) 피커를 적용하고, '정규 수업 일정 시작 시간'에 공통 [`TimePickerModal`](../src/components/modals/TimePickerModal.js)을 연동하여 오타 원천 방지.
+    * [src/components/modals/StudentStatusModal.js](file:///d:/development/mydiary/src/components/modals/StudentStatusModal.js): 휴회 종료일 및 재수강 시작일 입력란을 인라인 달력(`Calendar`) 피커로 전환.
+    * [src/screens/WeeklyPlanScreen.js](file:///d:/development/mydiary/src/screens/WeeklyPlanScreen.js): 주간 전체 표(Table 뷰)의 동일 시간대 셀에 2명 이상 학생이 배정된 경우 각 학생 카드(`cellItemBox`)를 개별 터치하여 해당 학생의 일정을 바로 편집할 수 있도록 분리하고, 셀 빈 영역 터치 시 새 수업 추가 모달이 열리도록 개선.
+  * **단위 테스트 추가**:
+    * [__tests__/Components.test.js](file:///d:/development/mydiary/__tests__/Components.test.js): [`TimePickerModal`](../src/components/modals/TimePickerModal.js) 렌더링 검증 테스트 추가 (총 31개 테스트).
+
+* **검증 수치 (Numbers)**:
+  * 올인원 품질 게이트 (`npm run gate`): 100% 통과
+  * ESLint 무결성: 에러 0건, 경고 0건
+  * Jest 단위 테스트: 6개 스위트, 31개 테스트 전체 통과 (100% PASS)
+  * 정기 프로젝트 건전성 정밀 감사: 96점 / 100점 달성
+
+* **미해결 과제 (Still open)**:
+  * [docs/gaps.md](file:///d:/development/mydiary/docs/gaps.md)의 `[G1]` HWPX 복수 표 서식 레이아웃 프리셋(표준형, 서술형, 결재란 포함형) 다변화 작업 대기 중.
+
+---
+
 ## 2026-10-27: Antigravity 결정론적 라이프사이클 훅(hooks.json) 구축 및 토큰 소모 최적화 (by Antigravity)
 
 * **반영 내역 (What landed)**:

@@ -6,6 +6,7 @@ import ConfirmModal from '../src/components/ConfirmModal';
 import ActionMenuItem from '../src/components/ActionMenuItem';
 import StatusBadge from '../src/components/StatusBadge';
 import FloatingActionButton from '../src/components/FloatingActionButton';
+import TimePickerModal from '../src/components/modals/TimePickerModal';
 
 describe('공통 컴포넌트 단위 테스트', () => {
   test('Separator 컴포넌트가 오류 없이 렌더링되어야 함', () => {
@@ -95,6 +96,33 @@ describe('공통 컴포넌트 단위 테스트', () => {
     expect(circular.toJSON()).toBeTruthy();
     expect(extended).toBeDefined();
     expect(extended.toJSON()).toBeTruthy();
+  });
+
+  test('TimePickerModal 컴포넌트가 visible=false 및 true일 때 정상 렌더링되어야 함', () => {
+    let hiddenModal;
+    let visibleModal;
+    act(() => {
+      hiddenModal = renderer.create(
+        <TimePickerModal
+          visible={false}
+          time="10:00"
+          onSelectTime={jest.fn()}
+          onClose={jest.fn()}
+        />
+      );
+      visibleModal = renderer.create(
+        <TimePickerModal
+          visible={true}
+          time="14:30"
+          title="정규 수업 시작 시간 선택"
+          onSelectTime={jest.fn()}
+          onClose={jest.fn()}
+        />
+      );
+    });
+    expect(hiddenModal).toBeDefined();
+    expect(visibleModal).toBeDefined();
+    expect(visibleModal.toJSON()).toBeTruthy();
   });
 });
 

@@ -19,6 +19,12 @@ import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+/**
+ * 하단 5대 메인 탭 네비게이터 (홈, 주간시간표, 달력일지, 학생, 설정)
+ * @param {object} props - 컴포넌트 속성
+ * @param {object} props.navigation - React Navigation 네비게이션 객체
+ * @returns {React.JSX.Element} 메인 하단 탭 네비게이터 요소
+ */
 function MainTabs({ navigation }) {
   const { theme } = useTheme();
 
@@ -45,6 +51,7 @@ function MainTabs({ navigation }) {
         },
         tabBarActiveTintColor: theme.colors.primary || '#007AFF',
         tabBarInactiveTintColor: 'gray',
+        tabBarHideOnKeyboard: true,
         headerStyle: {
           backgroundColor: theme.colors.surface || '#FFFFFF',
           elevation: 0,

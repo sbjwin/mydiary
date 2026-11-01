@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,12 +9,14 @@ import {
   SafeAreaView,
   Alert,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ImageBackground,
   Modal
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Calendar } from 'react-native-calendars';
 import { Database } from '../database/Database';
 import { printStudentProfile, shareStudentProfile } from '../services/PrintService';
 import { Feather } from '@expo/vector-icons';
@@ -22,8 +24,13 @@ import { useTheme } from '../context/ThemeContext';
 import { getTodayFormatted } from '../utils/dateUtils';
 import { theme } from '../theme';
 import StudentStatusModal from '../components/modals/StudentStatusModal';
+import TimePickerModal from '../components/modals/TimePickerModal';
 import ActionMenuItem from '../components/ActionMenuItem';
 
+/**
+ * 학생 개인 프로필, 수강 상태(재원/휴회), 정규 수업 일정 및 특이사항을 등록·수정하는 화면 컴포넌트
+ * @returns {React.JSX.Element} 학생 상세 정보 화면 요소
+ */
 export default function StudentDetailScreen() {
   // eslint-disable-next-line no-shadow
   const { theme } = useTheme();
@@ -71,6 +78,49 @@ export default function StudentDetailScreen() {
 
   // 출력 모달 제어 상태
   const [printModalVisible, setPrintModalVisible] = useState(false);
+
+  // 입회일 달력 및 정규 수업 시간 피커 상태
+  const scrollRef = useRef(null);
+  const [showEnrolledDatePicker, setShowEnrolledDatePicker] = useState(false);
+  const [activeScheduleIdForTime, setActiveScheduleIdForTime] = useState(null);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setIsKeyboardVisible(true);
+        if (e?.endCoordinates?.height) {
+          setKeyboardHeight(e.endCoordinates.height);
+        }
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setIsKeyboardVisible(false);
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const scrollContentDynamicStyle = useMemo(() => [
+    styles.scrollContent,
+    isKeyboardVisible && {
+      paddingBottom: Platform.OS === 'android' ? keyboardHeight + 48 : 80,
+    },
+  ], [isKeyboardVisible, keyboardHeight]);
+
+  const activeScheduleTime = useMemo(() => {
+    if (!activeScheduleIdForTime) return '10:00';
+    const found = defaultSchedules.find((s) => s.id === activeScheduleIdForTime);
+    return found?.startTime || '10:00';
+  }, [activeScheduleIdForTime, defaultSchedules]);
 
   // 현재 입력 상태 기반 학생 객체
   const getCurrentStudentData = () => ({
@@ -338,10 +388,15 @@ export default function StudentDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoid}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={scrollContentDynamicStyle}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
 
           {/* 수강 상태 및 차수(Terms) 이력 */}
           <View style={styles.sectionHeaderRow}>
@@ -400,16 +455,47 @@ export default function StudentDetailScreen() {
               )}
             </View>
 
-            {/* 수강 시작일 (입회일) 수정 */}
+            {/* 수강 시작일 (입회일) 선택 */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>최초 수강 시작일 (입회일)</Text>
-              <TextInput
-                style={styles.input}
-                value={firstEnrolledDate}
-                onChangeText={setFirstEnrolledDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={theme.colors.outline}
-              />
+              <TouchableOpacity
+                style={[
+                  styles.input,
+                  styles.dateSelectorBtn,
+                  showEnrolledDatePicker && styles.dateSelectorBtnActive,
+                ]}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setShowEnrolledDatePicker(!showEnrolledDatePicker);
+                }}
+              >
+                <Text style={styles.dateSelectorText}>
+                  📅 {firstEnrolledDate || 'YYYY-MM-DD'}
+                </Text>
+                <Feather
+                  name={showEnrolledDatePicker ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color={theme.colors.textSecondary}
+                />
+              </TouchableOpacity>
+
+              {showEnrolledDatePicker && (
+                <View style={styles.inlineCalendar}>
+                  <Calendar
+                    current={firstEnrolledDate || undefined}
+                    markedDates={firstEnrolledDate ? { [firstEnrolledDate]: { selected: true } } : undefined}
+                    onDayPress={(day) => {
+                      setFirstEnrolledDate(day.dateString);
+                      setShowEnrolledDatePicker(false);
+                    }}
+                    theme={{
+                      selectedDayBackgroundColor: theme.colors.primary,
+                      todayTextColor: theme.colors.primary,
+                      arrowColor: theme.colors.primary,
+                    }}
+                  />
+                </View>
+              )}
             </View>
 
             {/* 수강 차수 이력 목록 */}
@@ -674,13 +760,18 @@ export default function StudentDetailScreen() {
                   <View style={styles.schedInputRow}>
                     <View style={styles.schedInputColSmall}>
                       <Text style={styles.schedInputLabel}>시작 시간</Text>
-                      <TextInput
-                        style={styles.schedInput}
-                        value={sched.startTime || '10:00'}
-                        onChangeText={(val) => handleUpdateDefaultSchedule(sched.id, 'startTime', val)}
-                        placeholder="10:00"
-                        placeholderTextColor={theme.colors.outline}
-                      />
+                      <TouchableOpacity
+                        style={styles.schedTimeSelectorBtn}
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          setActiveScheduleIdForTime(sched.id);
+                        }}
+                      >
+                        <Text style={styles.schedTimeSelectorText}>
+                          ⏰ {sched.startTime || '10:00'}
+                        </Text>
+                        <Feather name="chevron-down" size={14} color={theme.colors.primary} />
+                      </TouchableOpacity>
                     </View>
                     <View style={styles.schedInputColLarge}>
                       <Text style={styles.schedInputLabel}>수업 과목/내용</Text>
@@ -688,6 +779,12 @@ export default function StudentDetailScreen() {
                         style={styles.schedInput}
                         value={sched.subject || ''}
                         onChangeText={(val) => handleUpdateDefaultSchedule(sched.id, 'subject', val)}
+                        onFocus={() => {
+                          if (idx !== defaultSchedules.length - 1) return;
+                          setTimeout(() => {
+                            scrollRef.current?.scrollToEnd({ animated: true });
+                          }, 150);
+                        }}
                         placeholder="예: 파이썬, C언어, 자바"
                         placeholderTextColor={theme.colors.outline}
                       />
@@ -709,6 +806,11 @@ export default function StudentDetailScreen() {
               style={styles.notesInput}
               value={notes}
               onChangeText={setNotes}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollRef.current?.scrollToEnd({ animated: true });
+                }, 150);
+              }}
               placeholder="학생에 대한 특이사항이나 수업 참고 내용을 입력하세요"
               placeholderTextColor={theme.colors.outline}
               multiline={true}
@@ -732,28 +834,30 @@ export default function StudentDetailScreen() {
 
         </ScrollView>
 
-        {/* Fixed Bottom Actions */}
-        <View style={[styles.bottomFixedBar, { paddingBottom: Math.max(insets.bottom + 20, Platform.OS === 'ios' ? 48 : 36) }]}>
-          <View style={styles.bottomActionsContainer}>
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSave}
-            >
-              <Feather name="save" size={18} color={theme.colors.onPrimary} style={styles.saveBtnIcon} />
-              <Text style={styles.saveButtonText}>저장하기</Text>
-            </TouchableOpacity>
-
-            {isEditMode && (
+        {/* Fixed Bottom Actions (키보드 노출 시 입력 영역 확보를 위해 자동 숨김) */}
+        {!isKeyboardVisible && (
+          <View style={[styles.bottomFixedBar, { paddingBottom: Math.max(insets.bottom + 20, Platform.OS === 'ios' ? 48 : 36) }]}>
+            <View style={styles.bottomActionsContainer}>
               <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={handleDelete}
+                style={styles.saveButton}
+                onPress={handleSave}
               >
-                <Feather name="trash-2" size={16} color={theme.colors.error} style={styles.deleteBtnIcon} />
-                <Text style={styles.deleteButtonText}>학생 정보 삭제</Text>
+                <Feather name="save" size={18} color={theme.colors.onPrimary} style={styles.saveBtnIcon} />
+                <Text style={styles.saveButtonText}>저장하기</Text>
               </TouchableOpacity>
-            )}
+
+              {isEditMode && (
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={handleDelete}
+                >
+                  <Feather name="trash-2" size={16} color={theme.colors.error} style={styles.deleteBtnIcon} />
+                  <Text style={styles.deleteButtonText}>학생 정보 삭제</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* 학생 카드 출력 모달 (프린터 인쇄 vs PDF 공유) */}
         <Modal
@@ -831,6 +935,19 @@ export default function StudentDetailScreen() {
           onReasonChange={setResumeReason}
           onConfirm={handleConfirmResume}
           onClose={() => setResumeModalVisible(false)}
+        />
+
+        {/* 정규 수업 시작 시간 선택 모달 */}
+        <TimePickerModal
+          visible={Boolean(activeScheduleIdForTime)}
+          time={activeScheduleTime}
+          title="정규 수업 시작 시간 선택"
+          onSelectTime={(newTime) => {
+            if (activeScheduleIdForTime) {
+              handleUpdateDefaultSchedule(activeScheduleIdForTime, 'startTime', newTime);
+            }
+          }}
+          onClose={() => setActiveScheduleIdForTime(null)}
         />
 
       </KeyboardAvoidingView>
@@ -1213,7 +1330,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   schedInputColSmall: {
-    width: 90,
+    width: 105,
   },
   schedInputColLarge: {
     flex: 1,
@@ -1233,6 +1350,44 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     fontSize: 13,
     color: theme.colors.textPrimary,
+  },
+  schedTimeSelectorBtn: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.surfaceVariant + '50',
+    borderWidth: 1,
+    borderColor: theme.colors.outline + '40',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+  },
+  schedTimeSelectorText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  dateSelectorBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateSelectorBtnActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.secondaryContainer + '40',
+  },
+  dateSelectorText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  inlineCalendar: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.secondaryContainer,
+    borderRadius: theme.roundness,
+    overflow: 'hidden',
   },
   statusBadge: {
     paddingHorizontal: 8,
