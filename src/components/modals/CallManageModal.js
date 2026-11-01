@@ -29,15 +29,24 @@ export default function CallManageModal({
   const { theme: activeTheme } = useTheme();
   const theme = activeTheme || defaultTheme;
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => setIsKeyboardVisible(true)
+      (e) => {
+        setIsKeyboardVisible(true);
+        if (e?.endCoordinates?.height) {
+          setKeyboardHeight(e.endCoordinates.height);
+        }
+      }
     );
     const hideSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setIsKeyboardVisible(false)
+      () => {
+        setIsKeyboardVisible(false);
+        setKeyboardHeight(0);
+      }
     );
     return () => {
       showSub.remove();
@@ -51,13 +60,18 @@ export default function CallManageModal({
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoid}
       >
         <TouchableOpacity
-          style={styles.modalOverlay}
+          style={[
+            styles.modalOverlay,
+            isKeyboardVisible && styles.modalOverlayKeyboard,
+            isKeyboardVisible && Platform.OS === 'android' && { paddingBottom: Math.max(keyboardHeight * 0.5, 80) },
+          ]}
           activeOpacity={1}
           onPress={() => {
             if (isKeyboardVisible) {
@@ -133,6 +147,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     paddingHorizontal: 24,
+  },
+  modalOverlayKeyboard: {
+    justifyContent: 'flex-start',
+    paddingTop: Platform.OS === 'android' ? 48 : 64,
   },
   callModalContent: {
     borderRadius: 18,

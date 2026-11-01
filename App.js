@@ -45,6 +45,7 @@ function MainTabs({ navigation }) {
         },
         tabBarActiveTintColor: theme.colors.primary || '#007AFF',
         tabBarInactiveTintColor: 'gray',
+        tabBarHideOnKeyboard: true,
         headerStyle: {
           backgroundColor: theme.colors.surface || '#FFFFFF',
           elevation: 0,

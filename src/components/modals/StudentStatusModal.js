@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  ScrollView,
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
   Keyboard,
 } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { theme as defaultTheme } from '../../theme';
@@ -30,6 +32,33 @@ export default function StudentStatusModal({
 }) {
   const { theme: activeTheme } = useTheme();
   const theme = activeTheme || defaultTheme;
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setShowDatePicker(false);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setIsKeyboardVisible(true);
+        setShowDatePicker(false);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const isPause = type === 'pause';
   const iconName = isPause ? 'pause-circle' : 'play-circle';
@@ -52,17 +81,24 @@ export default function StudentStatusModal({
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoid}
       >
         <TouchableOpacity
-          style={styles.centerModalOverlay}
+          style={[
+            styles.centerModalOverlay,
+            isKeyboardVisible && styles.centerModalOverlayKeyboard,
+          ]}
           activeOpacity={1}
           onPress={() => {
-            Keyboard.dismiss();
-            onClose();
+            if (isKeyboardVisible) {
+              Keyboard.dismiss();
+            } else {
+              onClose();
+            }
           }}
         >
           <TouchableOpacity
@@ -70,60 +106,90 @@ export default function StudentStatusModal({
             activeOpacity={1}
             onPress={(e) => e.stopPropagation()}
           >
-            <View style={styles.dialogHeader}>
-              <Feather name={iconName} size={24} color={iconColor} style={styles.dialogHeaderIcon} />
-              <Text style={[styles.dialogTitle, { color: theme.colors.textPrimary }]}>{title}</Text>
-            </View>
-            <Text style={[styles.dialogSubtitle, { color: theme.colors.textSecondary }]}>
-              {subtitle}
-            </Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.dialogHeader}>
+                <Feather name={iconName} size={24} color={iconColor} style={styles.dialogHeaderIcon} />
+                <Text style={[styles.dialogTitle, { color: theme.colors.textPrimary }]}>{title}</Text>
+              </View>
+              <Text style={[styles.dialogSubtitle, { color: theme.colors.textSecondary }]}>
+                {subtitle}
+              </Text>
 
-            <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{dateLabel}</Text>
-            <TextInput
-              style={[
-                styles.dialogInput,
-                {
-                  borderColor: theme.colors.outline + '40',
-                  color: theme.colors.textPrimary,
-                  backgroundColor: theme.colors.surfaceVariant + '30',
-                },
-              ]}
-              value={date}
-              onChangeText={onDateChange}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.colors.outline}
-            />
-
-            <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{reasonLabel}</Text>
-            <TextInput
-              style={[
-                styles.dialogInput,
-                {
-                  borderColor: theme.colors.outline + '40',
-                  color: theme.colors.textPrimary,
-                  backgroundColor: theme.colors.surfaceVariant + '30',
-                },
-              ]}
-              value={reason}
-              onChangeText={onReasonChange}
-              placeholder={reasonPlaceholder}
-              placeholderTextColor={theme.colors.outline}
-            />
-
-            <View style={styles.dialogBtnRow}>
+              <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{dateLabel}</Text>
               <TouchableOpacity
-                style={[styles.dialogCancelBtn, { backgroundColor: theme.colors.surfaceVariant }]}
-                onPress={onClose}
+                style={[
+                  styles.dateSelectorBtn,
+                  {
+                    borderColor: showDatePicker ? theme.colors.primary : theme.colors.outline + '40',
+                    backgroundColor: showDatePicker ? theme.colors.secondaryContainer + '40' : theme.colors.surfaceVariant + '30',
+                  },
+                ]}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setShowDatePicker(!showDatePicker);
+                }}
               >
-                <Text style={[styles.dialogCancelBtnText, { color: theme.colors.textSecondary }]}>취소</Text>
+                <Text style={[styles.dateSelectorText, { color: theme.colors.textPrimary }]}>
+                  📅 {date || 'YYYY-MM-DD'}
+                </Text>
+                <Feather
+                  name={showDatePicker ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={theme.colors.textSecondary}
+                />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dialogConfirmBtn, { backgroundColor: confirmBtnBg }]}
-                onPress={onConfirm}
-              >
-                <Text style={styles.dialogConfirmBtnText}>{confirmBtnText}</Text>
-              </TouchableOpacity>
-            </View>
+
+              {showDatePicker && (
+                <View style={[styles.inlineCalendar, { borderColor: theme.colors.secondaryContainer }]}>
+                  <Calendar
+                    current={date || undefined}
+                    onDayPress={(day) => {
+                      onDateChange(day.dateString);
+                      setShowDatePicker(false);
+                    }}
+                    theme={{
+                      selectedDayBackgroundColor: theme.colors.primary,
+                      todayTextColor: theme.colors.primary,
+                      arrowColor: theme.colors.primary,
+                    }}
+                  />
+                </View>
+              )}
+
+              <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>{reasonLabel}</Text>
+              <TextInput
+                style={[
+                  styles.dialogInput,
+                  {
+                    borderColor: theme.colors.outline + '40',
+                    color: theme.colors.textPrimary,
+                    backgroundColor: theme.colors.surfaceVariant + '30',
+                  },
+                ]}
+                value={reason}
+                onChangeText={onReasonChange}
+                placeholder={reasonPlaceholder}
+                placeholderTextColor={theme.colors.outline}
+              />
+
+              <View style={styles.dialogBtnRow}>
+                <TouchableOpacity
+                  style={[styles.dialogCancelBtn, { backgroundColor: theme.colors.surfaceVariant }]}
+                  onPress={onClose}
+                >
+                  <Text style={[styles.dialogCancelBtnText, { color: theme.colors.textSecondary }]}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dialogConfirmBtn, { backgroundColor: confirmBtnBg }]}
+                  onPress={onConfirm}
+                >
+                  <Text style={styles.dialogConfirmBtnText}>{confirmBtnText}</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
       </KeyboardAvoidingView>
@@ -142,9 +208,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  centerModalOverlayKeyboard: {
+    justifyContent: 'flex-start',
+    paddingTop: Platform.OS === 'android' ? 40 : 56,
+  },
   dialogCard: {
     width: '100%',
     maxWidth: 380,
+    maxHeight: '88%',
     borderRadius: 18,
     padding: 22,
     shadowColor: '#000',
@@ -183,6 +254,26 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     fontSize: 14,
     marginBottom: 12,
+  },
+  dateSelectorBtn: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    marginBottom: 12,
+  },
+  dateSelectorText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  inlineCalendar: {
+    marginBottom: 12,
+    borderWidth: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
   },
   dialogBtnRow: {
     flexDirection: 'row',

@@ -12,7 +12,9 @@ import {
   Animated,
   PanResponder,
   KeyboardAvoidingView,
-  Platform
+  Keyboard,
+  Platform,
+  useWindowDimensions
 } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
@@ -79,6 +81,51 @@ export default function CalendarScreen() {
   const [loading, setLoading] = useState(true);
   const [studentSelectVisible, setStudentSelectVisible] = useState(false);
   const [markedDates, setMarkedDates] = useState({});
+  const { height: screenHeight } = useWindowDimensions();
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setIsKeyboardVisible(true);
+        if (e?.endCoordinates?.height) {
+          setKeyboardHeight(e.endCoordinates.height);
+        }
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setIsKeyboardVisible(false);
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // 키보드 상태 및 화면 크기에 따른 학생 선택 모달 동적 스타일 (키보드 가림 방지)
+  const modalOverlayDynamicStyle = useMemo(() => [
+    styles.modalOverlay,
+    isKeyboardVisible && styles.modalOverlayKeyboard,
+  ], [isKeyboardVisible]);
+
+  const modalContentDynamicStyle = useMemo(() => {
+    if (!isKeyboardVisible) {
+      return [styles.modalContent, { maxHeight: Math.min(screenHeight * 0.75, 540) }];
+    }
+    const safeTop = Platform.OS === 'android' ? 36 : 48;
+    const availableHeight = screenHeight - keyboardHeight - safeTop - 20;
+    return [
+      styles.modalContent,
+      styles.modalContentKeyboard,
+      { height: undefined, maxHeight: Math.max(availableHeight, 240) },
+    ];
+  }, [isKeyboardVisible, keyboardHeight, screenHeight]);
 
   // 달력 접기/펼치기 상태 및 애니메이션 관리를 위한 상태 및 ref
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -481,23 +528,38 @@ export default function CalendarScreen() {
         animationType="slide"
         transparent={true}
         visible={studentSelectVisible}
-        onRequestClose={() => setStudentSelectVisible(false)}
+        onRequestClose={() => {
+          if (isKeyboardVisible) {
+            Keyboard.dismiss();
+          } else {
+            setStudentSelectVisible(false);
+          }
+        }}
         statusBarTranslucent
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
+          style={modalOverlayDynamicStyle}
         >
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
-            onPress={() => setStudentSelectVisible(false)}
+            onPress={() => {
+              if (isKeyboardVisible) {
+                Keyboard.dismiss();
+              } else {
+                setStudentSelectVisible(false);
+              }
+            }}
           />
-          <View style={styles.modalContent}>
+          <View style={modalContentDynamicStyle}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>학생 선택</Text>
               <TouchableOpacity
-                onPress={() => setStudentSelectVisible(false)}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setStudentSelectVisible(false);
+                }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Feather name="x" size={24} color={theme.colors.textSecondary} />
@@ -747,6 +809,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  modalOverlayKeyboard: {
+    justifyContent: 'flex-start',
+    paddingTop: Platform.OS === 'android' ? 36 : 48,
+    paddingHorizontal: 14,
+  },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
@@ -756,6 +823,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     height: '75%',
     padding: 20,
+  },
+  modalContentKeyboard: {
+    borderRadius: 20,
   },
   modalHeader: {
     flexDirection: 'row',
