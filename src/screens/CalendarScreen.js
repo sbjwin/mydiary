@@ -68,6 +68,10 @@ const CustomDay = React.memo(({ date, state, marking, onPress }) => {
   );
 });
 
+/**
+ * 월간/주간 달력 기반으로 일별 수업 일지를 조회하고 관리하는 화면 컴포넌트
+ * @returns {React.JSX.Element} 달력 일지 화면 요소
+ */
 export default function CalendarScreen() {
   // eslint-disable-next-line no-shadow
   const { theme } = useTheme();

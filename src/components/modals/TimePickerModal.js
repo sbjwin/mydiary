@@ -58,7 +58,14 @@ export const QUICK_TIME_PRESETS = [
 ];
 
 /**
- * 시작 시간 GUI 선택 공통 팝업 모달
+ * 시작 시간 GUI 선택 공통 팝업 모달 컴포넌트
+ * @param {object} props - 모달 컴포넌트 속성
+ * @param {boolean} props.visible - 모달 표시 여부
+ * @param {string} [props.time='10:00'] - 현재 선택된 시간 문자열 (HH:mm 포맷)
+ * @param {string} [props.title='시작 시간 선택'] - 모달 상단 제목
+ * @param {(newTime: string) => void} props.onSelectTime - 시간 선택 시 호출되는 콜백 함수
+ * @param {() => void} props.onClose - 모달 닫기 콜백 함수
+ * @returns {React.JSX.Element} 시간 선택 모달 요소
  */
 export default function TimePickerModal({
   visible,
@@ -88,6 +95,10 @@ export default function TimePickerModal({
     return { ampm: '오전', hour24: 10, minute: '00', isEmpty: false };
   }, [time]);
 
+  /**
+   * 오전/오후(AM/PM) 전환 시 24시간제 시간을 계산하여 반영합니다.
+   * @param {'오전'|'오후'} newAmpm - 변경할 오전/오후 구분값
+   */
   const handleAmpmChange = (newAmpm) => {
     let targetHour = parsedTime.hour24;
     if (newAmpm === '오전' && targetHour >= 12) {
@@ -99,11 +110,19 @@ export default function TimePickerModal({
     onSelectTime(`${String(targetHour).padStart(2, '0')}:${m}`);
   };
 
+  /**
+   * 시(Hour) 선택 시 현재 분(Minute)과 결합하여 HH:mm 포맷으로 반영합니다.
+   * @param {number} h24 - 24시간제 기준 시(0~23)
+   */
   const handleHourChange = (h24) => {
     const m = parsedTime.minute || '00';
     onSelectTime(`${String(h24).padStart(2, '0')}:${m}`);
   };
 
+  /**
+   * 분(Minute) 선택 시 현재 시(Hour)와 결합하여 HH:mm 포맷으로 반영합니다.
+   * @param {string} mStr - 두 자리 분 문자열 ('00' ~ '55')
+   */
   const handleMinuteChange = (mStr) => {
     const h24 = parsedTime.hour24;
     onSelectTime(`${String(h24).padStart(2, '0')}:${mStr}`);

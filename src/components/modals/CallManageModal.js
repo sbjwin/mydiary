@@ -15,7 +15,16 @@ import { useTheme } from '../../context/ThemeContext';
 import { theme as defaultTheme } from '../../theme';
 
 /**
- * 주간 시간표 전화관리 상담 항목 추가 모달
+ * 주간 시간표 전화관리 상담 항목 추가 모달 컴포넌트
+ * @param {object} props - 모달 컴포넌트 속성
+ * @param {boolean} props.visible - 모달 표시 여부
+ * @param {() => void} props.onClose - 모달 닫기 콜백 함수
+ * @param {string} props.callName - 상담 대상 회원 이름 입력값
+ * @param {(text: string) => void} props.onChangeCallName - 회원 이름 변경 핸들러
+ * @param {string} props.callContent - 통화 요일 및 상담 내용 입력값
+ * @param {(text: string) => void} props.onChangeCallContent - 상담 내용 변경 핸들러
+ * @param {() => void} props.onAdd - 상담 항목 추가 확정 콜백 함수
+ * @returns {React.JSX.Element} 전화관리 상담 추가 모달 요소
  */
 export default function CallManageModal({
   visible,

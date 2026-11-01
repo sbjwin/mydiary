@@ -45,6 +45,10 @@ const TIME_SLOTS = [
   { label: '8시', hour: 20 },
 ];
 
+/**
+ * 주간 시간표(전체 표 및 요일별 타임라인) 조회, 수업 일정 추가·편집, 전화관리 및 부가 업무를 수행하는 화면 컴포넌트
+ * @returns {React.JSX.Element} 주간 시간표 화면 요소
+ */
 export default function WeeklyPlanScreen() {
   // eslint-disable-next-line no-shadow
   const { theme } = useTheme();

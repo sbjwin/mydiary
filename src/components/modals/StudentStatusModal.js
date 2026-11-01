@@ -18,6 +18,17 @@ import { theme as defaultTheme } from '../../theme';
 
 /**
  * 학생 수강 상태(휴회 / 재수강 복귀)를 전환하는 공통 모달 컴포넌트
+ * @param {object} props - 모달 컴포넌트 속성
+ * @param {boolean} props.visible - 모달 표시 여부
+ * @param {'pause'|'resume'} [props.type='pause'] - 상태 전환 유형 ('pause': 휴회, 'resume': 재수강 복귀)
+ * @param {string} [props.studentName=''] - 대상 학생 이름
+ * @param {string} [props.date=''] - 선택된 기준 날짜 (YYYY-MM-DD 포맷)
+ * @param {(dateStr: string) => void} props.onDateChange - 날짜 변경 콜백 함수
+ * @param {string} [props.reason=''] - 휴회 또는 재등록 사유 입력값
+ * @param {(text: string) => void} props.onReasonChange - 사유 변경 콜백 함수
+ * @param {() => void} props.onConfirm - 상태 변경 확정 콜백 함수
+ * @param {() => void} props.onClose - 모달 닫기 콜백 함수
+ * @returns {React.JSX.Element} 학생 상태 전환 모달 요소
  */
 export default function StudentStatusModal({
   visible,

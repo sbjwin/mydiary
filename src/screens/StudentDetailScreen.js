@@ -27,6 +27,10 @@ import StudentStatusModal from '../components/modals/StudentStatusModal';
 import TimePickerModal from '../components/modals/TimePickerModal';
 import ActionMenuItem from '../components/ActionMenuItem';
 
+/**
+ * 학생 개인 프로필, 수강 상태(재원/휴회), 정규 수업 일정 및 특이사항을 등록·수정하는 화면 컴포넌트
+ * @returns {React.JSX.Element} 학생 상세 정보 화면 요소
+ */
 export default function StudentDetailScreen() {
   // eslint-disable-next-line no-shadow
   const { theme } = useTheme();
