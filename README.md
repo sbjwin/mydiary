@@ -1,6 +1,6 @@
-# MyDiary (내 일상 수업 다이어리) - v2.4.2
+# MyDiary (내 일상 수업 다이어리) - v2.5.0
 
-[![Release](https://img.shields.io/badge/Release-v2.4.2-blue.svg)](https://github.com/sbjwin/mydiary/releases)
+[![Release](https://img.shields.io/badge/Release-v2.5.0-blue.svg)](https://github.com/sbjwin/mydiary/releases)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green.svg)](#)
 [![React Native](https://img.shields.io/badge/React%20Native-0.86.0-61dafb.svg)](https://reactnative.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
@@ -18,7 +18,19 @@
 
 ---
 
-## 🌟 v2.4.2 주요 기능 및 특징
+## 🌟 v2.5.0 주요 기능 및 특징
+
+*   **공통 시간 선택 모달(TimePickerModal) 신설 및 GUI 피커 도입 (신규 v2.5.0)**:
+    *   `src/components/modals/TimePickerModal.js`를 신설하여 빠른 시간 프리셋, 오전/오후 탭, 12시/오후 자동 전환, 시/분 그리드 선택 GUI를 제공하고 주간시간표 컴포넌트의 복잡도를 329줄 감축했습니다.
+*   **날짜·시간 입력 인터페이스 전면 개편 (신규 v2.5.0)**:
+    *   학생 상세 화면의 최초 수강 시작일(입회일)과 학생 상태 관리 모달의 휴회/재수강 날짜에 인라인 달력(`Calendar`) 피커를 연동하여 오타를 원천 방지했습니다.
+    *   정규 수업 일정 등록 시 `TimePickerModal`을 연동하여 편리하게 수업 시간을 지정할 수 있도록 개선했습니다.
+*   **주간시간표 다중 학생 셀 개별 터치 인터랙션 지원 (신규 v2.5.0)**:
+    *   주간 전체 표(Table 뷰)에서 동일 시간대에 2명 이상의 학생이 배정된 경우, 각 학생 카드를 개별 터치하여 즉시 해당 학생 일정을 편집할 수 있도록 분리했습니다.
+*   **전체 화면 키보드 가림 5곳 완전 해결 (신규 v2.5.0)**:
+    *   키보드 활성화 시 하단 탭바 자동 숨김(`tabBarHideOnKeyboard: true`)을 적용하고, 주간시간표 부가업무/수업편집, 학생상세 정규수업/비고, 일정검색, 상담기록, 상태변경 모달 전반의 입력창 가림 문제를 완벽히 해결했습니다.
+*   **접근성 및 터치 영역 강화 (신규 v2.5.0)**:
+    *   피커 및 버튼의 최소 터치 영역을 44dp 이상 확보하고 달력 선택 가독성을 대폭 개선했습니다.
 
 *   **주간시간표 학생 선택 모달 반응형 레이아웃 및 검색 UX 개선 (신규 v2.4.2)**:
     *   소프트웨어 키보드 노출 시 학생 검색창과 목록이 가려지던 문제를 해결하고, 실시간 키보드 높이를 추적하여 화면 중앙 다이얼로그와 상단 스크롤 뷰로 부드럽게 동적 전환되는 반응형 레이아웃을 도입했습니다.

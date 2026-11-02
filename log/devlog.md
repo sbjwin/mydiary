@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-11-02: v2.5.0 공식 마이너 릴리즈 마일스톤 버전 5개 파일 동기화 및 릴리즈 태깅 (by Antigravity)
+
+* **반영 내역 (What landed)**:
+  * **5개 파일 버전 동기화 완료 (`v2.5.0`, Android `versionCode: 9`)**:
+    * [package.json](../package.json): `"version": "2.5.0"`
+    * [app.json](../app.json): `version: "2.5.0"`, `versionCode: 9`
+    * [android/app/build.gradle](../android/app/build.gradle): `versionName "2.5.0"`, `versionCode 9`
+    * [README.md](../README.md): 상단 헤더, 릴리즈 배지 및 v2.5.0 주요 기능 요약 섹션 반영
+    * [src/screens/HelpScreen.js](../src/screens/HelpScreen.js): 버전 동적 바인딩 확인, 주간시간표 팁 보강 및 시간/날짜 피커 관련 신규 FAQ 추가
+  * **릴리즈 주요 핵심 변경사항**:
+    * 신규 공통 모달 [TimePickerModal.js](../src/components/modals/TimePickerModal.js) 분리 구축 및 GUI 시간 피커 전면 도입
+    * 학생 상세 입회일 및 학생 상태 관리 모달 휴회/재수강 일자 인라인 달력(`Calendar`) 피커 적용
+    * 주간시간표 전체 표 뷰의 동일 시간대 다중 학생 개별 터치 인터랙션 지원
+    * 하단 탭바 자동 숨김(`tabBarHideOnKeyboard`) 및 5개 핵심 모달/화면 키보드 가림 완전 해결
+    * [mydiary-build-release/SKILL.md](../.agents/skills/mydiary-build-release/SKILL.md) 릴리즈 빌드 및 서명 검증 공식 스킬 가이드 구축
+  * **Git 태그 및 GitHub Actions CI/CD 트리거**:
+    * `v2.5.0` 태그 생성 및 푸시를 통해 `android-release.yml` 자동 릴리즈 빌드 연동.
+
+* **검증 수치 (Numbers)**:
+  * 올인원 품질 게이트 (`npm run gate`): 100% 통과
+  * ESLint 무결성: 에러 0건, 경고 0건
+  * Jest 단위 테스트: 6개 스위트, 31개 테스트 전체 통과 (100% PASS)
+  * 정기 프로젝트 건전성 정밀 감사: 96점 / 100점 달성
+
+* **미해결 과제 (Still open)**:
+  * [docs/gaps.md](file:///d:/development/mydiary/docs/gaps.md)의 `[G1]` HWPX 복수 표 서식 레이아웃 프리셋(표준형, 서술형, 결재란 포함형) 다변화 작업 대기 중.
+
+---
+
 ## 2026-11-01: 전체 화면/모달 키보드 가림 방지 및 날짜·시간 피커 / 주간표 다중 학생 터치 UX 개선 (by Antigravity)
 
 * **반영 내역 (What landed)**:
