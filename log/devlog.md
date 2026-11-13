@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-11-13: 전체 UI/UX 5단계 순차 개선 (동적 테마 반응성, 시간 피커 통합, 주간시간표·학생상세 UX, 공통 모달 2종 분리) (by Antigravity)
+
+* **반영 내역 (What landed)**:
+  * **Phase 1 (동적 테마 전환 반응성 복구)**:
+    * 8개 화면([HomeScreen.js](../src/screens/HomeScreen.js), [WeeklyPlanScreen.js](../src/screens/WeeklyPlanScreen.js), [CalendarScreen.js](../src/screens/CalendarScreen.js), [StudentListScreen.js](../src/screens/StudentListScreen.js), [SettingsScreen.js](../src/screens/SettingsScreen.js), [StudentDetailScreen.js](../src/screens/StudentDetailScreen.js), [ClassRecordScreen.js](../src/screens/ClassRecordScreen.js), [HelpScreen.js](../src/screens/HelpScreen.js)) 및 공용 컴포넌트([Separator.js](../src/components/Separator.js), [ConfirmModal.js](../src/components/ConfirmModal.js))의 정적 `StyleSheet.create`를 `useMemo(() => createStyles(theme), [theme])` 구조로 전환하여 설정 화면 프리셋 전환 시 즉시 반영되도록 개선.
+  * **Phase 2 (시간 피커 통합 및 오전 12시 버그 수정)**:
+    * [ClassRecordScreen.js](../src/screens/ClassRecordScreen.js)의 중복 인라인 시간 피커(~180줄)를 제거하고 공용 [TimePickerModal.js](../src/components/modals/TimePickerModal.js)로 통합.
+  * **Phase 3 (주간시간표 모바일 UX 강화)**:
+    * [WeeklyPlanScreen.js](../src/screens/WeeklyPlanScreen.js)의 타임라인 `selectedDayOffset` 초기값을 오늘 요일(월=0~일=6)로 자동 포커스하고, 표 헤더 및 타임라인 요일 탭에 오늘 날짜 강조(`dayHeaderCellToday`, `dayTabPillToday`) 적용.
+    * 주간 표 열 너비(`68 -> 76`, `tableInner.minWidth: 500`) 및 셀 폰트(`cellItemTitle: 10.5`, `cellItemSubject: 9.5`, `cellItemNote: 9`) 확대.
+    * `handleMakeCall`이 다중 연락처 매칭 시 `Alert.alert('통화할 번호 선택', ...)` 선택창을 표시하도록 개선.
+  * **Phase 4 (학생 상세 입력 안정성 및 오프라인 배너)**:
+    * [StudentDetailScreen.js](../src/screens/StudentDetailScreen.js)에 `beforeRemove` + `ConfirmModal` 기반 미저장 변경사항 이탈 방지 가드 추가(저장/삭제 완료 및 휴회/재수강 즉시 저장 시 정상 이탈 허용).
+    * 외부 URL `ImageBackground` 배너를 오프라인 테마 반응형 배너 카드(`styles.bannerCard`)로 교체하고, 신규 등록 모드에서도 초기 수강 상태(`active`/`paused`) 전환 지원.
+  * **Phase 5 (공통 모달 분리 및 단위 테스트)**:
+    * [RecordPrintModal.js](../src/components/modals/RecordPrintModal.js) 신규 분리 후 [StudentListScreen.js](../src/screens/StudentListScreen.js), [ClassRecordScreen.js](../src/screens/ClassRecordScreen.js), [StudentDetailScreen.js](../src/screens/StudentDetailScreen.js) 연동.
+    * [ScheduleEditModal.js](../src/components/modals/ScheduleEditModal.js) 신규 분리(이름·학교·전화번호 확장 검색 포함) 후 [WeeklyPlanScreen.js](../src/screens/WeeklyPlanScreen.js) 경량화(2,765줄 -> 2,097줄).
+    * [__tests__/Components.test.js](../__tests__/Components.test.js)에 `RecordPrintModal`, `ScheduleEditModal` 렌더링 단위 테스트 2건 추가.
+
+* **검증 수치 (Numbers)**:
+  * 올인원 품질 게이트 (`cmd /c npm run gate`): 100% 통과
+  * ESLint 무결성: 에러 0건, 경고 0건
+  * Jest 단위 테스트: 6개 스위트, 33개 테스트 전체 통과 (100% PASS)
+  * 정기 프로젝트 건전성 정밀 감사: **100점 / 100점** 달성 (초거대 위험 파일 0건, 공통 컴포넌트 11개)
+
+* **미해결 과제 (Still open)**:
+  * [docs/gaps.md](file:///d:/development/mydiary/docs/gaps.md)의 `[G1]` HWPX 복수 표 서식 레이아웃 프리셋(표준형, 서술형, 결재란 포함형) 다변화 작업 대기 중.
+  * [StudentDetailScreen.js](../src/screens/StudentDetailScreen.js)(1,587줄) 및 [WeeklyPlanScreen.js](../src/screens/WeeklyPlanScreen.js)(2,097줄) 추가 세부 섹션 분리 선택 사항.
+
+---
+
 ## 2026-11-02: v2.5.0 공식 마이너 릴리즈 마일스톤 버전 5개 파일 동기화 및 릴리즈 태깅 (by Antigravity)
 
 * **반영 내역 (What landed)**:

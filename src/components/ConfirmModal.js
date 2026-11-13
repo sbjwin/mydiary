@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Modal,
   View,
@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { theme } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import { theme as defaultTheme } from '../theme';
 
 /**
  * 앱 전반에서 일관된 UX를 제공하는 공통 확인/삭제 모달 컴포넌트
@@ -25,6 +26,10 @@ const ConfirmModal = ({
   loading = false,
   iconName = isDestructive ? 'alert-triangle' : 'help-circle',
 }) => {
+  const { theme: activeTheme } = useTheme();
+  const theme = activeTheme || defaultTheme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
     <Modal
       transparent
@@ -91,7 +96,7 @@ const ConfirmModal = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

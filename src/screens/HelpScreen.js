@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,13 @@ import {
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { theme } from '../theme';
+
 import packageJson from '../../package.json';
 
 export default function HelpScreen() {
-  // eslint-disable-next-line no-shadow
+
   const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [activeTab, setActiveTab] = useState('guide'); // 'guide' | 'about' | 'faq'
 
   const appGuides = [
@@ -307,7 +308,7 @@ export default function HelpScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.surfaceVariant,
