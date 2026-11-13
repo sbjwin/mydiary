@@ -12,11 +12,10 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Database } from '../database/Database';
 import { useTheme } from '../context/ThemeContext';
 import { DAY_NAMES, getTodayFormatted } from '../utils/dateUtils';
-import { theme } from '../theme';
 
 export default function HomeScreen() {
-  // eslint-disable-next-line no-shadow
   const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 
@@ -438,10 +437,10 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.colors.surfaceVariant,
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -517,7 +516,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   highlightText: {
-    color: '#2563EB',
+    color: theme.colors.primary,
     fontWeight: '800',
   },
   highlightGreen: {
@@ -598,13 +597,13 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#4F46E5',
+    backgroundColor: theme.colors.primary,
     borderRadius: 2,
   },
   metricBottomHint: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#4F46E5',
+    color: theme.colors.primary,
     marginTop: 2,
   },
   sectionContainer: {
@@ -633,7 +632,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 12,
-    color: '#4F46E5',
+    color: theme.colors.primary,
     fontWeight: '700',
   },
   loader: {
@@ -675,7 +674,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: theme.colors.secondaryContainer,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
@@ -683,7 +682,7 @@ const styles = StyleSheet.create({
   emptyAddBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#4F46E5',
+    color: theme.colors.primary,
   },
   scheduleCard: {
     backgroundColor: '#FFFFFF',

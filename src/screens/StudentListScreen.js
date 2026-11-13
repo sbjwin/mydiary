@@ -9,11 +9,9 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Modal,
-  Alert,
-  ScrollView
+  Alert
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
-import { Calendar } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
 import {
@@ -24,16 +22,16 @@ import {
 } from '../services/PrintService';
 import { useTheme } from '../context/ThemeContext';
 import { getTodayFormatted } from '../utils/dateUtils';
-import { theme } from '../theme';
 import StudentStatusModal from '../components/modals/StudentStatusModal';
+import RecordPrintModal from '../components/modals/RecordPrintModal';
 import Separator from '../components/Separator';
 import ActionMenuItem from '../components/ActionMenuItem';
 import FloatingActionButton from '../components/FloatingActionButton';
 import StatusBadge from '../components/StatusBadge';
 
 export default function StudentListScreen() {
-  // eslint-disable-next-line no-shadow
   const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 
@@ -75,79 +73,8 @@ export default function StudentListScreen() {
     return { activeCount: active, pausedCount: paused, totalCount: students.length };
   }, [students]);
 
-  // 수업일지 출력 기간 필터 관련 상태
+  // 수업일지 출력 모달용 기록 목록
   const [selectedStudentRecords, setSelectedStudentRecords] = useState([]);
-  const [periodFilter, setPeriodFilter] = useState('all');
-  const [customStartDate, setCustomStartDate] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  });
-  const [customEndDate, setCustomEndDate] = useState(getTodayFormatted());
-  const [activeDatePicker, setActiveDatePicker] = useState(null); // 'start' | 'end' | null
-
-  // 필터링된 일지 목록 및 기간명 계산
-  const { filteredRecordsForPrint, periodTitle } = useMemo(() => {
-    if (!selectedStudentRecords.length) {
-      return { filteredRecordsForPrint: [], periodTitle: '전체 기간' };
-    }
-
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-
-    if (periodFilter === 'custom') {
-      const start = customStartDate <= customEndDate ? customStartDate : customEndDate;
-      const end = customStartDate <= customEndDate ? customEndDate : customStartDate;
-      const filtered = selectedStudentRecords.filter(r => r.class_date >= start && r.class_date <= end);
-      return {
-        filteredRecordsForPrint: filtered,
-        periodTitle: `지정 기간 (${start} ~ ${end})`,
-      };
-    }
-
-    if (periodFilter === '1m') {
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(today.getMonth() - 1);
-      const limitStr = oneMonthAgo.toISOString().split('T')[0];
-      const filtered = selectedStudentRecords.filter(r => r.class_date >= limitStr);
-      return {
-        filteredRecordsForPrint: filtered,
-        periodTitle: `최근 1개월 (${limitStr} ~ ${todayStr})`,
-      };
-    }
-
-    if (periodFilter === '3m') {
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(today.getMonth() - 3);
-      const limitStr = threeMonthsAgo.toISOString().split('T')[0];
-      const filtered = selectedStudentRecords.filter(r => r.class_date >= limitStr);
-      return {
-        filteredRecordsForPrint: filtered,
-        periodTitle: `최근 3개월 (${limitStr} ~ ${todayStr})`,
-      };
-    }
-
-    if (periodFilter === 'current_month') {
-      const yearMonth = todayStr.substring(0, 7); // YYYY-MM
-      const filtered = selectedStudentRecords.filter(r => r.class_date && r.class_date.startsWith(yearMonth));
-      return {
-        filteredRecordsForPrint: filtered,
-        periodTitle: `${today.getFullYear()}년 ${today.getMonth() + 1}월`,
-      };
-    }
-
-    // 기본: 전체 기간
-    const sorted = [...selectedStudentRecords].sort((a, b) => a.class_date.localeCompare(b.class_date));
-    const start = sorted[0]?.class_date || todayStr;
-    const end = sorted[sorted.length - 1]?.class_date || todayStr;
-    return {
-      filteredRecordsForPrint: selectedStudentRecords,
-      periodTitle: `전체 기간 (${start} ~ ${end})`,
-    };
-  }, [selectedStudentRecords, periodFilter, customStartDate, customEndDate]);
 
   // 학생 클릭 처리: 선택 모달 노출
   const handleStudentPress = (student) => {
@@ -181,43 +108,9 @@ export default function StudentListScreen() {
     if (!selectedStudent) return;
     setActionModalVisible(false);
     setPrintType('records');
-    setPeriodFilter('all');
-    setActiveDatePicker(null);
     const recs = await Database.getRecordsByStudent(selectedStudent.id);
     setSelectedStudentRecords(recs || []);
     setPrintOptionModalVisible(true);
-  };
-
-  // 인쇄 실행
-  const handleExecutePrint = async () => {
-    if (!selectedStudent) return;
-    setPrintOptionModalVisible(false);
-
-    if (printType === 'student') {
-      await printStudentProfile(selectedStudent);
-    } else {
-      if (filteredRecordsForPrint.length === 0) {
-        Alert.alert('알림', `${selectedStudent.name} 학생의 해당 기간 수업 일지가 없습니다.`);
-        return;
-      }
-      await printClassRecords(selectedStudent, filteredRecordsForPrint, periodTitle);
-    }
-  };
-
-  // PDF 공유 실행
-  const handleExecuteShare = async () => {
-    if (!selectedStudent) return;
-    setPrintOptionModalVisible(false);
-
-    if (printType === 'student') {
-      await shareStudentProfile(selectedStudent);
-    } else {
-      if (filteredRecordsForPrint.length === 0) {
-        Alert.alert('알림', `${selectedStudent.name} 학생의 해당 기간 수업 일지가 없습니다.`);
-        return;
-      }
-      await shareClassRecords(selectedStudent, filteredRecordsForPrint, periodTitle);
-    }
   };
 
   // 학생 목록 가져오기
@@ -573,220 +466,35 @@ export default function StudentListScreen() {
         onClose={() => setResumeModalVisible(false)}
       />
 
-      {/* 인쇄 및 PDF 공유 방식 선택 모달 */}
-      <Modal
-        animationType="slide"
-        transparent={true}
+      {/* 인쇄 및 PDF 공유 방식 선택 공통 모달 */}
+      <RecordPrintModal
         visible={printOptionModalVisible}
-        onRequestClose={() => setPrintOptionModalVisible(false)}
-        statusBarTranslucent
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setPrintOptionModalVisible(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.modalContent}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.modalScrollContent}
-            >
-              {selectedStudent && (
-                <>
-                  <View style={styles.modalHeader}>
-                    <View style={styles.modalTitleContainer}>
-                      <Text style={styles.modalStudentName}>
-                        {printType === 'student' ? '학생 정보 카드 출력' : '수업 일지 보고서 출력'}
-                      </Text>
-                      <Text style={styles.modalStudentSub}>
-                        {printType === 'student'
-                          ? `${selectedStudent.name} 학생 대상`
-                          : `${selectedStudent.name} 학생의 수업 기록 (${filteredRecordsForPrint.length}건 선택됨)`}
-                      </Text>
-                    </View>
-                    <TouchableOpacity onPress={() => setPrintOptionModalVisible(false)} style={styles.modalCloseBtn}>
-                      <Feather name="x" size={22} color={theme.colors.textSecondary} />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* 수업일지 보고서 출력인 경우에만 기간 선택 영역 노출 */}
-                  {printType === 'records' && (
-                    <>
-                      <Text style={styles.filterSectionLabel}>출력 기간 선택</Text>
-                      <View style={styles.filterChipGroup}>
-                        <TouchableOpacity
-                          style={[styles.filterChip, periodFilter === 'all' && styles.filterChipActive]}
-                          onPress={() => {
-                            setPeriodFilter('all');
-                            setActiveDatePicker(null);
-                          }}
-                        >
-                          <Text style={[styles.filterChipText, periodFilter === 'all' && styles.filterChipTextActive]}>
-                            전체 기간
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[styles.filterChip, periodFilter === 'current_month' && styles.filterChipActive]}
-                          onPress={() => {
-                            setPeriodFilter('current_month');
-                            setActiveDatePicker(null);
-                          }}
-                        >
-                          <Text style={[styles.filterChipText, periodFilter === 'current_month' && styles.filterChipTextActive]}>
-                            이번 달
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[styles.filterChip, periodFilter === '1m' && styles.filterChipActive]}
-                          onPress={() => {
-                            setPeriodFilter('1m');
-                            setActiveDatePicker(null);
-                          }}
-                        >
-                          <Text style={[styles.filterChipText, periodFilter === '1m' && styles.filterChipTextActive]}>
-                            최근 1개월
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[styles.filterChip, periodFilter === '3m' && styles.filterChipActive]}
-                          onPress={() => {
-                            setPeriodFilter('3m');
-                            setActiveDatePicker(null);
-                          }}
-                        >
-                          <Text style={[styles.filterChipText, periodFilter === '3m' && styles.filterChipTextActive]}>
-                            최근 3개월
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[styles.filterChip, periodFilter === 'custom' && styles.filterChipActive]}
-                          onPress={() => {
-                            setPeriodFilter('custom');
-                            setActiveDatePicker(null);
-                          }}
-                        >
-                          <Text style={[styles.filterChipText, periodFilter === 'custom' && styles.filterChipTextActive]}>
-                            직접 설정
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      {/* 직접 설정 선택 시 시작일 ~ 종료일 선택기 */}
-                      {periodFilter === 'custom' && (
-                        <View style={styles.customDateContainer}>
-                          <View style={styles.customDateRow}>
-                            <TouchableOpacity
-                              style={[
-                                styles.customDateBtn,
-                                activeDatePicker === 'start' && styles.customDateBtnActive
-                              ]}
-                              onPress={() => setActiveDatePicker(activeDatePicker === 'start' ? null : 'start')}
-                            >
-                              <Text style={styles.customDateLabel}>시작일</Text>
-                              <Text style={styles.customDateText}>{customStartDate}</Text>
-                            </TouchableOpacity>
-
-                            <Text style={styles.customDateTilde}>~</Text>
-
-                            <TouchableOpacity
-                              style={[
-                                styles.customDateBtn,
-                                activeDatePicker === 'end' && styles.customDateBtnActive
-                              ]}
-                              onPress={() => setActiveDatePicker(activeDatePicker === 'end' ? null : 'end')}
-                            >
-                              <Text style={styles.customDateLabel}>종료일</Text>
-                              <Text style={styles.customDateText}>{customEndDate}</Text>
-                            </TouchableOpacity>
-                          </View>
-
-                          {/* 날짜 선택 인라인 캘린더 */}
-                          {activeDatePicker && (
-                            <View style={styles.inlineCustomCalendar}>
-                              <View style={styles.inlineCustomCalendarHeader}>
-                                <Text style={styles.inlineCustomCalendarTitle}>
-                                  {activeDatePicker === 'start' ? '시작 날짜 선택' : '종료 날짜 선택'}
-                                </Text>
-                              </View>
-                              <Calendar
-                                current={activeDatePicker === 'start' ? customStartDate : customEndDate}
-                                onDayPress={(day) => {
-                                  if (activeDatePicker === 'start') {
-                                    setCustomStartDate(day.dateString);
-                                    if (day.dateString > customEndDate) {
-                                      setCustomEndDate(day.dateString);
-                                    }
-                                  } else {
-                                    setCustomEndDate(day.dateString);
-                                    if (day.dateString < customStartDate) {
-                                      setCustomStartDate(day.dateString);
-                                    }
-                                  }
-                                  setActiveDatePicker(null);
-                                }}
-                                theme={{
-                                  selectedDayBackgroundColor: theme.colors.primary,
-                                  todayTextColor: theme.colors.primary,
-                                  arrowColor: theme.colors.primary,
-                                }}
-                              />
-                            </View>
-                          )}
-                        </View>
-                      )}
-
-                      {/* 선택된 대상 요약 배너 */}
-                      <View style={styles.summaryBadgeBox}>
-                        <Feather name="info" size={14} color={theme.colors.primary} style={styles.summaryBadgeIcon} />
-                        <Text style={styles.summaryBadgeText}>
-                          조회: {periodTitle} ({filteredRecordsForPrint.length}회차 기록)
-                        </Text>
-                      </View>
-                    </>
-                  )}
-
-                  {/* 옵션 1: 무선/유선 프린터로 인쇄 */}
-                  <ActionMenuItem
-                    icon="printer"
-                    iconColor={theme.colors.primary}
-                    iconBgColor={theme.colors.primary + '1F'}
-                    title="프린터로 인쇄 (A4)"
-                    subtitle="Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다"
-                    onPress={handleExecutePrint}
-                  />
-
-                  {/* 옵션 2: PDF 파일 공유 (카톡/메시지) */}
-                  <ActionMenuItem
-                    icon="share-2"
-                    iconColor="#0284C7"
-                    iconBgColor="#E0F2FE"
-                    title="PDF 파일 공유 (카톡/메시지)"
-                    subtitle={
-                      printType === 'student'
-                        ? '카카오톡, 문자, 이메일로 PDF 문서를 전송합니다'
-                        : '학부모님 카톡, 문자, 이메일로 보고서를 발송합니다'
-                    }
-                    onPress={handleExecuteShare}
-                  />
-                </>
-              )}
-            </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        onClose={() => setPrintOptionModalVisible(false)}
+        printType={printType}
+        student={selectedStudent}
+        records={selectedStudentRecords}
+        onPrintStudent={(stud) => printStudentProfile(stud)}
+        onShareStudent={(stud) => shareStudentProfile(stud)}
+        onPrintRecords={(stud, recs, title) => {
+          if (!recs.length) {
+            Alert.alert('알림', `${stud?.name || '학생'} 학생의 해당 기간 수업 일지가 없습니다.`);
+            return;
+          }
+          printClassRecords(stud, recs, title);
+        }}
+        onShareRecords={(stud, recs, title) => {
+          if (!recs.length) {
+            Alert.alert('알림', `${stud?.name || '학생'} 학생의 해당 기간 수업 일지가 없습니다.`);
+            return;
+          }
+          shareClassRecords(stud, recs, title);
+        }}
+      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.surfaceVariant,
@@ -928,128 +636,11 @@ const styles = StyleSheet.create({
   modalCloseBtn: {
     padding: 4,
   },
-  filterSectionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 10,
-  },
-  filterChipGroup: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 14,
-  },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: theme.colors.surfaceVariant,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  filterChipActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: theme.colors.primary,
-  },
-  filterChipText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    fontWeight: '600',
-  },
-  filterChipTextActive: {
-    color: theme.colors.primary,
-    fontWeight: '700',
-  },
-  summaryBadgeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.secondaryContainer,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  summaryBadgeText: {
-    fontSize: 12.5,
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-  customDateContainer: {
-    backgroundColor: theme.colors.surfaceVariant + '60',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: theme.colors.outline + '40',
-  },
-  customDateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  customDateBtn: {
-    flex: 1,
-    backgroundColor: theme.colors.white,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.outline,
-    alignItems: 'center',
-  },
-  customDateBtnActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: '#EFF6FF',
-  },
-  customDateLabel: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-    marginBottom: 2,
-    fontWeight: '600',
-  },
-  customDateText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  customDateTilde: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.textSecondary,
-    marginHorizontal: 8,
-  },
-  inlineCustomCalendar: {
-    marginTop: 10,
-    backgroundColor: theme.colors.white,
-    borderRadius: 10,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.outline + '40',
-  },
-  inlineCustomCalendarHeader: {
-    paddingBottom: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.surfaceVariant,
-    marginBottom: 6,
-    alignItems: 'center',
-  },
-  inlineCustomCalendarTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.primary,
-  },
   searchIcon: {
     marginRight: 8,
   },
   addBtnIcon: {
     marginRight: 4,
-  },
-  modalScrollContent: {
-    paddingBottom: 10,
-  },
-  summaryBadgeIcon: {
-    marginRight: 6,
   },
   tabContainer: {
     flexDirection: 'row',

@@ -8,25 +8,21 @@ import {
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
-  Modal,
   Alert,
   Linking,
   Platform,
-  KeyboardAvoidingView,
   Keyboard,
-  useWindowDimensions,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Database } from '../database/Database';
-import { getMondayOfWeek, getDateFromMondayOffset } from '../utils/dateUtils';
+import { getMondayOfWeek, getDateFromMondayOffset, getTodayFormatted } from '../utils/dateUtils';
 import { formatPhoneInfo } from '../utils/stringUtils';
 import { printWeeklyReport, shareWeeklyReport, shareWeeklyReportDocx, shareWeeklyReportHwpx } from '../services/PrintService';
 import { useTheme } from '../context/ThemeContext';
-import { theme } from '../theme';
 import CallManageModal from '../components/modals/CallManageModal';
 import WeeklyExportModal from '../components/modals/WeeklyExportModal';
-import TimePickerModal from '../components/modals/TimePickerModal';
+import ScheduleEditModal from '../components/modals/ScheduleEditModal';
 
 const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -50,8 +46,8 @@ const TIME_SLOTS = [
  * @returns {React.JSX.Element} 주간 시간표 화면 요소
  */
 export default function WeeklyPlanScreen() {
-  // eslint-disable-next-line no-shadow
   const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 
@@ -65,7 +61,11 @@ export default function WeeklyPlanScreen() {
 
   // 뷰 모드: 'table' (주간 전체 타임테이블) | 'timeline' (요일별 상세 타임라인)
   const [viewMode, setViewMode] = useState('table');
-  const [selectedDayOffset, setSelectedDayOffset] = useState(0); // 0(월) ~ 6(일)
+  const [selectedDayOffset, setSelectedDayOffset] = useState(() => {
+    const d = new Date().getDay();
+    return d === 0 ? 6 : d - 1;
+  }); // 0(월) ~ 6(일)
+  const todayStr = useMemo(() => getTodayFormatted(), []);
 
   // 하단 부가 업무 섹션 접기/펼치기
   const [bottomNotesExpanded, setBottomNotesExpanded] = useState(false);
@@ -84,16 +84,10 @@ export default function WeeklyPlanScreen() {
   const [formPhoneInfo, setFormPhoneInfo] = useState('');
   const [formDayOfWeek, setFormDayOfWeek] = useState(1);
   const [formStartTime, setFormStartTime] = useState('10:00');
-  const { height: screenHeight } = useWindowDimensions();
   const [formStatusNote, setFormStatusNote] = useState('');
-  const [studentPickerVisible, setStudentPickerVisible] = useState(false);
-  const [studentSearchQuery, setStudentSearchQuery] = useState('');
-  const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const mainScrollRef = useRef(null);
-  const editModalScrollRef = useRef(null);
-  const focusedModalFieldRef = useRef(null);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -103,11 +97,6 @@ export default function WeeklyPlanScreen() {
         if (e?.endCoordinates?.height) {
           setKeyboardHeight(e.endCoordinates.height);
         }
-        if (focusedModalFieldRef.current === 'bottom') {
-          setTimeout(() => {
-            editModalScrollRef.current?.scrollToEnd({ animated: true });
-          }, 80);
-        }
       }
     );
     const hideSub = Keyboard.addListener(
@@ -115,7 +104,6 @@ export default function WeeklyPlanScreen() {
       () => {
         setIsKeyboardVisible(false);
         setKeyboardHeight(0);
-        focusedModalFieldRef.current = null;
       }
     );
     return () => {
@@ -129,14 +117,7 @@ export default function WeeklyPlanScreen() {
     isKeyboardVisible && {
       paddingBottom: Platform.OS === 'android' ? keyboardHeight + 40 : 120,
     },
-  ], [isKeyboardVisible, keyboardHeight]);
-
-  const editModalScrollContentDynamicStyle = useMemo(() => [
-    styles.modalScrollContent,
-    isKeyboardVisible && {
-      paddingBottom: Platform.OS === 'android' ? Math.max(keyboardHeight * 0.6, 120) : 48,
-    },
-  ], [isKeyboardVisible, keyboardHeight]);
+  ], [styles.mainScrollContent, isKeyboardVisible, keyboardHeight]);
 
   // 작성된 수업 일지 목록 (실시간 완료 매핑용)
   const [allRecords, setAllRecords] = useState([]);
@@ -283,8 +264,6 @@ export default function WeeklyPlanScreen() {
       phoneList.push(`(전화)${homePhone}`);
     }
     setFormPhoneInfo(phoneList.join('\n'));
-
-    setStudentPickerVisible(false);
   };
 
   // 모달 내 요일 변경 핸들러 (학생이 이미 선택되어 있다면 해당 요일의 정규 수업 일정 정보 자동 연동)
@@ -595,54 +574,36 @@ export default function WeeklyPlanScreen() {
     });
   };
 
-  // 전화 걸기 헬퍼
+  // 전화 걸기 헬퍼 (다중 연락처 시 선택창 표시)
   const handleMakeCall = (phoneStr) => {
     if (!phoneStr) return;
-    const match = phoneStr.match(/\d{2,3}-\d{3,4}-\d{4}/);
-    if (match) {
-      Linking.openURL(`tel:${match[0]}`);
+    const matches = phoneStr.match(/(?:\([^)]+\)\s*)?\d{2,3}-\d{3,4}-\d{4}/g);
+    if (!matches || matches.length === 0) return;
+
+    const dialNumber = (raw) => {
+      const numMatch = raw.match(/\d{2,3}-\d{3,4}-\d{4}/);
+      if (numMatch) {
+        Linking.openURL(`tel:${numMatch[0]}`);
+      }
+    };
+
+    if (matches.length === 1) {
+      dialNumber(matches[0]);
+      return;
     }
+
+    Alert.alert(
+      '통화할 번호 선택',
+      '연결할 전화번호를 선택해 주세요.',
+      [
+        ...matches.map((item) => ({
+          text: item.trim(),
+          onPress: () => dialNumber(item),
+        })),
+        { text: '취소', style: 'cancel' },
+      ]
+    );
   };
-
-  // 필터링된 학생 목록 (학생 선택 모달용 - 가나다 오름차순 정렬)
-  const filteredStudents = useMemo(() => {
-    const list = [...students].sort((a, b) =>
-      (a.name || '').localeCompare(b.name || '', 'ko')
-    );
-    if (!studentSearchQuery.trim()) return list;
-    return list.filter((s) =>
-      (s.name || '').toLowerCase().includes(studentSearchQuery.toLowerCase())
-    );
-  }, [students, studentSearchQuery]);
-
-  // 키보드 상태 및 화면 크기에 따른 학생 선택 모달 동적 스타일 (키보드 가림 방지)
-  const studentPickerContainerStyle = useMemo(() => {
-    if (!isKeyboardVisible) {
-      return [styles.studentPickerOverlay, styles.studentPickerOverlayCentered];
-    }
-    return [
-      styles.studentPickerOverlay,
-      styles.studentPickerOverlayKeyboard,
-    ];
-  }, [isKeyboardVisible]);
-
-  const studentPickerContentStyle = useMemo(() => {
-    if (!isKeyboardVisible) {
-      return [
-        styles.pickerModalContent,
-        styles.pickerModalContentCentered,
-        { maxHeight: Math.min(screenHeight * 0.75, 520) },
-      ];
-    }
-    // 키보드가 올라왔을 때는 화면 상단에 안정적으로 위치하고, 키보드 바로 위까지 최대 높이 확보
-    const safeTop = Platform.OS === 'android' ? 36 : 48;
-    const availableHeight = screenHeight - keyboardHeight - safeTop - 20;
-    return [
-      styles.pickerModalContent,
-      styles.pickerModalContentKeyboard,
-      { maxHeight: Math.max(availableHeight, 240) },
-    ];
-  }, [isKeyboardVisible, keyboardHeight, screenHeight]);
 
   // 시간표에는 재원생만 표기: 휴회 중인 학생의 수업은 시간표 렌더링에서 제외
   const activeScheduleItems = useMemo(() => {
@@ -798,9 +759,13 @@ export default function WeeklyPlanScreen() {
                     {[1, 2, 3, 4, 5, 6].map((dayVal) => {
                       const dStr = getDayDateString(dayVal);
                       const [, m, d] = dStr.split('-');
+                      const isToday = dStr === todayStr;
                       return (
-                        <View key={dayVal} style={styles.dayHeaderCell}>
-                          <Text style={styles.dayHeaderLabel}>
+                        <View
+                          key={dayVal}
+                          style={[styles.dayHeaderCell, isToday && styles.dayHeaderCellToday]}
+                        >
+                          <Text style={[styles.dayHeaderLabel, isToday && styles.dayHeaderLabelToday]}>
                             {DAY_LABELS[dayVal - 1]}({parseInt(m, 10)}/{parseInt(d, 10)})
                           </Text>
                         </View>
@@ -938,16 +903,33 @@ export default function WeeklyPlanScreen() {
                   const dStr = getDayDateString(idx + 1);
                   const [, , d] = dStr.split('-');
                   const isSelected = selectedDayOffset === idx;
+                  const isToday = dStr === todayStr;
                   return (
                     <TouchableOpacity
                       key={label}
-                      style={[styles.dayTabPill, isSelected && styles.dayTabPillActive]}
+                      style={[
+                        styles.dayTabPill,
+                        isToday && !isSelected && styles.dayTabPillToday,
+                        isSelected && styles.dayTabPillActive,
+                      ]}
                       onPress={() => setSelectedDayOffset(idx)}
                     >
-                      <Text style={[styles.dayTabLabel, isSelected && styles.dayTabLabelActive]}>
+                      <Text
+                        style={[
+                          styles.dayTabLabel,
+                          isToday && !isSelected && styles.dayTabLabelToday,
+                          isSelected && styles.dayTabLabelActive,
+                        ]}
+                      >
                         {label}
                       </Text>
-                      <Text style={[styles.dayTabDate, isSelected && styles.dayTabDateActive]}>
+                      <Text
+                        style={[
+                          styles.dayTabDate,
+                          isToday && !isSelected && styles.dayTabLabelToday,
+                          isSelected && styles.dayTabDateActive,
+                        ]}
+                      >
                         {parseInt(d, 10)}일
                       </Text>
                     </TouchableOpacity>
@@ -1194,339 +1176,32 @@ export default function WeeklyPlanScreen() {
         </ScrollView>
       )}
 
-      {/* ======================= 모달 1: 수업 추가 / 편집 모달 ======================= */}
-      <Modal
-        animationType="slide"
-        transparent={true}
+      {/* ======================= 모달 1~2 & 시간 피커: 수업 추가 / 편집 통합 모달 ======================= */}
+      <ScheduleEditModal
         visible={editModalVisible}
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalKeyboardAvoid}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => {
-              if (isKeyboardVisible) {
-                Keyboard.dismiss();
-              } else {
-                setEditModalVisible(false);
-              }
-            }}
-          >
-            <View
-              style={[
-                styles.editModalContent,
-                isKeyboardVisible && styles.editModalContentKeyboard,
-              ]}
-              onStartShouldSetResponder={() => true}
-            >
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {selectedItem ? '수업 일정 변경 / 메모' : '새 주간 수업 등록'}
-              </Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Feather name="x" size={22} color={theme.colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              ref={editModalScrollRef}
-              style={styles.modalScroll}
-              contentContainerStyle={editModalScrollContentDynamicStyle}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-              showsVerticalScrollIndicator={true}
-            >
-              {/* 학생 선택 버튼 */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>학생 선택 <Text style={styles.reqStar}>*</Text></Text>
-                <TouchableOpacity
-                  style={styles.studentPickerBtn}
-                  onPress={() => {
-                    setStudentSearchQuery('');
-                    setStudentPickerVisible(true);
-                  }}
-                >
-                  <Text style={formStudentName ? styles.studentPickerText : styles.studentPickerPlaceholder}>
-                    {formStudentName || '학생 주소록에서 선택하기'}
-                  </Text>
-                  <Feather name="search" size={16} color={theme.colors.primary} />
-                </TouchableOpacity>
-              </View>
-
-              {/* 요일 및 시간 선택 */}
-              <View style={styles.formRow}>
-                <View style={styles.formCol}>
-                  <Text style={styles.formLabel}>요일</Text>
-                  <View style={styles.daySelectRow}>
-                    {DAY_LABELS.map((d, idx) => (
-                      <TouchableOpacity
-                        key={d}
-                        style={[
-                          styles.daySelectPill,
-                          formDayOfWeek === idx + 1 && styles.daySelectPillActive,
-                        ]}
-                        onPress={() => handleDaySelect(idx + 1)}
-                      >
-                        <Text
-                          style={[
-                            styles.daySelectPillText,
-                            formDayOfWeek === idx + 1 && styles.daySelectPillTextActive,
-                          ]}
-                        >
-                          {d}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              </View>
-
-              {/* 시작 시간 */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>시작 시간 <Text style={styles.reqStar}>*</Text></Text>
-                <TouchableOpacity
-                  style={styles.timeSelectorBtn}
-                  onPress={() => setTimePickerVisible(true)}
-                >
-                  <Text style={styles.timeSelectorBtnText}>
-                    ⏰ {formStartTime || '10:00'}
-                  </Text>
-                  <Feather name="chevron-down" size={15} color={theme.colors.primary} />
-                </TouchableOpacity>
-              </View>
-
-              {/* 과목 */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>수업 과목 / 과정</Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={formSubject}
-                  onChangeText={setFormSubject}
-                  placeholder="예: 파이썬, sketchup, C언어, 자바"
-                  placeholderTextColor={theme.colors.outline}
-                />
-              </View>
-
-              {/* 주소 및 연락처 */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>방문 주소</Text>
-                <TextInput
-                  style={[styles.formInput, styles.multilineInput]}
-                  value={formAddress}
-                  onChangeText={setFormAddress}
-                  onFocus={() => {
-                    focusedModalFieldRef.current = 'bottom';
-                    setTimeout(() => {
-                      editModalScrollRef.current?.scrollTo({ y: 160, animated: true });
-                    }, 120);
-                  }}
-                  placeholder="거주지 주소"
-                  placeholderTextColor={theme.colors.outline}
-                  multiline={true}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>연락처 정보</Text>
-                <TextInput
-                  style={[styles.formInput, styles.multilineInput]}
-                  value={formPhoneInfo}
-                  onChangeText={setFormPhoneInfo}
-                  onFocus={() => {
-                    focusedModalFieldRef.current = 'bottom';
-                    setTimeout(() => {
-                      editModalScrollRef.current?.scrollToEnd({ animated: true });
-                    }, 120);
-                  }}
-                  placeholder="(모)010-0000-0000&#10;(본)010-0000-0000"
-                  placeholderTextColor={theme.colors.outline}
-                  multiline={true}
-                />
-              </View>
-
-              {/* 변동 메모 및 프리셋 */}
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>이번 주 특이사항 / 변동 메모 (PDF에 인쇄됨)</Text>
-                <View style={styles.presetChipRow}>
-                  {['이번주만', '휴일', '아픔', '(30분 수업)'].map((chip) => (
-                    <TouchableOpacity
-                      key={chip}
-                      style={styles.presetChip}
-                      onPress={() => setFormStatusNote(chip)}
-                    >
-                      <Text style={styles.presetChipText}>{chip}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TextInput
-                  style={styles.formInput}
-                  value={formStatusNote}
-                  onChangeText={setFormStatusNote}
-                  onFocus={() => {
-                    focusedModalFieldRef.current = 'bottom';
-                    setTimeout(() => {
-                      editModalScrollRef.current?.scrollToEnd({ animated: true });
-                    }, 120);
-                  }}
-                  placeholder="예: => 이번주만, => 보강"
-                  placeholderTextColor={theme.colors.outline}
-                />
-              </View>
-            </ScrollView>
-
-            {/* 하단 액션 버튼 (항상 화면 하단에 고정 표시) */}
-            <View style={styles.modalBtnRow}>
-              {selectedItem && (
-                <TouchableOpacity
-                  style={styles.modalDeleteBtn}
-                  onPress={() => handleDeleteScheduleItem(selectedItem.id)}
-                >
-                  <Feather name="trash-2" size={16} color={theme.colors.error} />
-                  <Text style={styles.modalDeleteBtnText}>이번주 제외</Text>
-                </TouchableOpacity>
-              )}
-
-              {selectedItem && (
-                <TouchableOpacity
-                  style={styles.modalRecordBtn}
-                  onPress={() => handleGoToClassRecord(selectedItem)}
-                >
-                  <Feather
-                    name="book-open"
-                    size={16}
-                    color={getMatchedRecord(selectedItem) ? '#16A34A' : theme.colors.primary}
-                  />
-                  <Text
-                    style={[
-                      styles.modalRecordBtnText,
-                      getMatchedRecord(selectedItem) && styles.modalRecordBtnTextDone,
-                    ]}
-                  >
-                    {getMatchedRecord(selectedItem) ? '일지 수정' : '일지 작성'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleSaveScheduleItem}
-              >
-                <Feather name="check" size={16} color={theme.colors.onPrimary} />
-                <Text style={styles.modalSaveBtnText}>저장하기</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* ======================= 모달 2: 학생 선택 팝업 ======================= */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={studentPickerVisible}
-        onRequestClose={() => {
-          if (isKeyboardVisible) {
-            Keyboard.dismiss();
-          } else {
-            setStudentPickerVisible(false);
-          }
-        }}
-        statusBarTranslucent
-      >
-        <View style={studentPickerContainerStyle}>
-          {/* 바깥 배경 터치 시 키보드 닫기 또는 모달 닫기 */}
-          <TouchableOpacity
-            style={StyleSheet.absoluteFillObject}
-            activeOpacity={1}
-            onPress={() => {
-              if (isKeyboardVisible) {
-                Keyboard.dismiss();
-              } else {
-                setStudentPickerVisible(false);
-              }
-            }}
-          />
-
-          <View style={studentPickerContentStyle} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <View style={styles.studentPickerTitleRow}>
-                <Feather name="users" size={18} color={theme.colors.primary} />
-                <Text style={styles.modalTitle}>학생 선택</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setStudentPickerVisible(false);
-                }}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Feather name="x" size={20} color={theme.colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.searchBar}>
-              <Feather name="search" size={16} color={theme.colors.primary} />
-              <TextInput
-                style={styles.searchInput}
-                value={studentSearchQuery}
-                onChangeText={setStudentSearchQuery}
-                placeholder="학생 이름으로 검색..."
-                placeholderTextColor={theme.colors.outline}
-                autoCorrect={false}
-                returnKeyType="search"
-              />
-              {studentSearchQuery.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setStudentSearchQuery('')}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                >
-                  <Feather name="x-circle" size={16} color={theme.colors.textSecondary} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <ScrollView
-              style={styles.studentListScroll}
-              contentContainerStyle={styles.studentListScrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={true}
-            >
-              {filteredStudents.length === 0 ? (
-                <View style={styles.studentPickerEmpty}>
-                  <Feather name="search" size={24} color={theme.colors.outline} />
-                  <Text style={styles.studentPickerEmptyText}>
-                    {studentSearchQuery ? '일치하는 학생이 없습니다.' : '등록된 학생이 없습니다.'}
-                  </Text>
-                </View>
-              ) : (
-                filteredStudents.map((s) => (
-                  <TouchableOpacity
-                    key={s.id}
-                    style={styles.studentItemRow}
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      handleSelectStudent(s);
-                    }}
-                  >
-                    <View style={styles.studentItemInfo}>
-                      <Text style={styles.studentItemName}>{s.name}</Text>
-                      <Text style={styles.studentItemSub}>
-                        {s.school_grade || '학년 미지정'} | {s.study_method || '방문'}
-                      </Text>
-                    </View>
-                    <Feather name="chevron-right" size={18} color={theme.colors.outline} />
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setEditModalVisible(false)}
+        selectedItem={selectedItem}
+        dayLabels={DAY_LABELS}
+        students={students}
+        formStudentName={formStudentName}
+        formDayOfWeek={formDayOfWeek}
+        formStartTime={formStartTime}
+        formSubject={formSubject}
+        formAddress={formAddress}
+        formPhoneInfo={formPhoneInfo}
+        formStatusNote={formStatusNote}
+        onChangeSubject={setFormSubject}
+        onChangeAddress={setFormAddress}
+        onChangePhoneInfo={setFormPhoneInfo}
+        onChangeStatusNote={setFormStatusNote}
+        onChangeStartTime={setFormStartTime}
+        onSelectDay={handleDaySelect}
+        onSelectStudent={handleSelectStudent}
+        onSave={handleSaveScheduleItem}
+        onDelete={() => selectedItem && handleDeleteScheduleItem(selectedItem.id)}
+        matchedRecord={selectedItem ? getMatchedRecord(selectedItem) : null}
+        onGoToClassRecord={() => selectedItem && handleGoToClassRecord(selectedItem)}
+      />
 
       {/* ======================= 모달 3: 전화관리 추가 모달 ======================= */}
       <CallManageModal
@@ -1550,19 +1225,11 @@ export default function WeeklyPlanScreen() {
         onShareHwpx={() => shareWeeklyReportHwpx(activeWeeklyPlan)}
       />
 
-      {/* ======================= 모달 5: 시작 시간 GUI 선택 팝업 ======================= */}
-      <TimePickerModal
-        visible={timePickerVisible}
-        time={formStartTime}
-        title="시작 시간 선택"
-        onSelectTime={setFormStartTime}
-        onClose={() => setTimePickerVisible(false)}
-      />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -1721,7 +1388,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tableInner: {
-    minWidth: 460,
+    minWidth: 500,
   },
   tableHeaderRow: {
     flexDirection: 'row',
@@ -1743,17 +1410,23 @@ const styles = StyleSheet.create({
     color: '#334155',
   },
   dayHeaderCell: {
-    width: 68,
+    width: 76,
     paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderLeftWidth: 1,
     borderLeftColor: '#CBD5E1',
   },
+  dayHeaderCellToday: {
+    backgroundColor: theme.colors.primary,
+  },
   dayHeaderLabel: {
     fontSize: 11,
     fontWeight: '800',
     color: '#1E293B',
+  },
+  dayHeaderLabelToday: {
+    color: theme.colors.onPrimary,
   },
   tableBodyRow: {
     flexDirection: 'row',
@@ -1776,7 +1449,7 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   scheduleCell: {
-    width: 68,
+    width: 76,
     minHeight: 46,
     borderRightWidth: 1,
     borderRightColor: '#E2E8F0',
@@ -1811,16 +1484,16 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   cellItemTitle: {
-    fontSize: 9,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#1E3A8A',
   },
   cellItemSubject: {
-    fontSize: 8,
+    fontSize: 9.5,
     color: '#2563EB',
   },
   cellItemNote: {
-    fontSize: 7.5,
+    fontSize: 9,
     color: '#DC2626',
     fontWeight: '700',
   },
@@ -1934,6 +1607,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.outline + '30',
   },
+  dayTabPillToday: {
+    backgroundColor: theme.colors.secondaryContainer,
+    borderColor: theme.colors.primary,
+  },
   dayTabPillActive: {
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
@@ -1942,6 +1619,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: theme.colors.textSecondary,
+  },
+  dayTabLabelToday: {
+    color: theme.colors.primary,
   },
   dayTabLabelActive: {
     color: theme.colors.onPrimary,
@@ -2276,327 +1956,6 @@ const styles = StyleSheet.create({
   callDeleteBtn: {
     padding: 4,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    justifyContent: 'flex-end',
-  },
-  modalKeyboardAvoid: {
-    flex: 1,
-  },
-  editModalContent: {
-    backgroundColor: theme.colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: Platform.OS === 'android' ? 56 : 36,
-    maxHeight: '88%',
-  },
-  editModalContentKeyboard: {
-    paddingBottom: 16,
-    maxHeight: '94%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.surfaceVariant,
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  modalScroll: {
-    flexShrink: 1,
-  },
-  modalScrollContent: {
-    paddingBottom: 10,
-  },
-  formGroup: {
-    marginBottom: 12,
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-  },
-  formCol: {
-    gap: 4,
-  },
-  formLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.textSecondary,
-    marginBottom: 4,
-  },
-  reqStar: {
-    color: theme.colors.error,
-  },
-  studentPickerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: theme.colors.surfaceVariant + '50',
-    borderWidth: 1,
-    borderColor: theme.colors.outline + '40',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  studentPickerText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  studentPickerPlaceholder: {
-    fontSize: 13,
-    color: theme.colors.outline,
-  },
-  daySelectRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  daySelectPill: {
-    width: 38,
-    height: 34,
-    borderRadius: 6,
-    backgroundColor: theme.colors.surfaceVariant + '70',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  daySelectPillActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  daySelectPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.textSecondary,
-  },
-  daySelectPillTextActive: {
-    color: theme.colors.onPrimary,
-  },
-  formInput: {
-    backgroundColor: theme.colors.surfaceVariant + '40',
-    borderWidth: 1,
-    borderColor: theme.colors.outline + '40',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: theme.colors.textPrimary,
-  },
-  presetChipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 6,
-  },
-  presetChip: {
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  presetChipText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#B91C1C',
-  },
-  modalBtnRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 10,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.surfaceVariant,
-  },
-  modalDeleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#FEE2E2',
-  },
-  modalDeleteBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.error,
-  },
-  modalRecordBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: theme.colors.surfaceVariant,
-  },
-  modalRecordBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.primary,
-  },
-  modalRecordBtnTextDone: {
-    color: '#16A34A',
-  },
-  modalSaveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: theme.colors.primary,
-  },
-  modalSaveBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.colors.onPrimary,
-  },
-  studentPickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    paddingHorizontal: 18,
-  },
-  studentPickerOverlayCentered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  studentPickerOverlayKeyboard: {
-    justifyContent: 'flex-start',
-    paddingTop: Platform.OS === 'android' ? 36 : 48,
-  },
-  pickerModalContent: {
-    width: '100%',
-    backgroundColor: theme.colors.white,
-    borderRadius: 16,
-    padding: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  pickerModalContentCentered: {
-    borderRadius: 16,
-  },
-  pickerModalContentKeyboard: {
-    borderRadius: 16,
-  },
-  studentPickerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surfaceVariant + '60',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 10,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 9,
-    paddingHorizontal: 8,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-  },
-  studentListScroll: {
-    flexShrink: 1,
-  },
-  studentListScrollContent: {
-    paddingBottom: 8,
-  },
-  studentPickerEmpty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 32,
-    gap: 8,
-  },
-  studentPickerEmptyText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
-  studentItemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.surfaceVariant,
-  },
-  studentItemInfo: {
-    flex: 1,
-  },
-  studentItemName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  studentItemSub: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  callModalContent: {
-    backgroundColor: theme.colors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-  },
-  pdfModalContent: {
-    backgroundColor: theme.colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 36,
-  },
-  actionMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: theme.roundness,
-    backgroundColor: theme.colors.surfaceVariant + '80',
-    marginBottom: 12,
-  },
-  actionIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  actionMenuTextContainer: {
-    flex: 1,
-  },
-  actionMenuTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  actionMenuSub: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
   mapPinIcon: {
     marginTop: 2,
   },
@@ -2605,18 +1964,6 @@ const styles = StyleSheet.create({
   },
   flex1Half: {
     flex: 1.5,
-  },
-  multilineInput: {
-    height: 50,
-  },
-  pdfShareIconBadge: {
-    backgroundColor: '#E0F2FE',
-  },
-  docxShareIconBadge: {
-    backgroundColor: '#EFF6FF',
-  },
-  hwpxShareIconBadge: {
-    backgroundColor: '#FFF7ED',
   },
   cellItemBoxDone: {
     backgroundColor: '#DCFCE7',
@@ -2745,21 +2092,5 @@ const styles = StyleSheet.create({
   recurringToggleTextActiveTemp: {
     color: '#D97706',
     fontWeight: '700',
-  },
-  timeSelectorBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: theme.colors.surfaceVariant + '50',
-    borderWidth: 1,
-    borderColor: theme.colors.outline + '40',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-  },
-  timeSelectorBtnText: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
   },
 });

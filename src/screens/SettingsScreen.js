@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,13 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { Database } from '../database/Database';
 import { GoogleDriveService } from '../services/GoogleDriveService';
-import { theme } from '../theme';
+import { theme as defaultTheme } from '../theme';
 import { useTheme } from '../context/ThemeContext';
 
 export default function SettingsScreen({ navigation }) {
   const { theme: activeTheme, currentThemeId, setThemeId, presets } = useTheme();
-  const currentTheme = activeTheme || theme;
+  const currentTheme = activeTheme || defaultTheme;
+  const styles = useMemo(() => createStyles(currentTheme), [currentTheme]);
   const [activeTab, setActiveTab] = useState('backup'); // 'backup' | 'theme'
   const [loading, setLoading] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
@@ -379,7 +380,7 @@ export default function SettingsScreen({ navigation }) {
 
       {loading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={currentTheme.colors.primary} />
           <Text style={styles.loadingText}>처리 중입니다...</Text>
         </View>
       )}
@@ -387,7 +388,7 @@ export default function SettingsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
   segmentContainer: {
     flexDirection: 'row',
     backgroundColor: '#E8ECF0',

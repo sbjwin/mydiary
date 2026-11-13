@@ -22,7 +22,6 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Database } from '../database/Database';
 import { useTheme } from '../context/ThemeContext';
 import { getTodayFormatted } from '../utils/dateUtils';
-import { theme } from '../theme';
 import Separator from '../components/Separator';
 import FloatingActionButton from '../components/FloatingActionButton';
 
@@ -37,6 +36,8 @@ LocaleConfig.locales.ko = {
 LocaleConfig.defaultLocale = 'ko';
 
 const CustomDay = React.memo(({ date, state, marking, onPress }) => {
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const isSelected = marking?.selected;
   const classCount = marking?.classCount || 0;
   const isToday = state === 'today';
@@ -73,8 +74,8 @@ const CustomDay = React.memo(({ date, state, marking, onPress }) => {
  * @returns {React.JSX.Element} 달력 일지 화면 요소
  */
 export default function CalendarScreen() {
-  // eslint-disable-next-line no-shadow
   const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 
@@ -116,7 +117,7 @@ export default function CalendarScreen() {
   const modalOverlayDynamicStyle = useMemo(() => [
     styles.modalOverlay,
     isKeyboardVisible && styles.modalOverlayKeyboard,
-  ], [isKeyboardVisible]);
+  ], [styles.modalOverlay, styles.modalOverlayKeyboard, isKeyboardVisible]);
 
   const modalContentDynamicStyle = useMemo(() => {
     if (!isKeyboardVisible) {
@@ -129,7 +130,7 @@ export default function CalendarScreen() {
       styles.modalContentKeyboard,
       { height: undefined, maxHeight: Math.max(availableHeight, 240) },
     ];
-  }, [isKeyboardVisible, keyboardHeight, screenHeight]);
+  }, [styles.modalContent, styles.modalContentKeyboard, isKeyboardVisible, keyboardHeight, screenHeight]);
 
   // 달력 접기/펼치기 상태 및 애니메이션 관리를 위한 상태 및 ref
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -153,7 +154,7 @@ export default function CalendarScreen() {
         </View>
       ),
     });
-  }, [navigation, theme.colors.primary]);
+  }, [navigation, theme.colors.primary, styles.headerRightContainer, styles.headerRightWeeklyBtn, styles.headerRightWeeklyBtnText]);
 
   // 달력 접기 애니메이션 처리 함수
   const collapseCalendar = useCallback(() => {
@@ -643,7 +644,7 @@ export default function CalendarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.surfaceVariant,

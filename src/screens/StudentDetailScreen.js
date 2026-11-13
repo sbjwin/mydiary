@@ -11,8 +11,6 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
-  ImageBackground,
-  Modal
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,22 +20,26 @@ import { printStudentProfile, shareStudentProfile } from '../services/PrintServi
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { getTodayFormatted } from '../utils/dateUtils';
-import { theme } from '../theme';
 import StudentStatusModal from '../components/modals/StudentStatusModal';
 import TimePickerModal from '../components/modals/TimePickerModal';
-import ActionMenuItem from '../components/ActionMenuItem';
+import RecordPrintModal from '../components/modals/RecordPrintModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 /**
  * 학생 개인 프로필, 수강 상태(재원/휴회), 정규 수업 일정 및 특이사항을 등록·수정하는 화면 컴포넌트
  * @returns {React.JSX.Element} 학생 상세 정보 화면 요소
  */
 export default function StudentDetailScreen() {
-  // eslint-disable-next-line no-shadow
   const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const { studentId } = route.params || {};
+  const initialSnapshotRef = useRef(null);
+  const isSavedRef = useRef(false);
+  const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
+  const [pendingRemoveAction, setPendingRemoveAction] = useState(null);
 
   const isEditMode = !!studentId;
 
@@ -114,7 +116,52 @@ export default function StudentDetailScreen() {
     isKeyboardVisible && {
       paddingBottom: Platform.OS === 'android' ? keyboardHeight + 48 : 80,
     },
-  ], [isKeyboardVisible, keyboardHeight]);
+  ], [styles.scrollContent, isKeyboardVisible, keyboardHeight]);
+
+  const currentSnapshotStr = useMemo(() => JSON.stringify({
+    name: name.trim(),
+    school_grade: schoolGrade.trim() || null,
+    resident_number: residentNumber.trim() || null,
+    address: address.trim() || null,
+    phone_number: phoneNumber.trim() || null,
+    email: email.trim() || null,
+    mobile_phone: mobilePhone.trim() || null,
+    study_method: studyMethod.trim() || null,
+    parent_name: parentName.trim() || null,
+    parent_mobile_phone: parentMobilePhone.trim() || null,
+    default_schedules: defaultSchedules,
+    notes: notes.trim() || null,
+    status,
+    first_enrolled_date: firstEnrolledDate,
+    current_term_number: currentTermNumber,
+    terms,
+  }), [
+    name, schoolGrade, residentNumber, address, phoneNumber, email, mobilePhone,
+    studyMethod, parentName, parentMobilePhone, defaultSchedules, notes,
+    status, firstEnrolledDate, currentTermNumber, terms,
+  ]);
+
+  useEffect(() => {
+    if (!isEditMode && initialSnapshotRef.current === null) {
+      initialSnapshotRef.current = currentSnapshotStr;
+    }
+  }, [isEditMode, currentSnapshotStr]);
+
+  const hasUnsavedChanges =
+    initialSnapshotRef.current !== null && currentSnapshotStr !== initialSnapshotRef.current;
+
+  useEffect(() => {
+    if (!navigation?.addListener) return undefined;
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (isSavedRef.current || !hasUnsavedChanges) {
+        return;
+      }
+      e.preventDefault();
+      setPendingRemoveAction(e.data.action);
+      setLeaveConfirmVisible(true);
+    });
+    return unsubscribe;
+  }, [navigation, hasUnsavedChanges]);
 
   const activeScheduleTime = useMemo(() => {
     if (!activeScheduleIdForTime) return '10:00';
@@ -160,7 +207,7 @@ export default function StudentDetailScreen() {
         ),
       });
     }
-  }, [navigation, isEditMode, theme.colors.primary]);
+  }, [navigation, isEditMode, theme.colors.primary, styles.headerRightBtn]);
 
   // 입력 자동 포맷팅 핸들러
   const formatPhoneNumber = (text) => {
@@ -210,15 +257,38 @@ export default function StudentDetailScreen() {
 
             // 수강 상태 및 차수(terms) 로드
             const stTerms = Array.isArray(student.terms) && student.terms.length > 0 ? student.terms : [];
-            setTerms(stTerms);
-            setStatus(student.status || 'active');
-            setFirstEnrolledDate(
+            const loadedStatus = student.status || 'active';
+            const loadedFirstEnrolled =
               student.first_enrolled_date ||
-                student.start_date ||
-                stTerms[0]?.start_date ||
-                (student.created_at ? student.created_at.split('T')[0] : getTodayFormatted())
-            );
-            setCurrentTermNumber(student.current_term_number || stTerms.length || 1);
+              student.start_date ||
+              stTerms[0]?.start_date ||
+              (student.created_at ? student.created_at.split('T')[0] : getTodayFormatted());
+            const loadedTermNumber = student.current_term_number || stTerms.length || 1;
+            const loadedSchedules = Array.isArray(student.default_schedules) ? student.default_schedules : [];
+
+            setTerms(stTerms);
+            setStatus(loadedStatus);
+            setFirstEnrolledDate(loadedFirstEnrolled);
+            setCurrentTermNumber(loadedTermNumber);
+
+            initialSnapshotRef.current = JSON.stringify({
+              name: (student.name || '').trim(),
+              school_grade: (student.school_grade || '').trim() || null,
+              resident_number: (student.resident_number || '').trim() || null,
+              address: (student.address || '').trim() || null,
+              phone_number: (student.phone_number || '').trim() || null,
+              email: (student.email || '').trim() || null,
+              mobile_phone: (student.mobile_phone || '').trim() || null,
+              study_method: (student.study_method || '').trim() || null,
+              parent_name: (student.parent_name || '').trim() || null,
+              parent_mobile_phone: (student.parent_mobile_phone || '').trim() || null,
+              default_schedules: loadedSchedules,
+              notes: (student.notes || '').trim() || null,
+              status: loadedStatus,
+              first_enrolled_date: loadedFirstEnrolled,
+              current_term_number: loadedTermNumber,
+              terms: stTerms,
+            });
           }
         } catch (e) {
           console.error('Failed to load student details:', e);
@@ -277,6 +347,15 @@ export default function StudentDetailScreen() {
       setStatus('paused');
       setTerms(updated.terms);
       setCurrentTermNumber(updated.current_term_number);
+      if (initialSnapshotRef.current) {
+        const prev = JSON.parse(initialSnapshotRef.current);
+        initialSnapshotRef.current = JSON.stringify({
+          ...prev,
+          status: 'paused',
+          terms: updated.terms,
+          current_term_number: updated.current_term_number,
+        });
+      }
       setPauseModalVisible(false);
       Alert.alert('완료', `${name} 학생이 휴회 처리되었습니다.`);
     } catch (e) {
@@ -296,6 +375,15 @@ export default function StudentDetailScreen() {
       setStatus('active');
       setTerms(updated.terms);
       setCurrentTermNumber(updated.current_term_number);
+      if (initialSnapshotRef.current) {
+        const prev = JSON.parse(initialSnapshotRef.current);
+        initialSnapshotRef.current = JSON.stringify({
+          ...prev,
+          status: 'active',
+          terms: updated.terms,
+          current_term_number: updated.current_term_number,
+        });
+      }
       setResumeModalVisible(false);
       Alert.alert('완료', `${name} 학생의 재수강이 시작되었습니다.`);
     } catch (e) {
@@ -344,11 +432,13 @@ export default function StudentDetailScreen() {
     try {
       if (isEditMode) {
         await Database.updateStudent(studentId, studentData);
+        isSavedRef.current = true;
         Alert.alert('완료', '학생 정보가 수정되었습니다.', [
           { text: '확인', onPress: () => navigation.goBack() },
         ]);
       } else {
         await Database.addStudent(studentData);
+        isSavedRef.current = true;
         Alert.alert('완료', '새로운 학생이 등록되었습니다.', [
           { text: '확인', onPress: () => navigation.goBack() },
         ]);
@@ -372,6 +462,7 @@ export default function StudentDetailScreen() {
           onPress: async () => {
             try {
               await Database.deleteStudent(studentId);
+              isSavedRef.current = true;
               Alert.alert('완료', '학생 주소록이 삭제되었습니다.', [
                 { text: '확인', onPress: () => navigation.goBack() }
               ]);
@@ -429,12 +520,14 @@ export default function StudentDetailScreen() {
                   {status === 'paused' ? '현재 휴회 상태입니다' : `현재 ${currentTermNumber}차 수강 진행 중입니다`}
                 </Text>
                 <Text style={styles.statusSubtitle}>
-                  {status === 'paused'
-                    ? '새 학기/새 차수로 복귀 시 [재수강 시작]을 누르세요'
-                    : '수강을 잠시 쉴 경우 [휴회 처리]를 누르세요'}
+                  {isEditMode
+                    ? status === 'paused'
+                      ? '새 학기/새 차수로 복귀 시 [재수강 시작]을 누르세요'
+                      : '수강을 잠시 쉴 경우 [휴회 처리]를 누르세요'
+                    : '신규 등록 시 초기 수강 상태(재원/휴회)를 전환할 수 있습니다'}
                 </Text>
               </View>
-              {isEditMode && (
+              {isEditMode ? (
                 status === 'paused' ? (
                   <TouchableOpacity
                     style={[styles.statusToggleBtn, styles.statusToggleResumeBtn]}
@@ -452,6 +545,26 @@ export default function StudentDetailScreen() {
                     <Text style={styles.statusToggleBtnText}>휴회 처리</Text>
                   </TouchableOpacity>
                 )
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.statusToggleBtn,
+                    status === 'paused' ? styles.statusToggleResumeBtn : styles.statusTogglePauseBtn,
+                  ]}
+                  onPress={() => setStatus((prev) => (prev === 'paused' ? 'active' : 'paused'))}
+                  accessibilityRole="button"
+                  accessibilityLabel="초기 수강 상태 전환"
+                >
+                  <Feather
+                    name={status === 'paused' ? 'play' : 'pause'}
+                    size={13}
+                    color="#FFF"
+                    style={styles.statusToggleBtnIcon}
+                  />
+                  <Text style={styles.statusToggleBtnText}>
+                    {status === 'paused' ? '재원으로 변경' : '휴회로 변경'}
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
 
@@ -819,17 +932,15 @@ export default function StudentDetailScreen() {
             />
           </View>
 
-          {/* Image Banner */}
-          <View style={styles.bannerContainer}>
-            <ImageBackground
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAr63oG3o8oYQu2EEaS-Thd2tVZ52GxTs5FrMlz_tebRgA4Yhd83V_uHhl2nfKZP18Kki-n0Ot9zb-B5Eojx2iQAAe4wZ98zoe90e9f1IjEAzBkVYZhobCHjY_H-Ux5hvw6d4uS98V-0XcP3GOKpsI-PHfEgLmKZ92SKMpydjFVSU0mt-XzlAqmbXvSrtUGoD6KWSBOSu_tT-mutd-gbuf9HAy1zCGPwHhzrrfwRf4K6UNLnrcQrKwIxkq4hmbthDDk8u-M2Co7UVA' }}
-              style={styles.bannerImage}
-              imageStyle={styles.bannerImageBorder}
-            >
-              <View style={styles.bannerOverlay}>
-                <Text style={styles.bannerText}>기록은 성장의 밑거름입니다.</Text>
-              </View>
-            </ImageBackground>
+          {/* 오프라인 테마 배너 카드 */}
+          <View style={styles.bannerCard}>
+            <View style={styles.bannerIconWrap}>
+              <Feather name="award" size={22} color={theme.colors.primary} />
+            </View>
+            <View style={styles.bannerTextWrap}>
+              <Text style={styles.bannerTitle}>기록은 성장의 밑거름입니다.</Text>
+              <Text style={styles.bannerSubtitle}>학생의 배움과 성장을 차곡차곡 기록해보세요.</Text>
+            </View>
           </View>
 
         </ScrollView>
@@ -860,56 +971,41 @@ export default function StudentDetailScreen() {
         )}
 
         {/* 학생 카드 출력 모달 (프린터 인쇄 vs PDF 공유) */}
-        <Modal
-          animationType="slide"
-          transparent={true}
+        <RecordPrintModal
           visible={printModalVisible}
-          onRequestClose={() => setPrintModalVisible(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setPrintModalVisible(false)}
-          >
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <View style={styles.modalTitleContainer}>
-                  <Text style={styles.modalTitle}>학생 정보 카드 출력</Text>
-                  <Text style={styles.modalSubtitle}>{name || '학생'} 학생의 인적사항 양식</Text>
-                </View>
-                <TouchableOpacity onPress={() => setPrintModalVisible(false)} style={styles.modalCloseBtn}>
-                  <Feather name="x" size={22} color={theme.colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
+          onClose={() => setPrintModalVisible(false)}
+          printType="student"
+          student={getCurrentStudentData()}
+          onPrintStudent={async (targetStudent) => {
+            await printStudentProfile(targetStudent);
+          }}
+          onShareStudent={async (targetStudent) => {
+            await shareStudentProfile(targetStudent);
+          }}
+        />
 
-              {/* 메뉴 1: 무선/유선 프린터로 인쇄 */}
-              <ActionMenuItem
-                icon="printer"
-                iconColor={theme.colors.primary}
-                iconBgColor={theme.colors.primary + '1F'}
-                title="프린터로 인쇄 (A4)"
-                subtitle="Wi-Fi 프린터 연결 또는 시스템 인쇄 창을 엽니다"
-                onPress={async () => {
-                  setPrintModalVisible(false);
-                  await printStudentProfile(getCurrentStudentData());
-                }}
-              />
-
-              {/* 메뉴 2: PDF 파일 공유 (카톡/메시지) */}
-              <ActionMenuItem
-                icon="share-2"
-                iconColor="#0284C7"
-                iconBgColor="#E0F2FE"
-                title="PDF 파일 공유 (카톡/메시지)"
-                subtitle="카카오톡, 문자, 이메일로 PDF 문서를 전송합니다"
-                onPress={async () => {
-                  setPrintModalVisible(false);
-                  await shareStudentProfile(getCurrentStudentData());
-                }}
-              />
-            </View>
-          </TouchableOpacity>
-        </Modal>
+        {/* 미저장 변경사항 이탈 확인 모달 */}
+        <ConfirmModal
+          visible={leaveConfirmVisible}
+          title="저장하지 않고 나가기"
+          message={'저장하지 않은 변경사항이 있습니다.\n저장하지 않고 화면을 나가시겠습니까?'}
+          confirmText="나가기"
+          cancelText="계속 작성"
+          isDestructive={true}
+          onConfirm={() => {
+            setLeaveConfirmVisible(false);
+            isSavedRef.current = true;
+            if (pendingRemoveAction) {
+              navigation.dispatch(pendingRemoveAction);
+            } else {
+              navigation.goBack();
+            }
+          }}
+          onCancel={() => {
+            setLeaveConfirmVisible(false);
+            setPendingRemoveAction(null);
+          }}
+        />
 
         {/* 휴회 처리 입력 모달 */}
         <StudentStatusModal
@@ -955,7 +1051,7 @@ export default function StudentDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.surfaceVariant,
@@ -1115,31 +1211,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textPrimary,
   },
-  bannerContainer: {
+  bannerCard: {
     marginTop: 24,
     marginBottom: 16,
-    height: 128,
+    padding: 18,
     borderRadius: theme.roundness,
-    overflow: 'hidden',
+    backgroundColor: theme.colors.secondaryContainer,
+    borderWidth: 1,
+    borderColor: theme.colors.outlineVariant || theme.colors.outline,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
   },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'flex-end',
+  bannerIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  bannerOverlay: {
-    position: 'absolute',
-    bottom: 16,
-    left: 16,
-    zIndex: 20,
+  bannerTextWrap: {
+    flex: 1,
   },
-  bannerText: {
-    color: theme.colors.white,
-    fontSize: 18,
+  bannerTitle: {
+    fontSize: 15,
     fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    color: theme.colors.onSecondaryContainer || theme.colors.textPrimary,
+    marginBottom: 3,
+  },
+  bannerSubtitle: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
   },
   bottomFixedBar: {
     position: 'absolute',
@@ -1191,59 +1294,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: theme.colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 36,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.surfaceVariant,
-  },
-  modalTitleContainer: {
-    flex: 1,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
-  modalCloseBtn: {
-    padding: 4,
-  },
   headerBtnIcon: {
     marginRight: 4,
   },
   sectionHeaderMargin: {
     marginTop: 24,
-  },
-  bannerImageBorder: {
-    borderRadius: 20,
-  },
-  pdfShareIconBadge: {
-    backgroundColor: '#E0F2FE',
   },
   addSchedBtn: {
     flexDirection: 'row',
