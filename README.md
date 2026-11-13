@@ -1,6 +1,6 @@
-# MyDiary (내 일상 수업 다이어리) - v2.5.0
+# MyDiary (내 일상 수업 다이어리) - v2.6.0
 
-[![Release](https://img.shields.io/badge/Release-v2.5.0-blue.svg)](https://github.com/sbjwin/mydiary/releases)
+[![Release](https://img.shields.io/badge/Release-v2.6.0-blue.svg)](https://github.com/sbjwin/mydiary/releases)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS-green.svg)](#)
 [![React Native](https://img.shields.io/badge/React%20Native-0.86.0-61dafb.svg)](https://reactnative.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
@@ -18,7 +18,16 @@
 
 ---
 
-## 🌟 v2.5.0 주요 기능 및 특징
+## 🌟 v2.6.0 주요 기능 및 특징
+
+*   **전 화면 동적 테마 반응성 복구 및 오프라인 배너 적용 (신규 v2.6.0)**:
+    *   8개 화면 및 공용 컴포넌트의 스타일을 `useMemo` 기반 동적 생성 구조로 전환하여 [설정]에서 테마 프리셋 변경 시 모든 화면에 즉시 반영되도록 개선했습니다.
+    *   학생 상세 화면 상단 배너를 외부 네트워크 이미지 대신 오프라인 테마 반응형 배너 카드로 교체했습니다.
+*   **주간시간표·수업일지·학생상세 모바일 UX 및 안정성 강화 (신규 v2.6.0)**:
+    *   주간시간표 타임라인 진입 시 오늘 요일로 자동 포커스되고 표/탭에 오늘 날짜 강조를 적용했으며, 표 열 너비와 셀 글자 크기를 확대해 모바일 가독성을 높였습니다.
+    *   다중 연락처 매칭 시 통화할 번호 선택창을 제공하며, 학생 상세 화면에서 미저장 변경사항이 있을 경우 이탈 방지 확인 모달을 표시합니다.
+*   **공통 모달 2종 분리 및 시간 피커 통합 (신규 v2.6.0)**:
+    *   `RecordPrintModal`과 `ScheduleEditModal`을 공용 모달로 분리하고, 수업 일지의 인라인 시간 피커를 `TimePickerModal`로 통합해 오전 12시 선택 버그를 수정했습니다.
 
 *   **공통 시간 선택 모달(TimePickerModal) 신설 및 GUI 피커 도입 (신규 v2.5.0)**:
     *   `src/components/modals/TimePickerModal.js`를 신설하여 빠른 시간 프리셋, 오전/오후 탭, 12시/오후 자동 전환, 시/분 그리드 선택 GUI를 제공하고 주간시간표 컴포넌트의 복잡도를 329줄 감축했습니다.

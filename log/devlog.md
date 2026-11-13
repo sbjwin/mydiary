@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-11-13: v2.6.0 공식 마이너 릴리즈 마일스톤 버전 5개 파일 동기화 (by Antigravity)
+
+* **반영 내역 (What landed)**:
+  * **5개 파일 버전 동기화 완료 (`v2.6.0`, Android `versionCode: 10`)**:
+    * [package.json](../package.json): `"version": "2.6.0"`
+    * [app.json](../app.json): `version: "2.6.0"`, `versionCode: 10`
+    * [android/app/build.gradle](../android/app/build.gradle): `versionName "2.6.0"`, `versionCode 10`
+    * [README.md](../README.md): 상단 타이틀, 릴리즈 배지 및 `v2.6.0` 주요 기능 요약(동적 테마 반응성 복구, 주간시간표·학생상세 UX 강화, 공통 모달 2종 분리 및 시간 피커 통합) 반영
+    * [src/screens/HelpScreen.js](../src/screens/HelpScreen.js): `packageJson.version` 동적 연동 확인, 주간시간표 오늘 요일 자동 선택·강조 팁 및 미저장 이탈 방지 FAQ 보강
+
+* **검증 수치 (Numbers)**:
+  * 올인원 품질 게이트 (`cmd /c npm run gate`): 100% 통과
+  * ESLint 무결성: 에러 0건, 경고 0건
+  * Jest 단위 테스트: 6개 스위트, 33개 테스트 전체 통과 (100% PASS)
+  * 정기 프로젝트 건전성 정밀 감사: **100점 / 100점** 달성
+
+* **미해결 과제 (Still open)**:
+  * [docs/gaps.md](file:///d:/development/mydiary/docs/gaps.md)의 `[G1]` HWPX 복수 표 서식 레이아웃 프리셋(표준형, 서술형, 결재란 포함형) 다변화 작업 대기 중.
+  * `v2.6.0` Git 커밋, 태그 생성 및 푸시(CI/CD 릴리즈 빌드 트리거) 대기 중.
+
+---
+
 ## 2026-11-13: 전체 UI/UX 5단계 순차 개선 (동적 테마 반응성, 시간 피커 통합, 주간시간표·학생상세 UX, 공통 모달 2종 분리) (by Antigravity)
 
 * **반영 내역 (What landed)**:
